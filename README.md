@@ -1,233 +1,189 @@
-# 956A Generator
+# Visa Automatic
 
-> The existing Tkinter generator below remains available. Milestones 3 and 4 add
-> a central-backend employee web client under [`frontend`](frontend/README.md);
-> it is developed independently and does not replace the form filler. The
-> backend's deterministic TRV requirement rules are documented in
-> [`backend/REQUIREMENTS.md`](backend/REQUIREMENTS.md).
+Visa Automatic is a case-management and document-preparation system for visa
+application workflows. The current implementation focuses on a canonical,
+auditable Canada workflow operated through an employee web application.
 
-Local desktop prototype for generating Australian Department of Home Affairs Form 956A.
+> **Development status:** The application is not yet approved for production
+> handling of real multi-user customer data because authentication and final
+> deployment hardening are not complete.
 
-## Milestone 3 employee UI (development)
+## Current capabilities
 
-The browser UI coexists with the desktop generator. Start the backend and
-frontend in separate terminals after copying the example environment files:
+The Canada architecture currently includes:
+
+- a canonical CASE / PERSON / FACT / REQUIREMENT / DOCUMENT / TASK model;
+- a deterministic workflow state machine and centralized next-action logic;
+- an employee Next.js web UI backed by FastAPI and PostgreSQL;
+- controlled document upload, metadata assignment, matching, classification,
+  quality review, and requirement-completeness evaluation;
+- WhatsApp text import with deterministic parsing and employee-reviewed fact
+  extraction;
+- a canonical `CanadaApplication` domain model;
+- controlled legacy and Google intake import with preview and conflict review;
+- a preparation-readiness policy and immutable
+  `CanonicalPreparationPayload`;
+- integration with the existing Canada PDF generator through a dedicated
+  adapter;
+- versioned `PreparationRun` and generated-artifact history; and
+- IMM5257, IMM5707, and IMM5476 generation, with conditional IMM5257
+  continuation generation.
+
+Actions that affect facts, document classifications, quality decisions,
+imports, workflow state, or preparation remain explicit and auditable. The
+system does not submit visa applications externally.
+
+## Architecture
+
+```text
+Employee browser
+    ↓
+Next.js
+    ↓
+FastAPI
+    ↓
+PostgreSQL
+    ↓
+private document/generated-artifact storage
+```
+
+The backend owns domain validation, workflow rules, readiness decisions, and
+generation status. The frontend does not duplicate those rules. Uploaded
+documents and generated artifacts are served through controlled backend
+endpoints rather than exposed as static files.
+
+## Canada application workflow
+
+The preparation path is deterministic and based only on reviewed canonical
+data:
+
+```text
+canonical CASE
+→ readiness
+→ CanonicalPreparationPayload
+→ CanadaFormGeneratorAdapter
+→ existing PDF generator
+→ StorageProvider
+→ PreparationRun / PreparationArtifact
+```
+
+Readiness blocks incomplete or unresolved preparation data. A successful run
+records the payload, policy, adapter, template, and artifact hashes needed to
+detect stale or damaged output. Generation produces draft forms only; it does
+not generate Canada letters or perform external submission.
+
+## Repository structure
+
+- `backend/` — FastAPI API, SQLAlchemy domain model, services, migrations, and
+  backend tests.
+- `frontend/` — Next.js/React employee interface and frontend tests.
+- `canada/` — existing Canada intake, review, validation, and PDF-generation
+  components used behind the backend adapter.
+- `australia/` — standalone Australian Form 956A compatibility code.
+- `deployment/` — D1 staging preflight, diagnostics, smoke, backup, restore,
+  and acceptance tooling.
+- `templates/` — Canada and Australia PDF form templates.
+- `tests/` — cross-cutting and legacy compatibility tests.
+- `docs/` — Canada workflow, coverage, reconciliation, and review notes.
+
+## Local development
+
+Prerequisites are Python, Node.js/npm, and a local PostgreSQL database. The
+current container builds use Python 3.13, Node.js 22, and PostgreSQL 17.
+
+Start the backend from the repository root:
 
 ```bash
-# terminal 1, from Programm/
-export DATABASE_URL='postgresql+psycopg://user:password@localhost/visa_automatic'
+python3 -m venv .venv
+source .venv/bin/activate
+python -m pip install -r requirements.txt
+export DATABASE_URL='postgresql+psycopg://user:password@localhost:5432/visa_automatic'
+export CORS_ORIGINS='http://localhost:3000,http://127.0.0.1:3000'
 alembic -c backend/alembic.ini upgrade head
 uvicorn backend.app.main:app --reload
-
-# terminal 2, from Programm/frontend/
-cp .env.example .env.local
-npm install
-npm run dev
 ```
 
-Open `http://localhost:3000/cases`. The existing `Visa Automatic
-starten.command` continues to launch the Tkinter application and was not
-changed.
+Use local development credentials, and create the referenced PostgreSQL
+database before applying migrations. Never commit a populated environment
+file.
 
-## Milestone 4 TRV requirements
-
-The central backend now derives an auditable internal TRV checklist from case
-data and confirmed facts. Automatic entries show their rule provenance in the
-employee UI and may be reevaluated explicitly. This milestone does not upload,
-classify, match, or analyze document files.
-
-## Milestone 5 manual documents
-
-Employees can now upload PDF/JPEG/PNG files to backend-controlled storage,
-assign catalog types and people, download them through the API, and manually
-match them to structurally compatible requirements. A match is evidence
-organization only and does not represent quality approval or automatic
-fulfilment. Storage and matching details are documented in
-[`backend/DOCUMENTS.md`](backend/DOCUMENTS.md).
-
-## Milestone 6 document classification
-
-Employees may explicitly request a catalog type and existing-person suggestion
-for an uploaded file, then accept, correct, or reject it. Suggestions never
-silently replace metadata, create matches, fulfil requirements, or assess file
-quality. The provider boundary, privacy defaults, and audit lifecycle are
-documented in [`backend/CLASSIFICATION.md`](backend/CLASSIFICATION.md).
-
-## Milestone 7 quality and completeness
-
-Employees explicitly run a quality check, inspect structured technical and
-type-specific results, and can accept or reject with an auditable reason.
-Requirement completeness is evaluated across accepted matched evidence and can
-use explicit month coverage without equating file count with coverage. See
-[`backend/QUALITY.md`](backend/QUALITY.md). No external AI is enabled by
-default, and quality/completeness never advances workflow state directly.
-
-## Milestone 8 WhatsApp fact review
-
-Employees can paste WhatsApp conversation text or upload a bounded `.txt`
-export, review deterministic parse diagnostics, and explicitly request
-catalog-limited fact suggestions. Suggestions include confidence, evidence, and
-source-message traceability and must be accepted, corrected, or rejected before
-they can affect confirmed case facts. Conflicts preserve the previous fact and
-are surfaced as the backend Next Action. Extraction is disabled by default and
-no transcript is sent to an external AI unless a future production provider is
-explicitly configured. See [`backend/WHATSAPP.md`](backend/WHATSAPP.md).
-
-## Milestone 9A canonical Canada application
-
-The central backend and employee UI now maintain a typed Canada application
-aggregate with explicit applicant selection, purpose review, contextual
-addresses, stable ordered histories, official answers, immutable representative
-snapshots, and field provenance. This is data maintenance only: it does not call
-the existing generator or import legacy/Google data. See
-[`backend/CANADA_APPLICATION.md`](backend/CANADA_APPLICATION.md).
-
-## Milestone 9B controlled Canada import
-
-Employees can preview and review existing verified Google CSV,
-`.canada-case.json`, and representative-profile sources before applying typed
-canonical changes. Conflicts never overwrite confirmed values through the safe
-batch, repeated imports reuse stable linked records, and raw source uploads are
-not retained. See [`backend/CANADA_IMPORTS.md`](backend/CANADA_IMPORTS.md).
-This milestone still does not call a form filler, letter generator, or PDF code.
-
-## Milestone 9C/9D Canada preparation and forms
-
-The backend validates one immutable canonical Canada payload, hashes it, and
-passes it through a dedicated adapter to the existing tested IMM5257, IMM5707,
-and IMM5476 generator. Generated PDFs are stored privately as auditable
-PreparationArtifacts; staleness and integrity drive the PREPARE-to-REVIEW gate.
-See [`backend/CANADA_PREPARATION.md`](backend/CANADA_PREPARATION.md) and
-[`backend/CANADA_GENERATION.md`](backend/CANADA_GENERATION.md). No Canada letter
-generator or external visa submission exists.
-
-## D1 Raspberry Pi staging deployment
-
-The existing application can be packaged for a Raspberry Pi 4 8 GB as a
-PostgreSQL/FastAPI/Next.js/Caddy Compose stack with SSD/NVMe bind-mounted
-persistence. This is a synthetic-data development/staging target only; the
-application still has no production authentication. Follow
-[`DEPLOYMENT_D1.md`](DEPLOYMENT_D1.md), including the D1.1 preflight/report
-sequence, and do not claim Raspberry validation until every on-device check
-actually passes.
-
-## Current workflow
-
-1. Customer completes the existing Google Form.
-2. Staff provides either:
-   - **Google Forms / Google Sheets CSV export** (preferred), or
-   - the current **Google Forms response PDF export** (secondary adapter).
-3. The app extracts applicant data.
-4. Staff reviews/corrects extracted values and supplies only unresolved 956A-specific values:
-   - Title (unless later supplied/inferred from structured sex + marital-status fields)
-   - CID, if one exists
-   - Date lodged
-   - optional RID/TRN
-5. Authorised-recipient fields start empty and are entered once in Settings.
-6. App generates an editable 956A PDF and leaves signatures blank for Adobe/signing.
-
-## Business rules currently encoded
-
-- Q1: Appointing an authorised recipient
-- Q2: Visa applicant
-- Q3: CID = Yes only when a CID value is provided; otherwise No
-- Q8: `AS ABOVE`
-- Q10: blank (one separate 956A per person)
-- Q11: No
-- Q12: Application process
-- Q12 Type of application: `Visitor Visa - Subclass 600`
-- Q12 Date lodged: supplied by staff / defaults to today's date in the GUI after reading a source
-- Q13 RID/TRN: optional
-- Q14-Q19: authorised recipient from local Settings
-- Q19: electronic communication = Yes
-- Q28/Q29: Appointment selected; signatures remain blank; declaration dates use the generation date
-
-**Important correction:** on this 956A version, the `Application process` branch has a single `Type of application` field. The separate `Subclass of visa` field belongs to the `Cancellation process` branch. Therefore the prototype writes `Visitor Visa - Subclass 600` into `Type of application`.
-
-## Run on macOS (development)
+In another terminal, start the employee frontend:
 
 ```bash
-python3 -m pip install -r requirements.txt
-python3 app.py
+cp frontend/.env.example frontend/.env.local
+npm --prefix frontend ci
+npm --prefix frontend run dev
 ```
 
-Or double-click `run_mac.command` after allowing it to run.
-
-## Run on Windows (development)
-
-```bat
-py -m pip install -r requirements.txt
-py app.py
-```
-
-## Build a Windows EXE
-
-On a Windows computer, double-click:
-
-`build_windows.bat`
-
-The result is:
-
-`dist\956A_Generator.exe`
-
-Python is not required on the employees' computers after the EXE has been built.
-
-## Recipient settings
-
-Open **Recipient settings...** in the app and enter the Q14-Q19 authorised-recipient data once.
-Settings are stored in the user's application-data directory, not inside client PDFs.
-
-## Source reliability
-
-### CSV - preferred
-CSV preserves Google Forms answers as structured values. This is the production path.
-
-### Google Forms PDF export - secondary
-The old and revised (23-page) print/export is not an AcroForm. The prototype can extract core text answers by question labels across pages without OCR, but selected radio buttons are not structurally encoded. The app therefore does not try to infer them from graphics.
-
-## Data currently extracted from the supplied PDF export
-
-- Family name
-- Given names
-- Date of birth
-- Marital status
-- Residential address
-- Mobile phone
-- Email (kept as source metadata; applicant email is not required in Part A of 956A)
-
-## Safety / validation
-
-The generator refuses to create a final PDF when key applicant or authorised-recipient data is missing. All extracted values remain editable before generation.
-
-## 0.1.1
-- Added vertical scrolling to the main application window.
-- Added vertical scrolling to Authorised recipient settings.
-- Mouse wheel / trackpad scrolling is supported on macOS and Windows.
-
-## Current import and settings behavior
-
-The central backend's Milestone 9C preparation standard is documented in
-[`backend/CANADA_PREPARATION.md`](backend/CANADA_PREPARATION.md). It evaluates
-canonical data and produces a deterministic semantic payload/hash only; the
-legacy desktop generator remains unchanged and is not called by M9C.
-
-- Revised Google Forms exports contain separate City, State and Postcode / CEP questions.
-  CSV and PDF imports retain these fields; the UI allows corrections before generation.
-- PDF question lookup is independent of page numbers. Example text and printed
-  radio/dropdown options are not imported as answers. Blank forms stay blank.
-- For printed state/country/marital-status choices, use CSV or enter the answer manually.
-- All recipient fields are empty on a fresh installation. Settings from every older
-  version preserve saved values and explicit blanks without injecting personal data.
-- Q12 is `VISITOR VISA - SUBCLASS 600`; Q28/Q29 use today's local date.
-- Automated Windows releases provide an installer and portable ZIP.
-
-### Publish a Windows release from GitHub
-
-Push the repository, then create and push a version tag, for example:
+Open `http://localhost:3000/cases`. Useful verification commands are:
 
 ```bash
-git tag v0.1.3
-git push origin v0.1.3
+pytest -q
+npm --prefix frontend run test:run
+npm --prefix frontend run build
 ```
 
-The GitHub workflow `.github/workflows/windows-release.yml` builds the EXE and installer on a real Windows runner and creates a GitHub Release automatically.
+The full Docker Compose stack is the D1 staging configuration, not a production
+deployment. Its environment, persistence, and validation procedure are covered
+in the deployment guide below.
+
+## Raspberry Pi staging deployment
+
+[DEPLOYMENT_D1.md](DEPLOYMENT_D1.md) describes the Compose-based staging stack,
+preflight checks, persistence, diagnostics, smoke testing, backup, and restore
+validation.
+
+The current staging target is a Raspberry Pi 4 with 8 GB RAM running 64-bit
+Linux ARM64 with SSD/NVMe-backed persistence. D1.1 Mac-side deployment
+hardening is complete, but real on-device Raspberry Pi/Linux ARM64 validation
+is still pending. **D1 is not accepted and this is not a production
+deployment.**
+
+## Current project status
+
+Completed:
+
+- M1 through M9D;
+- D1.1 Mac-side deployment hardening.
+
+Not yet accepted or completed:
+
+- real Raspberry Pi / Linux ARM64 D1 deployment validation;
+- application authentication, users, roles, and MFA;
+- production deployment;
+- direct WhatsApp Business API integration;
+- external LLM provider integration;
+- letter generation;
+- external visa submission; and
+- Tauri/Windows packaging.
+
+## Legacy Australian 956A generator
+
+The standalone Australian Form 956A generator remains in this repository for
+compatibility and history. It is not the identity or primary purpose of this
+repository. New Visa Automatic development centers on the backend/frontend
+case-management and document-preparation architecture.
+
+## Security and privacy
+
+- Use synthetic data for development and staging.
+- Do not commit customer data, secrets, populated environment files, uploads,
+  backups, database dumps, WhatsApp exports, or generated customer PDFs.
+- External AI and fact-extraction providers are disabled by default.
+- Private storage must remain behind the backend; do not expose storage roots
+  through the web server.
+- Do not expose the staging stack to the public Internet.
+
+## Documentation
+
+- [Backend overview](backend/README.md)
+- [Workflow architecture](backend/WORKFLOW.md)
+- [Document storage and matching](backend/DOCUMENTS.md)
+- [Document classification](backend/CLASSIFICATION.md)
+- [Document quality and completeness](backend/QUALITY.md)
+- [WhatsApp import and fact review](backend/WHATSAPP.md)
+- [Canonical Canada application](backend/CANADA_APPLICATION.md)
+- [Controlled Canada intake imports](backend/CANADA_IMPORTS.md)
+- [Canada preparation readiness](backend/CANADA_PREPARATION.md)
+- [Canada form generation](backend/CANADA_GENERATION.md)
+- [D1 staging deployment](DEPLOYMENT_D1.md)

@@ -64,3 +64,9 @@ canada-drafts-*/
 .pytest_cache/
 .coverage
 htmlcov/
+
+# Local Codex instructions
+/AGENTS.md
+
+# Local Codex instructions
+/Agent.md
