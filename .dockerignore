@@ -44,6 +44,9 @@ run_mac.command
 requirements.txt
 backend/storage
 backend/generated-storage
+# Application source; this must remain in the backend image.
+!backend/app/storage
+!backend/app/storage/*.py
 document-storage
 generated-artifact-storage
 canada-drafts-*

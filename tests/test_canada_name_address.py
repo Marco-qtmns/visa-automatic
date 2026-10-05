@@ -11,7 +11,7 @@ from canada.review import ReviewSession
 from canada.validation import validate_case
 from canada.case_store import save_case, load_case
 from canada.pdf_drafts import generate_drafts
-from test_canada_pdf_drafts import data
+from tests.test_canada_pdf_drafts import data
 
 ADDRESS='Rua das Acácias, 123, Apto 41, Jardim Modelo, Campinas, SP, Brasil (endereço fictício)'
 

@@ -88,24 +88,29 @@ not generate Canada letters or perform external submission.
 
 ## Local development
 
-Prerequisites are Python, Node.js/npm, and a local PostgreSQL database. The
-current container builds use Python 3.13, Node.js 22, and PostgreSQL 17.
+Prerequisites are Python 3.13, Node.js/npm, and a local PostgreSQL database.
+Python 3.13 is the supported development and deployment version; Python 3.14
+is not currently part of the tested dependency target. The current container
+builds use Python 3.13, Node.js 22, and PostgreSQL 17.
 
 Start the backend from the repository root:
 
 ```bash
-python3 -m venv .venv
+python3.13 -m venv .venv
 source .venv/bin/activate
 python -m pip install -r requirements.txt
 export DATABASE_URL='postgresql+psycopg://user:password@localhost:5432/visa_automatic'
 export CORS_ORIGINS='http://localhost:3000,http://127.0.0.1:3000'
 alembic -c backend/alembic.ini upgrade head
-uvicorn backend.app.main:app --reload
+python -m uvicorn backend.app.main:app --reload
 ```
 
 Use local development credentials, and create the referenced PostgreSQL
 database before applying migrations. Never commit a populated environment
-file.
+file. Run backend commands from the repository root. The FastAPI package is
+`backend.app`; the root-level `app.py` is the standalone desktop compatibility
+application, so `import app` from the repository root intentionally does not
+refer to the backend.
 
 In another terminal, start the employee frontend:
 
@@ -115,7 +120,9 @@ npm --prefix frontend ci
 npm --prefix frontend run dev
 ```
 
-Open `http://localhost:3000/cases`. Useful verification commands are:
+The backend API is available at `http://localhost:8000` (including
+`http://localhost:8000/health/live`) and the employee UI at
+`http://localhost:3000/cases`. Useful verification commands are:
 
 ```bash
 pytest -q

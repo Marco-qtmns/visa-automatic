@@ -34,6 +34,10 @@ canada-drafts-*/
 /output/
 /backend/storage/
 /backend/generated-storage/
+# Application source, not runtime storage. Keep this explicit if storage
+# exclusions are broadened in the future.
+!/backend/app/storage/
+!/backend/app/storage/*.py
 /document-storage/
 /deployment/reports/
 /classification-dumps/

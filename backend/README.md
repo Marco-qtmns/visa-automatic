@@ -6,13 +6,18 @@ application and is not coupled to this backend yet.
 
 ## Run
 
-Set a PostgreSQL connection string and apply the migration:
+Use Python 3.13 and run commands from the repository root. Set a PostgreSQL
+connection string and apply the migration:
 
 ```bash
 export DATABASE_URL='postgresql+psycopg://user:password@localhost/visa_automatic'
 alembic -c backend/alembic.ini upgrade head
-uvicorn backend.app.main:app --reload
+python -m uvicorn backend.app.main:app --reload
 ```
+
+The backend's import path is `backend.app`. Do not add `backend/` to
+`PYTHONPATH` and import a top-level package named `app`: the repository also
+contains the intentionally retained desktop compatibility module `app.py`.
 
 `DATABASE_URL` defaults to a local PostgreSQL database named `visa_automatic`.
 SQLite is supported only by the isolated automated tests.

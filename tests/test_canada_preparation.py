@@ -13,7 +13,7 @@ from canada.case_store import save_case, load_case
 from canada.pdf_drafts import generate_drafts
 from canada.representative_store import save_profile, apply_default_profile
 from canada.compact_review import review_findings
-from test_canada_pdf_drafts import data
+from tests.test_canada_pdf_drafts import data
 
 
 class PreparationTests(unittest.TestCase):
