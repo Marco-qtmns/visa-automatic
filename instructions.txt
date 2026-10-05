@@ -1,0 +1,125 @@
+956A GENERATOR - WINDOWS INSTALLATION AND USE
+Version 0.1.6
+
+FOR STAFF / WORKER
+==================
+
+WHAT YOU NEED
+-------------
+- Windows 10 or Windows 11
+- Adobe Acrobat Reader for reviewing/signing the generated PDF
+- Access to the company's GitHub repository
+- No Python installation is required
+
+INSTALL FROM GITHUB
+-------------------
+1. Open the company's 956A Generator repository on GitHub.
+2. On the right side of the repository page, open "Releases".
+3. Open the newest release marked "Latest".
+4. Under "Assets", download:
+
+       956A_Generator_Setup.exe
+
+5. Open the downloaded file.
+6. Follow the installer. The application installs only for your Windows user account;
+   administrator rights should not be required.
+7. When installation is complete, launch "956A Generator" from the Start Menu or
+   the optional Desktop shortcut.
+
+WINDOWS SMARTSCREEN
+-------------------
+The internal application is currently not code-signed. Windows may therefore show:
+
+    "Windows protected your PC"
+
+If you downloaded the file from the official company GitHub repository/release:
+1. Click "More info".
+2. Confirm that the application is "956A_Generator_Setup.exe".
+3. Click "Run anyway".
+
+Do NOT disable Windows Defender or antivirus software. If company policy blocks the
+application completely, contact the person responsible for IT.
+
+OPTIONAL FILE-INTEGRITY CHECK
+-----------------------------
+Every GitHub release also contains:
+
+    956A_Generator_Setup.exe.sha256
+
+To verify the download, open PowerShell in the Downloads folder and run:
+
+    Get-FileHash .\956A_Generator_Setup.exe -Algorithm SHA256
+
+Compare the displayed hash with the value in the .sha256 file from the same GitHub release.
+
+FIRST START
+-----------
+All authorised-recipient fields are empty on a fresh installation.
+Open "Recipient settings...", enter the employee-approved Q14-Q19 details,
+and save them once. These local settings are reused for future forms.
+Updates preserve saved details, including blank values; older settings never
+receive a hardcoded address or telephone number.
+
+NORMAL WORKFLOW
+---------------
+1. Start "956A Generator".
+2. Under "Source", click "Browse...".
+3. Select the client's Google Forms/Google Sheets CSV export (preferred), or the
+   supported Google Forms response PDF.
+4. Click "Read client data".
+5. Check the extracted applicant data, including City, State and Postcode / CEP.
+   A blank form PDF contains no client answers. Use a completed response export.
+   Printed dropdown/radio selections must be reviewed manually or imported via CSV.
+6. Complete only the unresolved 956A-specific information when applicable:
+   - Applicant title (Mr / Mrs / Miss / Ms / Other)
+   - Home Affairs Client ID (CID), if the client already has one
+   - Date lodged (the actual date the visa application is submitted)
+   - RID, if known
+   - TRN, if known
+7. Choose the output folder.
+8. Click "Generate 956A".
+9. Open the generated PDF in Adobe Acrobat Reader.
+10. Review the form carefully and complete the required signatures. Declaration dates default to the generation date.
+
+AUTOMATIC RULES
+---------------
+The program currently fills these items automatically:
+- Q1: Appointing an authorised recipient
+- Q2: Visa applicant
+- Q3: No if no CID is entered; Yes + CID if a CID is entered
+- Q8: AS ABOVE
+- Q10: left blank (one separate 956A is produced per person)
+- Q11: No
+- Q12: Application process
+- Q12 Type of application: Visitor Visa - Subclass 600
+- Q14-Q19: authorised-recipient data stored in the application
+- Q19: electronic communication = Yes
+- Q28/Q29: Appointment selected; signatures remain blank
+
+UPDATING THE APPLICATION
+------------------------
+1. Open the same GitHub repository.
+2. Go to "Releases".
+3. Download the newest "956A_Generator_Setup.exe".
+4. Run it. The new version can be installed over the existing version.
+
+Your local settings are stored separately in:
+
+    %APPDATA%\956A Generator\settings.json
+
+Updating the application should therefore not delete your saved settings.
+
+UNINSTALL
+---------
+Windows Settings -> Apps -> Installed apps -> 956A Generator -> Uninstall
+
+TROUBLESHOOTING
+---------------
+- Application does not start: restart Windows once and try again. If it still fails,
+  report the exact Windows error message.
+- PDF generates but looks wrong: open it in Adobe Acrobat Reader and report which
+  question/field is wrong.
+- Client data is missing after "Read client data": do not guess. Correct the field
+  manually and report the source-file format so the extractor can be improved.
+- Do not print/scan the PDF merely to make it non-editable unless your internal process
+  specifically requires that step.

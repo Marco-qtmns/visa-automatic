@@ -1,0 +1,15 @@
+.git
+.DS_Store
+node_modules
+.next
+coverage
+out
+.cache
+.turbo
+.eslintcache
+.stylelintcache
+.env
+.env.*
+npm-debug.log*
+yarn-error.log*
+*.log

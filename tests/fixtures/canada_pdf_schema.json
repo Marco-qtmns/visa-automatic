@@ -1,0 +1,1157 @@
+{
+  "provenance": "Question labels extracted from the supplied blank Google Forms PDF; not verified Google Sheets headers. No response values.",
+  "questions": [
+    {
+      "question_number": 1,
+      "page": 1,
+      "source_header_raw": "Nome completo, conforme o passaporte *",
+      "source_header": "Nome completo, conforme o passaporte",
+      "required": true
+    },
+    {
+      "question_number": 2,
+      "page": 1,
+      "source_header_raw": "Já usou outro nome?\n*",
+      "source_header": "Já usou outro nome?",
+      "required": true,
+      "separate_prompt_instruction": "Se sim, informar todos os outros nomes que já usou no campo \"Outro\""
+    },
+    {
+      "question_number": 3,
+      "page": 1,
+      "source_header_raw": "Data de nascimento *",
+      "source_header": "Data de nascimento",
+      "required": true
+    },
+    {
+      "question_number": 4,
+      "page": 1,
+      "source_header_raw": "Cidade de nascimento *",
+      "source_header": "Cidade de nascimento",
+      "required": true
+    },
+    {
+      "question_number": 5,
+      "page": 2,
+      "source_header_raw": "Estado de nascimento *",
+      "source_header": "Estado de nascimento",
+      "required": true
+    },
+    {
+      "question_number": 6,
+      "page": 2,
+      "source_header_raw": "Qual é sua nacionalidade? *",
+      "source_header": "Qual é sua nacionalidade?",
+      "required": true
+    },
+    {
+      "question_number": 7,
+      "page": 3,
+      "source_header_raw": "Possui outra cidadania?\n*",
+      "source_header": "Possui outra cidadania?",
+      "required": true,
+      "separate_prompt_instruction": "Se sim, forneça todas as outras nacionalidades no campo \"Outro\""
+    },
+    {
+      "question_number": 8,
+      "page": 3,
+      "source_header_raw": "Em qual país reside atualmente? *",
+      "source_header": "Em qual país reside atualmente?",
+      "required": true
+    },
+    {
+      "question_number": 9,
+      "page": 3,
+      "source_header_raw": "Qual é seu status no país de residência? *",
+      "source_header": "Qual é seu status no país de residência?",
+      "required": true
+    },
+    {
+      "question_number": 10,
+      "page": 3,
+      "source_header_raw": "Desde quando você reside nesse país?",
+      "source_header": "Desde quando você reside nesse país?",
+      "required": false
+    },
+    {
+      "question_number": 11,
+      "page": 3,
+      "source_header_raw": "Nos últimos 5 anos, você morou em algum outro país por 6 meses ou mais? *",
+      "source_header": "Nos últimos 5 anos, você morou em algum outro país por 6 meses ou mais?",
+      "required": true
+    },
+    {
+      "question_number": 12,
+      "page": 4,
+      "source_header_raw": "Se sim, informe: país + status nesse país + data de início da residência + data de término da residência *",
+      "source_header": "Se sim, informe: país + status nesse país + data de início da residência + data de término da residência",
+      "required": true
+    },
+    {
+      "question_number": 13,
+      "page": 4,
+      "source_header_raw": "Estado civil atual *",
+      "source_header": "Estado civil atual",
+      "required": true
+    },
+    {
+      "question_number": 14,
+      "page": 4,
+      "source_header_raw": "Data em que seu casamento/união estável começou *",
+      "source_header": "Data em que seu casamento/união estável começou",
+      "required": true
+    },
+    {
+      "question_number": 15,
+      "page": 4,
+      "source_header_raw": "Sobrenome do cônjuge *",
+      "source_header": "Sobrenome do cônjuge",
+      "required": true
+    },
+    {
+      "question_number": 16,
+      "page": 4,
+      "source_header_raw": "Nome do cônjuge *",
+      "source_header": "Nome do cônjuge",
+      "required": true
+    },
+    {
+      "question_number": 17,
+      "page": 4,
+      "source_header_raw": "Você já foi casado ou esteve em união estável anteriormente? *",
+      "source_header": "Você já foi casado ou esteve em união estável anteriormente?",
+      "required": true
+    },
+    {
+      "question_number": 18,
+      "page": 5,
+      "source_header_raw": "Nome completo do ex-cônjuge *",
+      "source_header": "Nome completo do ex-cônjuge",
+      "required": true
+    },
+    {
+      "question_number": 19,
+      "page": 5,
+      "source_header_raw": "Data de nascimento do ex-cônjuge *",
+      "source_header": "Data de nascimento do ex-cônjuge",
+      "required": true
+    },
+    {
+      "question_number": 20,
+      "page": 5,
+      "source_header_raw": "Qual foi o tipo de relacionamento? *",
+      "source_header": "Qual foi o tipo de relacionamento?",
+      "required": true
+    },
+    {
+      "question_number": 21,
+      "page": 5,
+      "source_header_raw": "Data de início do antigo relacionamento *",
+      "source_header": "Data de início do antigo relacionamento",
+      "required": true
+    },
+    {
+      "question_number": 22,
+      "page": 5,
+      "source_header_raw": "Data de término do antigo relacionamento *",
+      "source_header": "Data de término do antigo relacionamento",
+      "required": true
+    },
+    {
+      "question_number": 23,
+      "page": 5,
+      "source_header_raw": "Cidade de nascimento do ex-cônjuge *",
+      "source_header": "Cidade de nascimento do ex-cônjuge",
+      "required": true
+    },
+    {
+      "question_number": 24,
+      "page": 5,
+      "source_header_raw": "Ocupação atual do ex-cônjuge *",
+      "source_header": "Ocupação atual do ex-cônjuge",
+      "required": true
+    },
+    {
+      "question_number": 25,
+      "page": 5,
+      "source_header_raw": "Endereço atual do ex-cônjuge *",
+      "source_header": "Endereço atual do ex-cônjuge",
+      "required": true
+    },
+    {
+      "question_number": 26,
+      "page": 5,
+      "source_header_raw": "Você consegue se comunicar em inglês, francês ou ambos? *",
+      "source_header": "Você consegue se comunicar em inglês, francês ou ambos?",
+      "required": true
+    },
+    {
+      "question_number": 27,
+      "page": 6,
+      "source_header_raw": "Número do passaporte *",
+      "source_header": "Número do passaporte",
+      "required": true
+    },
+    {
+      "question_number": 28,
+      "page": 6,
+      "source_header_raw": "País que emitiu o passaporte *",
+      "source_header": "País que emitiu o passaporte",
+      "required": true
+    },
+    {
+      "question_number": 29,
+      "page": 6,
+      "source_header_raw": "Data de emissão do passaporte *",
+      "source_header": "Data de emissão do passaporte",
+      "required": true
+    },
+    {
+      "question_number": 30,
+      "page": 6,
+      "source_header_raw": "Data de validade do passaporte *",
+      "source_header": "Data de validade do passaporte",
+      "required": true
+    },
+    {
+      "question_number": 31,
+      "page": 6,
+      "source_header_raw": "Você possui outro passaporte válido? *",
+      "source_header": "Você possui outro passaporte válido?",
+      "required": true
+    },
+    {
+      "question_number": 32,
+      "page": 6,
+      "source_header_raw": "Se sim, informe país e número do outro passaporte *",
+      "source_header": "Se sim, informe país e número do outro passaporte",
+      "required": true
+    },
+    {
+      "question_number": 33,
+      "page": 6,
+      "source_header_raw": "Número da identidade *",
+      "source_header": "Número da identidade",
+      "required": true
+    },
+    {
+      "question_number": 34,
+      "page": 6,
+      "source_header_raw": "Data de emissão da identidade *",
+      "source_header": "Data de emissão da identidade",
+      "required": true
+    },
+    {
+      "question_number": 35,
+      "page": 6,
+      "source_header_raw": "Data de validade da identidade *",
+      "source_header": "Data de validade da identidade",
+      "required": true
+    },
+    {
+      "question_number": 36,
+      "page": 7,
+      "source_header_raw": "Você é residente permanente legal dos Estados Unidos e possui um Green Card válido?\n*",
+      "source_header": "Você é residente permanente legal dos Estados Unidos e possui um Green Card válido?",
+      "required": true,
+      "separate_prompt_instruction": "Se sim, forneça número e data de validade do Green Card no campo \"Outro\""
+    },
+    {
+      "question_number": 37,
+      "page": 7,
+      "source_header_raw": "Endereço completo *",
+      "source_header": "Endereço completo",
+      "required": true
+    },
+    {
+      "question_number": 38,
+      "page": 7,
+      "source_header_raw": "Cidade *",
+      "source_header": "Cidade",
+      "required": true
+    },
+    {
+      "question_number": 39,
+      "page": 8,
+      "source_header_raw": "Estado *",
+      "source_header": "Estado",
+      "required": true
+    },
+    {
+      "question_number": 40,
+      "page": 8,
+      "source_header_raw": "CEP *",
+      "source_header": "CEP",
+      "required": true
+    },
+    {
+      "question_number": 41,
+      "page": 8,
+      "source_header_raw": "E-mail *",
+      "source_header": "E-mail",
+      "required": true
+    },
+    {
+      "question_number": 42,
+      "page": 9,
+      "source_header_raw": "Telefone *",
+      "source_header": "Telefone",
+      "required": true
+    },
+    {
+      "question_number": 43,
+      "page": 9,
+      "source_header_raw": "Qual é o principal objetivo da sua viagem ao Canadá? *",
+      "source_header": "Qual é o principal objetivo da sua viagem ao Canadá?",
+      "required": true
+    },
+    {
+      "question_number": 44,
+      "page": 9,
+      "source_header_raw": "Data prevista de chegada no Canadá *",
+      "source_header": "Data prevista de chegada no Canadá",
+      "required": true
+    },
+    {
+      "question_number": 45,
+      "page": 9,
+      "source_header_raw": "Data prevista de saída do Canadá *",
+      "source_header": "Data prevista de saída do Canadá",
+      "required": true
+    },
+    {
+      "question_number": 46,
+      "page": 9,
+      "source_header_raw": "Quantos dias pretende permanecer no Canadá? *",
+      "source_header": "Quantos dias pretende permanecer no Canadá?",
+      "required": true
+    },
+    {
+      "question_number": 47,
+      "page": 9,
+      "source_header_raw": "Valor aproximado que pretende gastar durante a viagem no Canadá? *",
+      "source_header": "Valor aproximado que pretende gastar durante a viagem no Canadá?",
+      "required": true
+    },
+    {
+      "question_number": 48,
+      "page": 9,
+      "source_header_raw": "Quem pagará pelos custos da viagem? *",
+      "source_header": "Quem pagará pelos custos da viagem?",
+      "required": true
+    },
+    {
+      "question_number": 49,
+      "page": 10,
+      "source_header_raw": "Caso outra pessoa ou empresa pague pela viagem, informe quem será responsável pelos custos *",
+      "source_header": "Caso outra pessoa ou empresa pague pela viagem, informe quem será responsável pelos custos",
+      "required": true
+    },
+    {
+      "question_number": 50,
+      "page": 10,
+      "source_header_raw": "Você pretende visitar alguma pessoa ou instituição no Canadá? *",
+      "source_header": "Você pretende visitar alguma pessoa ou instituição no Canadá?",
+      "required": true
+    },
+    {
+      "question_number": 51,
+      "page": 10,
+      "source_header_raw": "Nome completo da pessoa/instituição *",
+      "source_header": "Nome completo da pessoa/instituição",
+      "required": true
+    },
+    {
+      "question_number": 52,
+      "page": 10,
+      "source_header_raw": "Relação com você *",
+      "source_header": "Relação com você",
+      "required": true
+    },
+    {
+      "question_number": 53,
+      "page": 10,
+      "source_header_raw": "Se for familiar, qual é o grau de parentesco com você? *",
+      "source_header": "Se for familiar, qual é o grau de parentesco com você?",
+      "required": true
+    },
+    {
+      "question_number": 54,
+      "page": 11,
+      "source_header_raw": "Status dessa pessoa no Canadá *",
+      "source_header": "Status dessa pessoa no Canadá",
+      "required": true
+    },
+    {
+      "question_number": 55,
+      "page": 11,
+      "source_header_raw": "Endereço completo no Canadá *",
+      "source_header": "Endereço completo no Canadá",
+      "required": true
+    },
+    {
+      "question_number": 56,
+      "page": 11,
+      "source_header_raw": "Código postal (postal code) *",
+      "source_header": "Código postal (postal code)",
+      "required": true
+    },
+    {
+      "question_number": 57,
+      "page": 11,
+      "source_header_raw": "Telefone *",
+      "source_header": "Telefone",
+      "required": true
+    },
+    {
+      "question_number": 58,
+      "page": 11,
+      "source_header_raw": "E-mail *",
+      "source_header": "E-mail",
+      "required": true
+    },
+    {
+      "question_number": 59,
+      "page": 11,
+      "source_header_raw": "Qual seu nível de formação educacional mais recente? *",
+      "source_header": "Qual seu nível de formação educacional mais recente?",
+      "required": true
+    },
+    {
+      "question_number": 60,
+      "page": 12,
+      "source_header_raw": "Nome da instituição de ensino mais recente *",
+      "source_header": "Nome da instituição de ensino mais recente",
+      "required": true
+    },
+    {
+      "question_number": 61,
+      "page": 12,
+      "source_header_raw": "Curso *",
+      "source_header": "Curso",
+      "required": true
+    },
+    {
+      "question_number": 62,
+      "page": 12,
+      "source_header_raw": "Data de início do curso *",
+      "source_header": "Data de início do curso",
+      "required": true
+    },
+    {
+      "question_number": 63,
+      "page": 12,
+      "source_header_raw": "Data de conclusão do curso *",
+      "source_header": "Data de conclusão do curso",
+      "required": true
+    },
+    {
+      "question_number": 64,
+      "page": 12,
+      "source_header_raw": "País onde estudou *",
+      "source_header": "País onde estudou",
+      "required": true
+    },
+    {
+      "question_number": 65,
+      "page": 12,
+      "source_header_raw": "Data de início do emprego atual *",
+      "source_header": "Data de início do emprego atual",
+      "required": true
+    },
+    {
+      "question_number": 66,
+      "page": 12,
+      "source_header_raw": "Qual é sua profissão atual? *",
+      "source_header": "Qual é sua profissão atual?",
+      "required": true
+    },
+    {
+      "question_number": 67,
+      "page": 12,
+      "source_header_raw": "Descreva brevemente sua função atual *",
+      "source_header": "Descreva brevemente sua função atual",
+      "required": true
+    },
+    {
+      "question_number": 68,
+      "page": 12,
+      "source_header_raw": "Nome da empresa/instituição *",
+      "source_header": "Nome da empresa/instituição",
+      "required": true
+    },
+    {
+      "question_number": 69,
+      "page": 12,
+      "source_header_raw": "Cidade da empresa/instituição *",
+      "source_header": "Cidade da empresa/instituição",
+      "required": true
+    },
+    {
+      "question_number": 70,
+      "page": 13,
+      "source_header_raw": "Estado da empresa/instituição *",
+      "source_header": "Estado da empresa/instituição",
+      "required": true,
+      "control": "checkboxes (multiple states allowed)"
+    },
+    {
+      "question_number": 71,
+      "page": 13,
+      "source_header_raw": "Você exerceu outras atividades profissionais nos últimos 10 anos? *",
+      "source_header": "Você exerceu outras atividades profissionais nos últimos 10 anos?",
+      "required": true
+    },
+    {
+      "question_number": 72,
+      "page": 14,
+      "source_header_raw": "Tipo de atividade *",
+      "source_header": "Tipo de atividade",
+      "required": true,
+      "activity_block_options": [
+        "Emprego",
+        "Trabalho autônomo / profissional liberal",
+        "Empresário",
+        "Estudante",
+        "Desempregado",
+        "Aposentado",
+        "Outro:"
+      ]
+    },
+    {
+      "question_number": 73,
+      "page": 14,
+      "source_header_raw": "Data de início *",
+      "source_header": "Data de início",
+      "required": true
+    },
+    {
+      "question_number": 74,
+      "page": 14,
+      "source_header_raw": "Data de término *",
+      "source_header": "Data de término",
+      "required": true,
+      "separate_prompt_instruction": "Se ainda exerce essa atividade, preencher a data de hoje."
+    },
+    {
+      "question_number": 75,
+      "page": 14,
+      "source_header_raw": "Cargo *",
+      "source_header": "Cargo",
+      "required": true
+    },
+    {
+      "question_number": 76,
+      "page": 14,
+      "source_header_raw": "Nome da empresa, empregador ou instituição *",
+      "source_header": "Nome da empresa, empregador ou instituição",
+      "required": true
+    },
+    {
+      "question_number": 77,
+      "page": 14,
+      "source_header_raw": "Cidade *",
+      "source_header": "Cidade",
+      "required": true
+    },
+    {
+      "question_number": 78,
+      "page": 14,
+      "source_header_raw": "Você possui outra atividade para informar nos últimos 10 anos? *",
+      "source_header": "Você possui outra atividade para informar nos últimos 10 anos?",
+      "required": true
+    },
+    {
+      "question_number": 79,
+      "page": 15,
+      "source_header_raw": "Tipo de atividade *",
+      "source_header": "Tipo de atividade",
+      "required": true,
+      "activity_block_options": [
+        "Emprego",
+        "Trabalho autônomo / profissional liberal",
+        "Empresário",
+        "Estudante",
+        "Desempregado",
+        "Aposentado"
+      ]
+    },
+    {
+      "question_number": 80,
+      "page": 15,
+      "source_header_raw": "Data de início *",
+      "source_header": "Data de início",
+      "required": true
+    },
+    {
+      "question_number": 81,
+      "page": 15,
+      "source_header_raw": "Data de término *",
+      "source_header": "Data de término",
+      "required": true,
+      "separate_prompt_instruction": "Se ainda exerce essa atividade, preencher a data de hoje."
+    },
+    {
+      "question_number": 82,
+      "page": 15,
+      "source_header_raw": "Cargo *",
+      "source_header": "Cargo",
+      "required": true
+    },
+    {
+      "question_number": 83,
+      "page": 15,
+      "source_header_raw": "Nome da empresa, empregador ou instituição *",
+      "source_header": "Nome da empresa, empregador ou instituição",
+      "required": true
+    },
+    {
+      "question_number": 84,
+      "page": 15,
+      "source_header_raw": "Cidade *",
+      "source_header": "Cidade",
+      "required": true
+    },
+    {
+      "question_number": 85,
+      "page": 15,
+      "source_header_raw": "Você possui outra atividade para informar nos últimos 10 anos? *",
+      "source_header": "Você possui outra atividade para informar nos últimos 10 anos?",
+      "required": true
+    },
+    {
+      "question_number": 86,
+      "page": 16,
+      "source_header_raw": "Tipo de atividade *",
+      "source_header": "Tipo de atividade",
+      "required": true,
+      "activity_block_options": [
+        "Emprego",
+        "Trabalho autônomo / profissional liberal",
+        "Empresário",
+        "Estudante",
+        "Desempregado",
+        "Aposentado"
+      ]
+    },
+    {
+      "question_number": 87,
+      "page": 16,
+      "source_header_raw": "Data de início *",
+      "source_header": "Data de início",
+      "required": true
+    },
+    {
+      "question_number": 88,
+      "page": 16,
+      "source_header_raw": "Data de término *",
+      "source_header": "Data de término",
+      "required": true,
+      "separate_prompt_instruction": "Se ainda exerce essa atividade, preencher a data de hoje."
+    },
+    {
+      "question_number": 89,
+      "page": 16,
+      "source_header_raw": "Cargo *",
+      "source_header": "Cargo",
+      "required": true
+    },
+    {
+      "question_number": 90,
+      "page": 16,
+      "source_header_raw": "Nome da empresa, empregador ou instituição *",
+      "source_header": "Nome da empresa, empregador ou instituição",
+      "required": true
+    },
+    {
+      "question_number": 91,
+      "page": 16,
+      "source_header_raw": "Cidade *",
+      "source_header": "Cidade",
+      "required": true
+    },
+    {
+      "question_number": 92,
+      "page": 16,
+      "source_header_raw": "Você possui outra atividade para informar nos últimos 10 anos? *",
+      "source_header": "Você possui outra atividade para informar nos últimos 10 anos?",
+      "required": true
+    },
+    {
+      "question_number": 93,
+      "page": 17,
+      "source_header_raw": "Tipo de atividade *",
+      "source_header": "Tipo de atividade",
+      "required": true,
+      "activity_block_options": [
+        "Emprego",
+        "Trabalho autônomo / profissional liberal",
+        "Empresário",
+        "Estudante",
+        "Desempregado",
+        "Aposentado"
+      ]
+    },
+    {
+      "question_number": 94,
+      "page": 17,
+      "source_header_raw": "Data de início *",
+      "source_header": "Data de início",
+      "required": true
+    },
+    {
+      "question_number": 95,
+      "page": 17,
+      "source_header_raw": "Data de término *",
+      "source_header": "Data de término",
+      "required": true,
+      "separate_prompt_instruction": "Se ainda exerce essa atividade, preencher a data de hoje."
+    },
+    {
+      "question_number": 96,
+      "page": 17,
+      "source_header_raw": "Cargo *",
+      "source_header": "Cargo",
+      "required": true
+    },
+    {
+      "question_number": 97,
+      "page": 17,
+      "source_header_raw": "Nome da empresa, empregador ou instituição *",
+      "source_header": "Nome da empresa, empregador ou instituição",
+      "required": true
+    },
+    {
+      "question_number": 98,
+      "page": 17,
+      "source_header_raw": "Cidade *",
+      "source_header": "Cidade",
+      "required": true
+    },
+    {
+      "question_number": 99,
+      "page": 17,
+      "source_header_raw": "Você possui outra atividade para informar nos últimos 10 anos? *",
+      "source_header": "Você possui outra atividade para informar nos últimos 10 anos?",
+      "required": true
+    },
+    {
+      "question_number": 100,
+      "page": 17,
+      "source_header_raw": "Nome completo do pai *",
+      "source_header": "Nome completo do pai",
+      "required": true
+    },
+    {
+      "question_number": 101,
+      "page": 17,
+      "source_header_raw": "Data de nascimento do pai *",
+      "source_header": "Data de nascimento do pai",
+      "required": true
+    },
+    {
+      "question_number": 102,
+      "page": 18,
+      "source_header_raw": "Cidade de nascimento do pai *",
+      "source_header": "Cidade de nascimento do pai",
+      "required": true
+    },
+    {
+      "question_number": 103,
+      "page": 18,
+      "source_header_raw": "Ocupação atual do pai *",
+      "source_header": "Ocupação atual do pai",
+      "required": true
+    },
+    {
+      "question_number": 104,
+      "page": 18,
+      "source_header_raw": "Endereço completo atual do pai *",
+      "source_header": "Endereço completo atual do pai",
+      "required": true
+    },
+    {
+      "question_number": 105,
+      "page": 18,
+      "source_header_raw": "Seu pai acompanhará você ao Canadá? *",
+      "source_header": "Seu pai acompanhará você ao Canadá?",
+      "required": true
+    },
+    {
+      "question_number": 106,
+      "page": 18,
+      "source_header_raw": "Nome completo da mãe *",
+      "source_header": "Nome completo da mãe",
+      "required": true
+    },
+    {
+      "question_number": 107,
+      "page": 18,
+      "source_header_raw": "Data de nascimento da mãe *",
+      "source_header": "Data de nascimento da mãe",
+      "required": true
+    },
+    {
+      "question_number": 108,
+      "page": 18,
+      "source_header_raw": "Cidade de nascimento da mãe *",
+      "source_header": "Cidade de nascimento da mãe",
+      "required": true
+    },
+    {
+      "question_number": 109,
+      "page": 18,
+      "source_header_raw": "Ocupação atual da mãe *",
+      "source_header": "Ocupação atual da mãe",
+      "required": true
+    },
+    {
+      "question_number": 110,
+      "page": 18,
+      "source_header_raw": "Endereço completo atual da mãe *",
+      "source_header": "Endereço completo atual da mãe",
+      "required": true
+    },
+    {
+      "question_number": 111,
+      "page": 18,
+      "source_header_raw": "Sua mãe acompanhará você ao Canadá? *",
+      "source_header": "Sua mãe acompanhará você ao Canadá?",
+      "required": true
+    },
+    {
+      "question_number": 112,
+      "page": 19,
+      "source_header_raw": "Você possui filhos? *",
+      "source_header": "Você possui filhos?",
+      "required": true
+    },
+    {
+      "question_number": 113,
+      "page": 19,
+      "source_header_raw": "Para cada filho, forneça as informações abaixo:\nNome completo + data de nascimento + cidade de nascimento + endereço atual + ocupação atual + estado civil + se\nacompanhará você ao Canadá\n*",
+      "source_header": "Para cada filho, forneça as informações abaixo: Nome completo + data de nascimento + cidade de nascimento + endereço atual + ocupação atual + estado civil + se acompanhará você ao Canadá",
+      "required": true
+    },
+    {
+      "question_number": 114,
+      "page": 19,
+      "source_header_raw": "Você possui irmãos (mesmo que falecidos)? *",
+      "source_header": "Você possui irmãos (mesmo que falecidos)?",
+      "required": true
+    },
+    {
+      "question_number": 115,
+      "page": 19,
+      "source_header_raw": "Para cada irmão, forneça as informações abaixo:\nNome completo + data de nascimento + cidade de nascimento + endereço atual + ocupação atual + estado civil + se\nacompanhará você ao Canadá\n*",
+      "source_header": "Para cada irmão, forneça as informações abaixo: Nome completo + data de nascimento + cidade de nascimento + endereço atual + ocupação atual + estado civil + se acompanhará você ao Canadá",
+      "required": true
+    },
+    {
+      "question_number": 116,
+      "page": 19,
+      "source_header_raw": "Nos últimos 10 anos, você viajou para outros países? *",
+      "source_header": "Nos últimos 10 anos, você viajou para outros países?",
+      "required": true
+    },
+    {
+      "question_number": 117,
+      "page": 20,
+      "source_header_raw": "Informe os países visitados, data de entrada, data de saída e motivo da viagem *",
+      "source_header": "Informe os países visitados, data de entrada, data de saída e motivo da viagem",
+      "required": true
+    },
+    {
+      "question_number": 118,
+      "page": 20,
+      "source_header_raw": "Já teve visto canadense anteriormente? *",
+      "source_header": "Já teve visto canadense anteriormente?",
+      "required": true
+    },
+    {
+      "question_number": 119,
+      "page": 20,
+      "source_header_raw": "Já teve pedido de visto, entrada ou permanência no Canadá recusado? *",
+      "source_header": "Já teve pedido de visto, entrada ou permanência no Canadá recusado?",
+      "required": true
+    },
+    {
+      "question_number": 120,
+      "page": 20,
+      "source_header_raw": "Já teve visto ou entrada recusada por outro país? *",
+      "source_header": "Já teve visto ou entrada recusada por outro país?",
+      "required": true
+    },
+    {
+      "question_number": 121,
+      "page": 20,
+      "source_header_raw": "Já esteve no Canadá anteriormente? *",
+      "source_header": "Já esteve no Canadá anteriormente?",
+      "required": true
+    },
+    {
+      "question_number": 122,
+      "page": 20,
+      "source_header_raw": "Quem é você? (nome completo, idade e breve apresentação pessoal) *",
+      "source_header": "Quem é você? (nome completo, idade e breve apresentação pessoal)",
+      "required": true
+    },
+    {
+      "question_number": 123,
+      "page": 21,
+      "source_header_raw": "Qual sua ocupação atual no Brasil? (profissão, área de atuação, tempo de experiência, empresa ou instituição, se\naplicável)\n*",
+      "source_header": "Qual sua ocupação atual no Brasil? (profissão, área de atuação, tempo de experiência, empresa ou instituição, se aplicável)",
+      "required": true
+    },
+    {
+      "question_number": 124,
+      "page": 21,
+      "source_header_raw": "Por que você escolheu ir para o Canadá? *",
+      "source_header": "Por que você escolheu ir para o Canadá?",
+      "required": true
+    },
+    {
+      "question_number": 125,
+      "page": 21,
+      "source_header_raw": "O que pretende fazer durante sua estadia no Canadá? (turismo, estudo, visita familiar, negócios etc.) *",
+      "source_header": "O que pretende fazer durante sua estadia no Canadá? (turismo, estudo, visita familiar, negócios etc.)",
+      "required": true
+    },
+    {
+      "question_number": 126,
+      "page": 21,
+      "source_header_raw": "Caso possua familiares de 1º grau residindo fora do Brasil (mesmo que seja um país diferente do seu de destino),\ninforme nome completo, grau de parentesco e status migratório no país onde residem\n*",
+      "source_header": "Caso possua familiares de 1º grau residindo fora do Brasil (mesmo que seja um país diferente do seu de destino), informe nome completo, grau de parentesco e status migratório no país onde residem",
+      "required": true
+    },
+    {
+      "question_number": 127,
+      "page": 21,
+      "source_header_raw": "Quais são seus planos após o término da viagem e retorno ao Brasil? *",
+      "source_header": "Quais são seus planos após o término da viagem e retorno ao Brasil?",
+      "required": true
+    },
+    {
+      "question_number": 128,
+      "page": 21,
+      "source_header_raw": "Já cometeu, foi preso, acusado ou condenado por algum crime? *",
+      "source_header": "Já cometeu, foi preso, acusado ou condenado por algum crime?",
+      "required": true
+    },
+    {
+      "question_number": 129,
+      "page": 22,
+      "source_header_raw": "Já trabalhou ou se envolveu com forças militares, policiais, segurança, inteligência ou grupos armados? *",
+      "source_header": "Já trabalhou ou se envolveu com forças militares, policiais, segurança, inteligência ou grupos armados?",
+      "required": true
+    },
+    {
+      "question_number": 130,
+      "page": 22,
+      "source_header_raw": "Já teve algum problema relacionado à imigração ou permanência em outro país? *",
+      "source_header": "Já teve algum problema relacionado à imigração ou permanência em outro país?",
+      "required": true
+    },
+    {
+      "question_number": 131,
+      "page": 22,
+      "source_header_raw": "Já permaneceu em algum país após o vencimento de seu visto, incluindo o Canadá? *",
+      "source_header": "Já permaneceu em algum país após o vencimento de seu visto, incluindo o Canadá?",
+      "required": true
+    },
+    {
+      "question_number": 132,
+      "page": 22,
+      "source_header_raw": "Se respondeu \"Sim\" a alguma declaração, forneça todos os detalhes relevantes, incluindo datas, país, circunstâncias,\nresultado e documentação disponível\n*",
+      "source_header": "Se respondeu \"Sim\" a alguma declaração, forneça todos os detalhes relevantes, incluindo datas, país, circunstâncias, resultado e documentação disponível",
+      "required": true
+    },
+    {
+      "question_number": 133,
+      "page": 22,
+      "source_header_raw": "Passaporte (cópia colorida da página com dados biométricos)",
+      "source_header": "Passaporte (cópia colorida da página com dados biométricos)",
+      "required": false
+    },
+    {
+      "question_number": 134,
+      "page": 22,
+      "source_header_raw": "Identidade (RG ou CNH)",
+      "source_header": "Identidade (RG ou CNH)",
+      "required": false
+    },
+    {
+      "question_number": 135,
+      "page": 22,
+      "source_header_raw": "Certidão de nascimento ou casamento (se divorciado, com averbação de divórcio)",
+      "source_header": "Certidão de nascimento ou casamento (se divorciado, com averbação de divórcio)",
+      "required": false
+    },
+    {
+      "question_number": 136,
+      "page": 23,
+      "source_header_raw": "Letter of Acceptance\n(confirmação de matrícula, se for estudar no Canadá)",
+      "source_header": "Letter of Acceptance (confirmação de matrícula, se for estudar no Canadá)",
+      "required": false
+    },
+    {
+      "question_number": 137,
+      "page": 23,
+      "source_header_raw": "Extratos bancários dos últimos 3 meses",
+      "source_header": "Extratos bancários dos últimos 3 meses",
+      "required": false
+    },
+    {
+      "question_number": 138,
+      "page": 23,
+      "source_header_raw": "Imposto de Renda",
+      "source_header": "Imposto de Renda",
+      "required": false
+    },
+    {
+      "question_number": 139,
+      "page": 23,
+      "source_header_raw": "Recibo do Imposto de Renda",
+      "source_header": "Recibo do Imposto de Renda",
+      "required": false
+    },
+    {
+      "question_number": 140,
+      "page": 23,
+      "source_header_raw": "Contracheques dos últimos 3 meses",
+      "source_header": "Contracheques dos últimos 3 meses",
+      "required": false
+    },
+    {
+      "question_number": 141,
+      "page": 23,
+      "source_header_raw": "Declaração empregatícia",
+      "source_header": "Declaração empregatícia",
+      "required": false
+    },
+    {
+      "question_number": 142,
+      "page": 23,
+      "source_header_raw": "Contrato Social (se for empresário)",
+      "source_header": "Contrato Social (se for empresário)",
+      "required": false
+    },
+    {
+      "question_number": 143,
+      "page": 23,
+      "source_header_raw": "Cartão CNPJ (se for empresário) *",
+      "source_header": "Cartão CNPJ (se for empresário)",
+      "required": true
+    },
+    {
+      "question_number": 144,
+      "page": 23,
+      "source_header_raw": "3 últimos pró-labores (se for empresário) *",
+      "source_header": "3 últimos pró-labores (se for empresário)",
+      "required": true
+    },
+    {
+      "question_number": 145,
+      "page": 23,
+      "source_header_raw": "Foto digital.\nFormato 5x7, sem sorrir, com fundo branco, cabelo atrás das orelhas e rosto centralizado",
+      "source_header": "Foto digital. Formato 5x7, sem sorrir, com fundo branco, cabelo atrás das orelhas e rosto centralizado",
+      "required": false
+    },
+    {
+      "question_number": 146,
+      "page": 23,
+      "source_header_raw": "Páginas do passaporte com vistos e carimbos anteriores, todos digitalizados",
+      "source_header": "Páginas do passaporte com vistos e carimbos anteriores, todos digitalizados",
+      "required": false
+    },
+    {
+      "question_number": 147,
+      "page": 23,
+      "source_header_raw": "Identidade",
+      "source_header": "Identidade",
+      "required": false
+    },
+    {
+      "question_number": 148,
+      "page": 23,
+      "source_header_raw": "Extratos bancários dos últimos 3 meses",
+      "source_header": "Extratos bancários dos últimos 3 meses",
+      "required": false
+    },
+    {
+      "question_number": 149,
+      "page": 24,
+      "source_header_raw": "Imposto de Renda",
+      "source_header": "Imposto de Renda",
+      "required": false
+    },
+    {
+      "question_number": 150,
+      "page": 24,
+      "source_header_raw": "Contracheques dos últimos 3 meses",
+      "source_header": "Contracheques dos últimos 3 meses",
+      "required": false
+    },
+    {
+      "question_number": 151,
+      "page": 24,
+      "source_header_raw": "Contrato Social (se for empresário)",
+      "source_header": "Contrato Social (se for empresário)",
+      "required": false
+    },
+    {
+      "question_number": 152,
+      "page": 24,
+      "source_header_raw": "Cartão CNPJ (se for empresário) *",
+      "source_header": "Cartão CNPJ (se for empresário)",
+      "required": true
+    },
+    {
+      "question_number": 153,
+      "page": 24,
+      "source_header_raw": "3 últimos pró-labores (se for empresário) *",
+      "source_header": "3 últimos pró-labores (se for empresário)",
+      "required": true
+    },
+    {
+      "question_number": 154,
+      "page": 24,
+      "source_header_raw": "Aceite das Declarações *",
+      "source_header": "Aceite das Declarações",
+      "required": true
+    }
+  ],
+  "source_sha256": "263ff59f7cadac2c1d743502f4a21ee48a160885dac88bb92a5afcc6dc98d70a",
+  "source_pages": 24,
+  "observed_answers": "None. Blank lines, empty ovals/checkboxes, example dates and option labels are not answers.",
+  "header_contract": "Printed main title blocks only; line wraps joined and required markers removed. Helper/instruction text may be merged differently into real Sheets headers. No CSV header equivalence is claimed.",
+  "printed_routing_findings": [
+    {
+      "question": 13,
+      "routes": {
+        "Solteiro": 26,
+        "Casado": 14,
+        "Divorciado": 18,
+        "Separado": 18,
+        "Viúvo": 18,
+        "União estável": 14
+      }
+    },
+    {
+      "question": 17,
+      "routes": {
+        "Sim": 18,
+        "Não": 26
+      },
+      "section_end_jump": 27
+    },
+    {
+      "section": "Relacionamento Anterior",
+      "section_end_jump": 14
+    },
+    {
+      "question": 99,
+      "finding": "Sim and Não both printed; no fifth block exists."
+    }
+  ]
+}

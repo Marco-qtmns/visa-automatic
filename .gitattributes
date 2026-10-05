@@ -1,0 +1,4 @@
+# These schema fixtures intentionally preserve embedded header whitespace.
+tests/fixtures/canada_csv_synthetic.csv -whitespace
+tests/fixtures/canada_archive_csv_synthetic.csv -whitespace
+tests/fixtures/canada_20260929_synthetic.csv -whitespace

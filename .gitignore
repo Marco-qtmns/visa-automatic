@@ -1,0 +1,66 @@
+.DS_Store
+REPOSITORY_REVIEW_*.txt
+.venv/
+__pycache__/
+*.pyc
+build/
+dist/
+*.spec
+.env
+.env.*
+!.env.example
+!.env.production.example
+*.db
+*.sqlite
+*.sqlite3
+
+Backup/
+release/
+.idea/
+tests/_smoke_output.pdf
+
+# Local Canada intake exports may contain private client data.
+/examples/canada/*.pdf
+
+/examples/canada/*.csv
+/examples/canada/*.zip
+
+# Saved Canada cases contain client data and staff corrections.
+*.canada-case.json
+*.canada-representative.json
+
+# Generated Canada drafts/reports may contain client data.
+canada-drafts-*/
+/output/
+/backend/storage/
+/backend/generated-storage/
+/document-storage/
+/deployment/reports/
+/classification-dumps/
+*.classification-response.json
+/quality-dumps/
+*.quality-response.json
+/conversation-imports/
+*.whatsapp-export.txt
+*.conversation-extraction.json
+/frontend/node_modules/
+/frontend/.next/
+/frontend/coverage/
+/frontend/out/
+
+# Local backups and database exports.
+/backups/
+*.dump
+*.sql
+*.bak
+
+# Local secrets / private keys.
+*.pem
+*.key
+*.p12
+*.pfx
+
+# Local test/coverage artifacts.
+.pytest_cache/
+.coverage
+htmlcov/

@@ -1,0 +1,392 @@
+from __future__ import annotations
+
+import io
+import json
+import re
+import subprocess
+import tarfile
+from pathlib import Path
+
+import pytest
+from alembic.config import Config
+from alembic.script import ScriptDirectory
+from sqlalchemy import create_engine, text
+from sqlalchemy.orm import sessionmaker
+
+from backend.app.database import Base
+from backend.app.deployment_preflight import (
+    PROJECT_ROOT,
+    environment_from_deployment_file,
+    validate_deployment_configuration,
+)
+from backend.scripts import (
+    synthetic_staging_case,
+    verify_restored_staging,
+    verify_synthetic_staging,
+)
+from deployment.backup_manifest import create_manifest, restore_storage, verify_manifest
+from deployment.d1_acceptance import acceptance
+from deployment.d1_report import initial_report, update_report
+
+
+def _environment_names(path: Path) -> set[str]:
+    return {
+        line.split("=", 1)[0]
+        for line in path.read_text(encoding="utf-8").splitlines()
+        if line and not line.startswith("#")
+    }
+
+
+def test_environment_contract_matches_example_and_preflight():
+    contract = json.loads((PROJECT_ROOT / "deployment/environment-contract.json").read_text())
+    assert contract["expected_alembic_head"] == "0009_canada_preparation_runs"
+    variables = contract["variables"]
+    assert len({item["name"] for item in variables}) == len(variables)
+    for item in variables:
+        assert set(item) == {
+            "name", "service", "required", "env_file", "safe_example",
+            "default", "secret", "validation", "missing_behavior",
+        }
+    expected = {item["name"] for item in variables if item["env_file"]}
+    assert _environment_names(PROJECT_ROOT / ".env.production.example") == expected
+    environment = environment_from_deployment_file(PROJECT_ROOT / ".env.production.example")
+    result = validate_deployment_configuration(environment, allow_placeholders=True)
+    assert result["status"] == "PASS"
+
+
+def test_environment_contract_covers_application_and_compose_reads():
+    contract = json.loads((PROJECT_ROOT / "deployment/environment-contract.json").read_text())
+    documented = {item["name"] for item in contract["variables"]}
+    sources = [
+        *sorted((PROJECT_ROOT / "backend/app").rglob("*.py")),
+        *sorted((PROJECT_ROOT / "frontend/src").rglob("*.ts")),
+        *sorted((PROJECT_ROOT / "frontend/src").rglob("*.tsx")),
+        PROJECT_ROOT / "compose.yaml",
+    ]
+    used: set[str] = set()
+    for source in sources:
+        text = source.read_text(encoding="utf-8")
+        used.update(re.findall(r'os\.environ\.get\("([A-Z][A-Z0-9_]*)"', text))
+        used.update(re.findall(r"process\.env\.([A-Z][A-Z0-9_]*)", text))
+        if source.name == "compose.yaml":
+            used.update(re.findall(r"\$\{([A-Z][A-Z0-9_]*)[:}]", text))
+    assert used <= documented
+
+
+def test_preflight_rejects_unsafe_configuration_without_echoing_secret(tmp_path):
+    environment = environment_from_deployment_file(PROJECT_ROOT / ".env.production.example")
+    environment["DATA_ROOT"] = "/"
+    environment["DOCUMENT_STORAGE_ROOT"] = str(tmp_path / "same")
+    environment["GENERATED_ARTIFACT_STORAGE_ROOT"] = str(tmp_path / "same")
+    environment["DATABASE_URL"] = "postgresql+psycopg://user:do-not-print@postgres/db"
+    environment["AI_API_KEY"] = "do-not-print"
+    result = validate_deployment_configuration(environment)
+    rendered = json.dumps(result)
+    assert result["status"] == "FAIL"
+    assert "do-not-print" not in rendered
+    codes = {item["code"] for item in result["checks"]}
+    assert "data_root_unsafe" in codes
+    assert "storage_roots_not_separate" in codes
+    assert "provider_invalid" in codes
+
+
+def test_preflight_can_check_real_separate_writable_roots(tmp_path):
+    environment = environment_from_deployment_file(PROJECT_ROOT / ".env.production.example")
+    environment.update({
+        "DATA_ROOT": str(tmp_path),
+        "POSTGRES_PASSWORD": "synthetic-test-password-only",
+        "DATABASE_URL": "postgresql+psycopg://synthetic:synthetic-test-password-only@postgres/synthetic",
+        "DOCUMENT_STORAGE_ROOT": str(tmp_path / "documents"),
+        "GENERATED_ARTIFACT_STORAGE_ROOT": str(tmp_path / "generated"),
+    })
+    (tmp_path / "documents").mkdir()
+    (tmp_path / "generated").mkdir()
+    result = validate_deployment_configuration(environment, check_writable=True)
+    assert result["status"] == "PASS"
+
+
+def test_docker_context_and_one_origin_hygiene():
+    root_ignore = (PROJECT_ROOT / ".dockerignore").read_text()
+    for pattern in (
+        ".git", ".env.*", ".venv", "__pycache__", ".pytest_cache",
+        "backend/storage", "backend/generated-storage", "deployment/reports",
+        "*.dump", "*.tar.gz", "**/*.pdf",
+    ):
+        assert pattern in root_ignore
+    assert "!.env.production.example" not in root_ignore
+    assert "!templates/canada/*.pdf" in root_ignore
+    frontend_ignore = (PROJECT_ROOT / "frontend/.dockerignore").read_text()
+    for pattern in ("node_modules", ".next", "coverage", ".env.*", ".cache", ".turbo"):
+        assert pattern in frontend_ignore
+    backend_dockerfile = (PROJECT_ROOT / "backend/Dockerfile").read_text()
+    assert "COPY templates/canada /app/templates/canada" in backend_dockerfile
+    assert "COPY deployment/environment-contract.json /app/deployment/environment-contract.json" in backend_dockerfile
+    assert "slim-bookworm" in backend_dockerfile and "alpine" not in backend_dockerfile
+    frontend_source = (PROJECT_ROOT / "frontend/src/lib/api/client.ts").read_text()
+    assert '?? "/api"' in frontend_source
+    assert "localhost:8000" not in frontend_source
+
+
+def test_deployment_runtime_dependencies_are_pinned():
+    requirements = [
+        line.strip()
+        for line in (PROJECT_ROOT / "requirements.deploy.txt").read_text().splitlines()
+        if line.strip() and not line.startswith("#")
+    ]
+    assert requirements and all("==" in item for item in requirements)
+    package = json.loads((PROJECT_ROOT / "frontend/package.json").read_text())
+    assert package["dependencies"] == {
+        "next": "16.3.8", "react": "19.3.0", "react-dom": "19.3.0"
+    }
+    backend_image = (PROJECT_ROOT / "backend/Dockerfile").read_text()
+    frontend_image = (PROJECT_ROOT / "frontend/Dockerfile").read_text()
+    assert backend_image.startswith("FROM python:3.13.16-slim-bookworm")
+    assert frontend_image.count("FROM node:22.23.3-bookworm-slim") == 3
+
+
+def test_accepted_migration_chain_has_one_expected_head():
+    script = ScriptDirectory.from_config(Config(str(PROJECT_ROOT / "backend/alembic.ini")))
+    assert script.get_heads() == ["0009_canada_preparation_runs"]
+    revisions = list(script.walk_revisions(base="base", head="heads"))
+    assert [item.revision for item in revisions] == [
+        "0009_canada_preparation_runs",
+        "0008_canada_legacy_import",
+        "0007_canada_application_model",
+        "0006_whatsapp_fact_extraction",
+        "0005_document_quality_completeness",
+        "0004_document_classification",
+        "0003_document_matching",
+        "0002_workflow_state_machine",
+        "0001_core_data_model",
+    ]
+
+
+def test_deployment_files_have_no_mac_paths_and_storage_is_separate():
+    paths = [
+        PROJECT_ROOT / "compose.yaml",
+        PROJECT_ROOT / "backend/Dockerfile",
+        PROJECT_ROOT / "frontend/Dockerfile",
+        PROJECT_ROOT / "deployment/Caddyfile",
+        *sorted((PROJECT_ROOT / "deployment").glob("*.sh")),
+    ]
+    forbidden = "/" + "Users/"
+    assert all(forbidden not in path.read_text(encoding="utf-8") for path in paths)
+    compose = (PROJECT_ROOT / "compose.yaml").read_text()
+    assert "${DATA_ROOT:?Set DATA_ROOT}/document-storage" in compose
+    assert "${DATA_ROOT:?Set DATA_ROOT}/generated-artifact-storage" in compose
+    assert "DOCUMENT_STORAGE_ROOT: /srv/visa-automatic/document-storage" in compose
+    assert "GENERATED_ARTIFACT_STORAGE_ROOT: /srv/visa-automatic/generated-artifact-storage" in compose
+    postgres_block, backend_block = compose.split("  backend:", 1)
+    assert "ports:" not in postgres_block
+    frontend_block = backend_block.split("  frontend:", 1)[0]
+    assert "ports:" not in frontend_block
+    frontend_only = backend_block.split("  frontend:", 1)[1].split("  proxy:", 1)[0]
+    assert "ports:" not in frontend_only
+    proxy_only = compose.split("  proxy:", 1)[1]
+    assert '"${BIND_ADDRESS:-127.0.0.1}:${APP_PORT:-8080}:8080"' in proxy_only
+    caddy = (PROJECT_ROOT / "deployment/Caddyfile").read_text()
+    assert "@api path /api/*" in caddy
+    assert "uri strip_prefix /api" in caddy
+    assert "reverse_proxy backend:8000" in caddy
+    assert "reverse_proxy frontend:3000" in caddy
+    assert "  app: {}" in compose
+    assert "  data:\n    internal: true" in compose
+    assert "networks: [data]" in postgres_block
+    assert "networks: [app, data]" in frontend_block
+    assert "networks: [app]" in frontend_only
+    assert "networks: [app]" in proxy_only
+
+
+def _synthetic_archive(path: Path) -> None:
+    with tarfile.open(path, "w:gz") as archive:
+        for root, filename, content in (
+            ("document-storage", "doc-key", b"synthetic-document"),
+            ("generated-artifact-storage", "artifact-key", b"synthetic-artifact"),
+        ):
+            directory = tarfile.TarInfo(root)
+            directory.type = tarfile.DIRTYPE
+            directory.mode = 0o700
+            archive.addfile(directory)
+            item = tarfile.TarInfo(f"{root}/{filename}")
+            item.size = len(content)
+            item.mode = 0o600
+            archive.addfile(item, io.BytesIO(content))
+
+
+def test_backup_manifest_hashes_and_safe_storage_restore(tmp_path):
+    backup = tmp_path / "backup"
+    backup.mkdir()
+    (backup / "postgres.dump").write_bytes(b"synthetic-pg-dump")
+    _synthetic_archive(backup / "private-storage.tar.gz")
+    manifest = create_manifest(
+        backup,
+        timestamp="2026-10-04T10:00:00Z",
+        application_commit="a" * 40,
+        alembic_revision="0009_canada_preparation_runs",
+    )
+    verified = verify_manifest(manifest)
+    assert set(verified["files"]) == {"database", "storage"}
+    assert "password" not in manifest.read_text().casefold()
+    documents, generated = tmp_path / "restored-documents", tmp_path / "restored-generated"
+    documents.mkdir(); generated.mkdir()
+    restore_storage(manifest, documents, generated)
+    assert (documents / "doc-key").read_bytes() == b"synthetic-document"
+    assert (generated / "artifact-key").read_bytes() == b"synthetic-artifact"
+    assert (documents / "doc-key").stat().st_mode & 0o777 == 0o600
+    with pytest.raises(ValueError, match="empty"):
+        restore_storage(manifest, documents, tmp_path / "unused")
+    (backup / "postgres.dump").write_bytes(b"tampered")
+    with pytest.raises(ValueError, match="hash_mismatch"):
+        verify_manifest(manifest)
+
+
+def test_restore_rejects_archive_path_traversal(tmp_path):
+    backup = tmp_path / "backup"
+    backup.mkdir()
+    (backup / "postgres.dump").write_bytes(b"synthetic-pg-dump")
+    with tarfile.open(backup / "private-storage.tar.gz", "w:gz") as archive:
+        item = tarfile.TarInfo("document-storage/../../escape")
+        item.size = 1
+        archive.addfile(item, io.BytesIO(b"x"))
+    manifest = create_manifest(
+        backup,
+        timestamp="2026-10-04T10:00:00Z",
+        application_commit="b" * 40,
+        alembic_revision="0009_canada_preparation_runs",
+    )
+    documents, generated = tmp_path / "documents", tmp_path / "generated"
+    documents.mkdir(); generated.mkdir()
+    with pytest.raises(ValueError, match="unsafe_storage_archive_path"):
+        restore_storage(manifest, documents, generated)
+
+
+def test_d1_report_is_sanitized_and_acceptance_fails_for_not_run(tmp_path):
+    report_path = tmp_path / "d1-result.json"
+    report = initial_report(PROJECT_ROOT)
+    report_path.write_text(json.dumps(report), encoding="utf-8")
+    update_report(report_path, "service_health.backend", "PASS")
+    rendered = report_path.read_text(encoding="utf-8")
+    for forbidden in ("DATABASE_URL", "storage_key", "password", "api_key"):
+        assert forbidden.casefold() not in rendered.casefold()
+    with pytest.raises(ValueError, match="unsupported_report_field"):
+        update_report(report_path, "database_url", "postgresql://secret")
+    accepted, checks = acceptance(report_path)
+    assert accepted is False
+    assert any(item["status"] == "NOT RUN" for item in checks)
+
+
+def test_deployment_scripts_guard_destructive_operations():
+    scripts = {
+        path.name: path.read_text(encoding="utf-8")
+        for path in (PROJECT_ROOT / "deployment").glob("*.sh")
+    }
+    combined = "\n".join(scripts.values())
+    for forbidden in ("docker compose down", "docker volume rm", "DROP DATABASE", "DROP SCHEMA"):
+        assert forbidden not in combined
+    assert "rm -rf" not in "\n".join(
+        value for name, value in scripts.items() if name != "raspberry-smoke.sh"
+    )
+    smoke = scripts["raspberry-smoke.sh"]
+    assert 'case "$temporary" in' in smoke
+    assert '/tmp/*|/private/tmp/*) rm -rf -- "$temporary"' in smoke
+    restore = scripts["restore-test.sh"]
+    assert "--confirm-empty-target" in restore
+    assert '"$destination_database" = "$current_database"' in restore
+    backup = scripts["backup-staging.sh"]
+    assert ".partial-" in backup
+    assert "backup_manifest.py create" in backup
+    assert 'mv "$partial" "$destination"' in backup
+    entrypoint = (PROJECT_ROOT / "deployment/backend-entrypoint.sh").read_text()
+    assert 'if [ "$#" -gt 0 ]; then' in entrypoint
+    assert 'exec "$@"' in entrypoint
+    assert "alembic -c backend/alembic.ini upgrade head" in entrypoint
+
+
+def test_deployment_logging_does_not_print_secret_environment_or_smoke_payload():
+    scripts = "\n".join(
+        path.read_text(encoding="utf-8")
+        for path in (PROJECT_ROOT / "deployment").glob("*.sh")
+    )
+    output_lines = [
+        line for line in scripts.splitlines()
+        if re.search(r"\b(echo|printf)\b", line) and not line.lstrip().startswith("#")
+    ]
+    rendered = "\n".join(output_lines)
+    for secret_name in ("DATABASE_URL", "POSTGRES_PASSWORD", "AI_API_KEY"):
+        assert secret_name not in rendered
+    smoke_output_lines = [line for line in output_lines if '"$smoke_json"' in line]
+    assert smoke_output_lines
+    assert all("| python3" in line for line in smoke_output_lines)
+
+
+@pytest.mark.parametrize(
+    ("continuation", "expected"),
+    [
+        (False, {"imm5257", "imm5707", "imm5476"}),
+        (True, {"imm5257", "imm5707", "imm5476", "imm5257_continuation"}),
+    ],
+)
+def test_synthetic_deployment_fixture_generates_and_verifies(
+    tmp_path, monkeypatch, continuation, expected
+):
+    engine = create_engine(f"sqlite+pysqlite:///{tmp_path / 'smoke.db'}")
+    Base.metadata.create_all(engine)
+    factory = sessionmaker(bind=engine, expire_on_commit=False)
+    monkeypatch.setattr(synthetic_staging_case, "SessionLocal", factory)
+    monkeypatch.setattr(verify_synthetic_staging, "SessionLocal", factory)
+    monkeypatch.setattr(verify_restored_staging, "SessionLocal", factory)
+    monkeypatch.setenv("DOCUMENT_STORAGE_ROOT", str(tmp_path / "documents"))
+    monkeypatch.setenv("GENERATED_ARTIFACT_STORAGE_ROOT", str(tmp_path / "generated"))
+    result = synthetic_staging_case.create_synthetic_case(continuation=continuation)
+    assert result["package_status"] == "current"
+    assert result["workflow_state"] == "PREPARE"
+    assert result["requirement_count"] > 0
+    assert set(result["artifact_types"]) == expected
+    verified = verify_synthetic_staging.verify(
+        result["case_id"], result["run_id"], result["document_id"]
+    )
+    assert verified["package_status"] == "current"
+    assert set(verified["artifact_types"]) == expected
+    with factory.begin() as session:
+        session.execute(text(
+            "CREATE TABLE alembic_version "
+            "(version_num VARCHAR(32) NOT NULL PRIMARY KEY)"
+        ))
+        session.execute(
+            text("INSERT INTO alembic_version (version_num) VALUES (:revision)"),
+            {"revision": "0009_canada_preparation_runs"},
+        )
+    restored = verify_restored_staging.verify()
+    assert restored["status"] == "PASS"
+    assert restored["alembic_revision"] == "0009_canada_preparation_runs"
+    assert restored["current_package_count"] == 1
+    assert set(restored["artifact_types"]) == expected
+    engine.dispose()
+
+
+def test_public_repository_hygiene_has_no_high_confidence_secrets():
+    tracked = subprocess.run(
+        ["git", "ls-files"], cwd=PROJECT_ROOT, check=True, capture_output=True, text=True
+    ).stdout.splitlines()
+    forbidden_suffixes = (".db", ".sqlite", ".sqlite3", ".dump", ".p12", ".pfx", ".key")
+    assert not [name for name in tracked if name.casefold().endswith(forbidden_suffixes)]
+    assert not [name for name in tracked if name in {".env", ".env.production"}]
+    high_confidence = re.compile(
+        rb"-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----|"
+        rb"AKIA[0-9A-Z]{16}|gh[pousr]_[A-Za-z0-9_]{30,}|"
+        rb"sk-[A-Za-z0-9]{32,}|AIza[0-9A-Za-z_-]{30,}"
+    )
+    for name in tracked:
+        source = PROJECT_ROOT / name
+        if source.is_file() and source.stat().st_size < 5 * 1024 * 1024:
+            assert high_confidence.search(source.read_bytes()) is None, name
+    sample = (PROJECT_ROOT / "examples/sample_google_forms.csv").read_text().casefold()
+    assert "example.invalid" in sample
+    assert "gmail.com" not in sample
+    ignore = (PROJECT_ROOT / ".gitignore").read_text()
+    for pattern in (
+        ".env", "*.db", "*.sqlite", "/backend/storage/",
+        "/backend/generated-storage/", "/deployment/reports/",
+        "*.whatsapp-export.txt", "*.canada-case.json",
+    ):
+        assert pattern in ignore

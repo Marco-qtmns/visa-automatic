@@ -1,0 +1,24 @@
+{
+  "version": 1,
+  "facts": {
+    "sponsor.exists": {
+      "label": "Financial sponsor exists",
+      "value_type": "boolean",
+      "singleton": true,
+      "requirement_relevant": true
+    },
+    "host.exists": {
+      "label": "Host in Canada exists",
+      "value_type": "boolean",
+      "singleton": true,
+      "requirement_relevant": true
+    },
+    "trip.payer": {
+      "label": "Trip payer",
+      "value_type": "enum",
+      "allowed_values": ["applicant", "sponsor", "other"],
+      "singleton": true,
+      "requirement_relevant": false
+    }
+  }
+}

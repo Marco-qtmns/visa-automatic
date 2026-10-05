@@ -1,0 +1,984 @@
+warning: The `fitz` API is deprecated and will be removed in future. Use `import pymupdf` instead.
+
+================================================================================
+IMM5257.pdf
+================================================================================
+Pages: 1
+AcroForm widgets: 1
+
+AcroForm fields:
+  p1: form1[0].SignatureField1[0] [Signature] = ''
+
+XFA stream references: [115, 3, 116, 5, 117, 7, 8, 9, 118, 119]
+
+XFA object 116:
+  Fields: 284
+    FIELD CurrentPage
+    FIELD PageCount
+    FIELD TextField
+    FIELD TextField
+    FIELD CurrentPage
+    FIELD PageCount
+    FIELD TextField
+    FIELD TextField
+    FIELD TextField
+    FIELD Button1
+    FIELD CRCNum
+    FIELD ValidateButton
+    FIELD ValidateButton
+    FIELD Age
+    FIELD AdultFlag
+    FIELD FormVersion
+    FIELD PrevSpouseAge
+    FIELD UCIClientID
+    FIELD ServiceIn
+    FIELD VisaType
+    FIELD FamilyName
+    FIELD GivenName
+    FIELD AliasFamilyName
+    FIELD AliasGivenName
+    FIELD No
+    FIELD Yes
+    FIELD Sex
+    FIELD DOBYear
+    FIELD DOBMonth
+    FIELD DOBDay
+    FIELD PlaceBirthCity
+    FIELD PlaceBirthCountry
+    FIELD Citizenship
+    FIELD Country
+    FIELD Status
+    FIELD Other
+    FIELD FromDate
+    FIELD ToDate
+    FIELD FromYr
+    FIELD FromMM
+    FIELD FromDD
+    FIELD ToYr
+    FIELD ToMM
+    FIELD ToDD
+    FIELD No
+    FIELD Yes
+    FIELD Country
+    FIELD Status
+    FIELD Other
+    FIELD FromDate
+    FIELD ToDate
+    FIELD Country
+    FIELD Status
+    FIELD Other
+    FIELD FromDate
+    FIELD ToDate
+    FIELD FromYr
+    FIELD FromMM
+    FIELD FromDD
+    FIELD ToYr
+    FIELD ToMM
+    FIELD ToDD
+    FIELD FromYr
+    FIELD FromMM
+    FIELD FromDD
+    FIELD ToYr
+    FIELD ToMM
+    FIELD ToDD
+    FIELD No
+    FIELD Yes
+    FIELD Country
+    FIELD Status
+    FIELD Other
+    FIELD FromDate
+    FIELD ToDate
+    FIELD FromYr
+    FIELD FromMM
+    FIELD FromDD
+    FIELD ToYr
+    FIELD ToMM
+    FIELD ToDD
+    FIELD ApplicationValidatedFlag
+    FIELD MaritalStatus
+    FIELD DateOfMarriage
+    FIELD FromYr
+    FIELD FromMM
+    FIELD FromDD
+    FIELD FamilyName
+    FIELD GivenName
+    FIELD No
+    FIELD Yes
+    FIELD DateCalc
+    FIELD Year
+    FIELD Month
+    FIELD Day
+    FIELD PMFamilyName
+    FIELD PMGivenName
+    FIELD DOBYear
+    FIELD DOBMonth
+    FIELD DOBDay
+    FIELD TypeOfRelationship
+    FIELD FromDate
+    FIELD ToDate
+    FIELD FromYr
+    FIELD FromMM
+    FIELD FromDD
+    FIELD ToYr
+    FIELD ToMM
+    FIELD ToDD
+    FIELD PassportNum
+    FIELD CountryofIssue
+    FIELD IssueDate
+    FIELD ExpiryDate
+    FIELD IssueYYYY
+    FIELD IssueMM
+    FIELD IssueDD
+    FIELD expiryYYYY
+    FIELD expiryMM
+    FIELD expiryDD
+    FIELD No
+    FIELD Yes
+    FIELD No
+    FIELD Yes
+    FIELD nativeLang
+    FIELD ableToCommunicate
+    FIELD lov
+    FIELD No
+    FIELD Yes
+    FIELD No
+    FIELD Yes
+    FIELD DocNum
+    FIELD CountryofIssue
+    FIELD IssueDate
+    FIELD ExpiryDate
+    FIELD No
+    FIELD Yes
+    FIELD DocNum
+    FIELD ExpiryDate
+    FIELD POBox
+    FIELD AptUnit
+    FIELD StreetNum
+    FIELD Streetname
+    FIELD CityTown
+    FIELD Country
+    FIELD ProvinceState
+    FIELD PostalCode
+    FIELD District
+    FIELD No
+    FIELD Yes
+    FIELD AptUnit
+    FIELD StreetNum
+    FIELD Streetname
+    FIELD CityTown
+    FIELD Country
+    FIELD ProvinceState
+    FIELD PostalCode
+    FIELD District
+    FIELD Type
+    FIELD CanadaUS
+    FIELD Other
+    FIELD NumberExt
+    FIELD NumberCountry
+    FIELD ActualNumber
+    FIELD AreaCode
+    FIELD FirstThree
+    FIELD LastFive
+    FIELD IntlNumber
+    FIELD Type
+    FIELD CanadaUS
+    FIELD Other
+    FIELD NumberExt
+    FIELD NumberCountry
+    FIELD ActualNumber
+    FIELD AreaCode
+    FIELD FirstThree
+    FIELD LastFive
+    FIELD IntlNumber
+    FIELD CanadaUS
+    FIELD Other
+    FIELD NumberExt
+    FIELD NumberCountry
+    FIELD ActualNumber
+    FIELD AreaCode
+    FIELD FirstThree
+    FIELD LastFive
+    FIELD IntlNumber
+    FIELD Email
+    FIELD PurposeOfVisit
+    FIELD Other
+    FIELD FromDate
+    FIELD ToDate
+    FIELD FromYr
+    FIELD FromMM
+    FIELD FromDD
+    FIELD ToYr
+    FIELD ToMM
+    FIELD ToDD
+    FIELD Funds
+    FIELD Name
+    FIELD RelationshipToMe
+    FIELD AddressInCanada
+    FIELD Name
+    FIELD RelationshipToMe
+    FIELD AddressInCanada
+    FIELD No
+    FIELD Yes
+    FIELD FromYear
+    FIELD FromMonth
+    FIELD ToYear
+    FIELD ToMonth
+    FIELD FieldOfStudy
+    FIELD School
+    FIELD CityTown
+    FIELD Country
+    FIELD ProvState
+    FIELD FromYear
+    FIELD FromMonth
+    FIELD ToYear
+    FIELD ToMonth
+    FIELD Occupation
+    FIELD Employer
+    FIELD CityTown
+    FIELD Country
+    FIELD ProvState
+    FIELD FromYear
+    FIELD FromMonth
+    FIELD ToYear
+    FIELD ToMonth
+    FIELD Occupation
+    FIELD Employer
+    FIELD CityTown
+    FIELD Country
+    FIELD ProvState
+    FIELD FromYear
+    FIELD FromMonth
+    FIELD ToYear
+    FIELD ToMonth
+    FIELD Occupation
+    FIELD Employer
+    FIELD CityTown
+    FIELD Country
+    FIELD ProvState
+    FIELD ClearBkgButton
+    FIELD No
+    FIELD Yes
+    FIELD No
+    FIELD Yes
+    FIELD MedicalDetails
+    FIELD backgroundInfoCalc
+    FIELD No
+    FIELD Yes
+    FIELD No
+    FIELD Yes
+    FIELD refusedDetails
+    FIELD No
+    FIELD Yes
+    FIELD No
+    FIELD Yes
+    FIELD details
+    FIELD No
+    FIELD Yes
+    FIELD militaryServiceDetails
+    FIELD No
+    FIELD Yes
+    FIELD No
+    FIELD Yes
+    FIELD No
+    FIELD Yes
+    FIELD C1CertificateIssueDate
+    FIELD TextField2
+    FIELD ValidateButtonBottom
+    FIELD ReaderInfo
+    FIELD PaperFormsBarcode1
+    FIELD PaperFormsBarcode2
+    FIELD PaperFormsBarcode3
+    FIELD PaperFormsBarcode4
+    FIELD PaperFormsBarcode5
+    FIELD TextField1
+    FIELD TextField1
+    FIELD TextField1
+    FIELD TextField1
+    FIELD TextField1
+    FIELD Button2
+    FIELD SignatureField1
+  Exclusive groups: 21
+    GROUP AliasNameIndicator
+    GROUP PCRIndicator
+    GROUP SameAsCORIndicator
+    GROUP PrevMarriedIndicator
+    GROUP TaiwanPIN
+    GROUP IsraelPassportIndicator
+    GROUP LanguageTest
+    GROUP natIDIndicator
+    GROUP usCardIndicator
+    GROUP SameAsMailingIndicator
+    GROUP EducationIndicator
+    GROUP Choice
+    GROUP Choice
+    GROUP VisaChoice1
+    GROUP VisaChoice2
+    GROUP VisaChoice3
+    GROUP Choice
+    GROUP Choice
+    GROUP Choice
+    GROUP Choice
+    GROUP Choice
+
+XFA object 118:
+  Fields: 158
+    FIELD Age
+    FIELD PrevSpouseAge
+    FIELD UCIClientID
+    FIELD ServiceIn
+    FIELD DOBYear
+    FIELD DOBMonth
+    FIELD DOBDay
+    FIELD PlaceBirthCity
+    FIELD Citizenship
+    FIELD Other
+    FIELD Other
+    FIELD Country
+    FIELD Status
+    FIELD Other
+    FIELD FromDate
+    FIELD ToDate
+    FIELD Other
+    FIELD MaritalStatus
+    FIELD FamilyName
+    FIELD GivenName
+    FIELD DateCalc
+    FIELD Year
+    FIELD Month
+    FIELD Day
+    FIELD PMFamilyName
+    FIELD PMGivenName
+    FIELD DOBMonth
+    FIELD DOBDay
+    FIELD PassportNum
+    FIELD CountryofIssue
+    FIELD nativeLang
+    FIELD ableToCommunicate
+    FIELD lov
+    FIELD DocNum
+    FIELD DocNum
+    FIELD POBox
+    FIELD AptUnit
+    FIELD StreetNum
+    FIELD Streetname
+    FIELD CityTown
+    FIELD Country
+    FIELD ProvinceState
+    FIELD PostalCode
+    FIELD District
+    FIELD AptUnit
+    FIELD StreetNum
+    FIELD Streetname
+    FIELD CityTown
+    FIELD ProvinceState
+    FIELD PostalCode
+    FIELD District
+    FIELD CanadaUS
+    FIELD Other
+    FIELD NumberExt
+    FIELD AreaCode
+    FIELD FirstThree
+    FIELD LastFive
+    FIELD IntlNumber
+    FIELD CanadaUS
+    FIELD Other
+    FIELD NumberExt
+    FIELD AreaCode
+    FIELD FirstThree
+    FIELD LastFive
+    FIELD IntlNumber
+    FIELD CanadaUS
+    FIELD Other
+    FIELD NumberExt
+    FIELD AreaCode
+    FIELD FirstThree
+    FIELD LastFive
+    FIELD IntlNumber
+    FIELD Email
+    FIELD PurposeOfVisit
+    FIELD Name
+    FIELD RelationshipToMe
+    FIELD AddressInCanada
+    FIELD Name
+    FIELD RelationshipToMe
+    FIELD AddressInCanada
+    FIELD FromYear
+    FIELD FromMonth
+    FIELD ToYear
+    FIELD ToMonth
+    FIELD FieldOfStudy
+    FIELD School
+    FIELD CityTown
+    FIELD ProvState
+    FIELD FromYear
+    FIELD FromMonth
+    FIELD ToYear
+    FIELD ToMonth
+    FIELD Occupation
+    FIELD Employer
+    FIELD CityTown
+    FIELD Country
+    FIELD ProvState
+    FIELD FromYear
+    FIELD FromMonth
+    FIELD ToYear
+    FIELD ToMonth
+    FIELD Occupation
+    FIELD Employer
+    FIELD CityTown
+    FIELD Country
+    FIELD ProvState
+    FIELD FromYear
+    FIELD FromMonth
+    FIELD ToYear
+    FIELD ToMonth
+    FIELD Occupation
+    FIELD Employer
+    FIELD CityTown
+    FIELD Country
+    FIELD ProvState
+    FIELD No
+    FIELD Yes
+    FIELD No
+    FIELD Yes
+    FIELD MedicalDetails
+    FIELD No
+    FIELD Yes
+    FIELD No
+    FIELD Yes
+    FIELD refusedDetails
+    FIELD No
+    FIELD Yes
+    FIELD No
+    FIELD Yes
+    FIELD details
+    FIELD No
+    FIELD Yes
+    FIELD militaryServiceDetails
+    FIELD No
+    FIELD Yes
+    FIELD No
+    FIELD Yes
+    FIELD SignatureField1
+    FIELD CurrentPage
+    FIELD PageCount
+    FIELD TextField
+    FIELD TextField
+    FIELD CurrentPage
+    FIELD PageCount
+    FIELD TextField
+    FIELD TextField
+    FIELD CurrentPage
+    FIELD PageCount
+    FIELD TextField
+    FIELD TextField
+    FIELD CurrentPage
+    FIELD PageCount
+    FIELD TextField
+    FIELD TextField
+    FIELD CurrentPage
+    FIELD PageCount
+    FIELD TextField
+    FIELD TextField
+  Exclusive groups: 9
+    GROUP Choice
+    GROUP Choice
+    GROUP VisaChoice1
+    GROUP VisaChoice2
+    GROUP VisaChoice3
+    GROUP Choice
+    GROUP Choice
+    GROUP Choice
+    GROUP Choice
+
+Unique XFA field names:
+  ActualNumber (3)
+  AddressInCanada (4)
+  AdultFlag (1)
+  Age (2)
+  AliasFamilyName (1)
+  AliasGivenName (1)
+  ApplicationValidatedFlag (1)
+  AptUnit (4)
+  AreaCode (6)
+  Button1 (1)
+  Button2 (1)
+  C1CertificateIssueDate (1)
+  CRCNum (1)
+  CanadaUS (6)
+  Citizenship (2)
+  CityTown (12)
+  ClearBkgButton (1)
+  Country (15)
+  CountryofIssue (3)
+  CurrentPage (7)
+  DOBDay (4)
+  DOBMonth (4)
+  DOBYear (3)
+  DateCalc (2)
+  DateOfMarriage (1)
+  Day (2)
+  District (4)
+  DocNum (4)
+  Email (2)
+  Employer (6)
+  ExpiryDate (3)
+  FamilyName (3)
+  FieldOfStudy (2)
+  FirstThree (6)
+  FormVersion (1)
+  FromDD (7)
+  FromDate (7)
+  FromMM (7)
+  FromMonth (8)
+  FromYear (8)
+  FromYr (7)
+  Funds (1)
+  GivenName (3)
+  IntlNumber (6)
+  IssueDD (1)
+  IssueDate (2)
+  IssueMM (1)
+  IssueYYYY (1)
+  LastFive (6)
+  MaritalStatus (2)
+  MedicalDetails (2)
+  Month (2)
+  Name (4)
+  No (30)
+  NumberCountry (3)
+  NumberExt (6)
+  Occupation (6)
+  Other (15)
+  PMFamilyName (2)
+  PMGivenName (2)
+  POBox (2)
+  PageCount (7)
+  PaperFormsBarcode1 (1)
+  PaperFormsBarcode2 (1)
+  PaperFormsBarcode3 (1)
+  PaperFormsBarcode4 (1)
+  PaperFormsBarcode5 (1)
+  PassportNum (2)
+  PlaceBirthCity (2)
+  PlaceBirthCountry (1)
+  PostalCode (4)
+  PrevSpouseAge (2)
+  ProvState (8)
+  ProvinceState (4)
+  PurposeOfVisit (2)
+  ReaderInfo (1)
+  RelationshipToMe (4)
+  School (2)
+  ServiceIn (2)
+  Sex (1)
+  SignatureField1 (2)
+  Status (5)
+  StreetNum (4)
+  Streetname (4)
+  TextField (15)
+  TextField1 (5)
+  TextField2 (1)
+  ToDD (6)
+  ToDate (7)
+  ToMM (6)
+  ToMonth (8)
+  ToYear (8)
+  ToYr (6)
+  Type (2)
+  TypeOfRelationship (1)
+  UCIClientID (2)
+  ValidateButton (2)
+  ValidateButtonBottom (1)
+  VisaType (1)
+  Year (2)
+  Yes (30)
+  ableToCommunicate (2)
+  backgroundInfoCalc (1)
+  details (2)
+  expiryDD (1)
+  expiryMM (1)
+  expiryYYYY (1)
+  lov (2)
+  militaryServiceDetails (2)
+  nativeLang (2)
+  refusedDetails (2)
+
+Unique exclusive groups:
+  AliasNameIndicator (1)
+  Choice (13)
+  EducationIndicator (1)
+  IsraelPassportIndicator (1)
+  LanguageTest (1)
+  PCRIndicator (1)
+  PrevMarriedIndicator (1)
+  SameAsCORIndicator (1)
+  SameAsMailingIndicator (1)
+  TaiwanPIN (1)
+  VisaChoice1 (2)
+  VisaChoice2 (2)
+  VisaChoice3 (2)
+  natIDIndicator (1)
+  usCardIndicator (1)
+
+================================================================================
+IMM5707.pdf
+================================================================================
+Pages: 1
+AcroForm widgets: 0
+
+XFA stream references: [75, 2, 3, 4, 5, 6, 76, 77, 78]
+
+XFA object 3:
+  Fields: 74
+    FIELD SaveButton1
+    FIELD ResetButton1
+    FIELD PrintButton1
+    FIELD ValidateButton1
+    FIELD CurrentPage
+    FIELD SaveButton2
+    FIELD ResetButton2
+    FIELD PrintButton2
+    FIELD ValidateButton2
+    FIELD CurrentPage
+    FIELD FormNumber
+    FIELD totPage
+    FIELD link
+    FIELD FamilyName
+    FIELD GivenNames
+    FIELD NativeName
+    FIELD DOB
+    FIELD COB
+    FIELD MaritalStatus
+    FIELD Occupation
+    FIELD yes
+    FIELD no
+    FIELD link
+    FIELD link
+    FIELD yes
+    FIELD no
+    FIELD FamilyName
+    FIELD GivenNames
+    FIELD NativeName
+    FIELD DOB
+    FIELD COB
+    FIELD Address
+    FIELD MaritalStatus
+    FIELD Occupation
+    FIELD yes
+    FIELD no
+    FIELD yes
+    FIELD no
+    FIELD FamilyName
+    FIELD GivenNames
+    FIELD DOB
+    FIELD COB
+    FIELD Address
+    FIELD MaritalStatus
+    FIELD Occupation
+    FIELD yes
+    FIELD no
+    FIELD FamilyName
+    FIELD GivenNames
+    FIELD DOB
+    FIELD COB
+    FIELD Address
+    FIELD MaritalStatus
+    FIELD Occupation
+    FIELD SectionAsignature
+    FIELD SectionAdate
+    FIELD hideChildren
+    FIELD yes
+    FIELD no
+    FIELD Relationship
+    FIELD FamilyName
+    FIELD GivenNames
+    FIELD DOB
+    FIELD COB
+    FIELD Address
+    FIELD MaritalStatus
+    FIELD Occupation
+    FIELD addRow
+    FIELD removeRow
+    FIELD SectionBsignature
+    FIELD SectionBdate
+    FIELD SectionCsignature
+    FIELD SectionCdate
+    FIELD link
+  Exclusive groups: 6
+    GROUP yesno
+    GROUP yesno
+    GROUP yesno
+    GROUP yesno
+    GROUP yesno
+    GROUP yesno
+
+XFA object 76:
+  Fields: 5
+    FIELD FormNumber
+    FIELD totPage
+    FIELD CurrentPage
+    FIELD CurrentPage
+    FIELD CurrentPage
+
+Unique XFA field names:
+  Address (4)
+  COB (5)
+  CurrentPage (5)
+  DOB (5)
+  FamilyName (5)
+  FormNumber (2)
+  GivenNames (5)
+  MaritalStatus (5)
+  NativeName (2)
+  Occupation (5)
+  PrintButton1 (1)
+  PrintButton2 (1)
+  Relationship (1)
+  ResetButton1 (1)
+  ResetButton2 (1)
+  SaveButton1 (1)
+  SaveButton2 (1)
+  SectionAdate (1)
+  SectionAsignature (1)
+  SectionBdate (1)
+  SectionBsignature (1)
+  SectionCdate (1)
+  SectionCsignature (1)
+  ValidateButton1 (1)
+  ValidateButton2 (1)
+  addRow (1)
+  hideChildren (1)
+  link (4)
+  no (6)
+  removeRow (1)
+  totPage (2)
+  yes (6)
+
+Unique exclusive groups:
+  yesno (6)
+
+================================================================================
+IMM5476.pdf
+================================================================================
+Pages: 4
+AcroForm widgets: 76
+
+AcroForm fields:
+  p1: IMM_5476[0].Master[0].frontPage[0].SaveButton1[0] [Button] = ''
+  p1: IMM_5476[0].Master[0].frontPage[0].ResetButton1[0] [Button] = ''
+  p1: IMM_5476[0].Master[0].frontPage[0].PrintButton1[0] [Button] = ''
+  p1: IMM_5476[0].Page1[0].RadioButtonList[0] [RadioButton] = 'Off'
+  p1: IMM_5476[0].Page1[0].RadioButtonList[0] [RadioButton] = 'Off'
+  p1: IMM_5476[0].Page1[0].RadioButtonList[0] [RadioButton] = 'Off'
+  p1: IMM_5476[0].Page1[0].RadioButtonList[0] [RadioButton] = 'Off'
+  p1: IMM_5476[0].Page1[0].RadioButtonList[0] [RadioButton] = 'Off'
+  p1: IMM_5476[0].Page1[0].SectionA[0].familyName[0] [Text] = ''
+  p1: IMM_5476[0].Page1[0].SectionA[0].givenName[0] [Text] = ''
+  p1: IMM_5476[0].Page1[0].SectionA[0].DOB[0] [Text] = ''
+  p1: IMM_5476[0].Page1[0].SectionA[0].office[0] [Text] = ''
+  p1: IMM_5476[0].Page1[0].SectionA[0].office[1] [Text] = ''
+  p1: IMM_5476[0].Page1[0].SectionA[0].office[2] [Text] = ''
+  p1: IMM_5476[0].Page1[0].SectionA[0].application[0] [Text] = ''
+  p1: IMM_5476[0].Page1[0].SectionA[0].UCI[0] [Text] = ''
+  p1: IMM_5476[0].Page1[0].SectionB[0].familyName[0] [Text] = ''
+  p1: IMM_5476[0].Page1[0].SectionB[0].givenName[0] [Text] = ''
+  p2: IMM_5476[0].Master[0].overflowPage[0].SaveButton2[0] [Button] = ''
+  p2: IMM_5476[0].Master[0].overflowPage[0].ResetButton2[0] [Button] = ''
+  p2: IMM_5476[0].Master[0].overflowPage[0].PrintButton2[0] [Button] = ''
+  p2: IMM_5476[0].Page1[0].SectionB[0].question6[0].questionI[0].membership[0] [Text] = ''
+  p2: IMM_5476[0].Page1[0].SectionB[0].question6[0].questionI[0].province2[0] [Text] = ''
+  p2: IMM_5476[0].Page1[0].SectionB[0].question6[0].questionI[0].membership2[0] [Text] = ''
+  p2: IMM_5476[0].Page1[0].SectionB[0].question6[0].questionI[0].uncompensated[0] [RadioButton] = 'Off'
+  p2: IMM_5476[0].Page1[0].SectionB[0].question6[0].questionI[0].uncompensated[0] [RadioButton] = 'Off'
+  p2: IMM_5476[0].Page1[0].SectionB[0].question6[0].questionI[0].uncompensated[0] [RadioButton] = 'Off'
+  p2: IMM_5476[0].Page1[0].SectionB[0].question6[0].questionI[0].uncompensated[0] [RadioButton] = 'Off'
+  p2: IMM_5476[0].Page1[0].SectionB[0].question6[0].questionI[0].uncompensated[0] [RadioButton] = 'Off'
+  p2: IMM_5476[0].Page1[0].SectionB[0].question6[0].questionI[0].otherRep[0] [Text] = ''
+  p2: IMM_5476[0].Page1[0].SectionB[0].question6[0].questionI[0].membership[1] [Text] = ''
+  p2: IMM_5476[0].Page1[0].SectionB[0].question6[0].questionII[0].compensated[0] [RadioButton] = 'Off'
+  p2: IMM_5476[0].Page1[0].SectionB[0].question6[0].questionII[0].compensated[0] [RadioButton] = 'Off'
+  p2: IMM_5476[0].Page1[0].SectionB[0].question6[0].questionII[0].compensated[0] [RadioButton] = 'Off'
+  p2: IMM_5476[0].Page1[0].SectionB[0].question6[0].questionII[0].ICCRCMember[0] [Text] = ''
+  p2: IMM_5476[0].Page1[0].SectionB[0].question6[0].questionII[0].province[0] [Text] = ''
+  p2: IMM_5476[0].Page1[0].SectionB[0].question6[0].questionII[0].membership[0] [Text] = ''
+  p2: IMM_5476[0].Page1[0].SectionB[0].question6[0].questionII[0].quebecLaw[0] [Text] = ''
+  p2: IMM_5476[0].Page1[0].SectionB[0].question7[0].organization[0] [Text] = ''
+  p2: IMM_5476[0].Page1[0].SectionB[0].question7[0].lawyer[0] [Text] = ''
+  p2: IMM_5476[0].Page1[0].SectionB[0].question7[0].membershipID[0] [Text] = ''
+  p2: IMM_5476[0].Page1[0].SectionB[0].question7[0].unit[0] [Text] = ''
+  p2: IMM_5476[0].Page1[0].SectionB[0].question7[0].streetNo[0] [Text] = ''
+  p2: IMM_5476[0].Page1[0].SectionB[0].question7[0].streetName[0] [Text] = ''
+  p2: IMM_5476[0].Page1[0].SectionB[0].question7[0].city[0] [Text] = ''
+  p2: IMM_5476[0].Page1[0].SectionB[0].question7[0].province[0] [Text] = ''
+  p2: IMM_5476[0].Page1[0].SectionB[0].question7[0].country[0] [Text] = ''
+  p2: IMM_5476[0].Page1[0].SectionB[0].question7[0].postalcode[0] [Text] = ''
+  p2: IMM_5476[0].Page1[0].SectionB[0].question7[0].phoneCountryCode[0] [Text] = ''
+  p2: IMM_5476[0].Page1[0].SectionB[0].question7[0].phoneNumber[0] [Text] = ''
+  p2: IMM_5476[0].Page1[0].SectionB[0].question7[0].faxCountryCode[0] [Text] = ''
+  p2: IMM_5476[0].Page1[0].SectionB[0].question7[0].faxNumber[0] [Text] = ''
+  p2: IMM_5476[0].Page1[0].SectionB[0].question7[0].email[0] [Text] = ''
+  p3: IMM_5476[0].Master[0].overflowPage[1].SaveButton2[0] [Button] = ''
+  p3: IMM_5476[0].Master[0].overflowPage[1].ResetButton2[0] [Button] = ''
+  p3: IMM_5476[0].Master[0].overflowPage[1].PrintButton2[0] [Button] = ''
+  p3: IMM_5476[0].Page1[0].SectionB[0].question8[0].signatrureApplicant[0] [Text] = ''
+  p3: IMM_5476[0].Page1[0].SectionB[0].question8[0].dateSigned[0] [Text] = ''
+  p3: IMM_5476[0].Page1[0].SectionB[0].question8[0].signatrureApplicant[1] [Text] = ''
+  p3: IMM_5476[0].Page1[0].SectionB[0].question8[0].dateSigned[1] [Text] = ''
+  p3: IMM_5476[0].Page1[0].sectionC[0].familyName[0] [Text] = ''
+  p3: IMM_5476[0].Page1[0].sectionC[0].givenName[0] [Text] = ''
+  p3: IMM_5476[0].Page1[0].sectionC[0].organization[0] [Text] = ''
+  p3: IMM_5476[0].Page1[0].sectionD[0].familyName[0] [Text] = ''
+  p3: IMM_5476[0].Page1[0].sectionD[0].givenName[0] [Text] = ''
+  p3: IMM_5476[0].Page1[0].sectionD[0].organization[0] [Text] = ''
+  p3: IMM_5476[0].Page1[0].sectionD[0].signatrureApplicant[0] [Text] = ''
+  p3: IMM_5476[0].Page1[0].sectionD[0].dateApplicantSigned[0] [Text] = ''
+  p4: IMM_5476[0].Master[0].overflowPage[2].SaveButton2[0] [Button] = ''
+  p4: IMM_5476[0].Master[0].overflowPage[2].ResetButton2[0] [Button] = ''
+  p4: IMM_5476[0].Master[0].overflowPage[2].PrintButton2[0] [Button] = ''
+  p4: IMM_5476[0].Page1[0].sectionE[0].signatrureApplicant[0] [Text] = ''
+  p4: IMM_5476[0].Page1[0].sectionE[0].dateApplicantSigned[0] [Text] = ''
+  p4: IMM_5476[0].Page1[0].sectionE[0].signatrureApplicant[1] [Text] = ''
+  p4: IMM_5476[0].Page1[0].sectionE[0].dateSpouseSigned[0] [Text] = ''
+  p4: IMM_5476[0].Page1[0].disclaimer[0].websitelink[0] [Button] = ''
+
+XFA stream references: [44, 45, 46, 47, 48, 49, 50, 51, 52, 53]
+
+XFA object 46:
+  Fields: 76
+    FIELD SaveButton1
+    FIELD ResetButton1
+    FIELD PrintButton1
+    FIELD num
+    FIELD totPage
+    FIELD FormNumber
+    FIELD num
+    FIELD totPage
+    FIELD SaveButton2
+    FIELD ResetButton2
+    FIELD PrintButton2
+    FIELD FormNumber
+    FIELD appoint
+    FIELD appoint
+    FIELD appoint
+    FIELD appoint
+    FIELD cancel
+    FIELD familyName
+    FIELD givenName
+    FIELD DOB
+    FIELD office
+    FIELD office
+    FIELD office
+    FIELD application
+    FIELD UCI
+    FIELD familyName
+    FIELD givenName
+    FIELD membership
+    FIELD province2
+    FIELD membership2
+    FIELD family
+    FIELD representative
+    FIELD other
+    FIELD other
+    FIELD representative
+    FIELD otherRep
+    FIELD membership
+    FIELD ICCRC
+    FIELD provincial
+    FIELD quebec
+    FIELD ICCRCMember
+    FIELD province
+    FIELD membership
+    FIELD quebecLaw
+    FIELD organization
+    FIELD lawyer
+    FIELD membershipID
+    FIELD unit
+    FIELD streetNo
+    FIELD streetName
+    FIELD city
+    FIELD province
+    FIELD country
+    FIELD postalcode
+    FIELD phoneCountryCode
+    FIELD phoneNumber
+    FIELD faxCountryCode
+    FIELD faxNumber
+    FIELD email
+    FIELD signatrureApplicant
+    FIELD dateSigned
+    FIELD signatrureApplicant
+    FIELD dateSigned
+    FIELD familyName
+    FIELD givenName
+    FIELD organization
+    FIELD familyName
+    FIELD givenName
+    FIELD organization
+    FIELD signatrureApplicant
+    FIELD dateApplicantSigned
+    FIELD signatrureApplicant
+    FIELD dateApplicantSigned
+    FIELD signatrureApplicant
+    FIELD dateSpouseSigned
+    FIELD websitelink
+  Exclusive groups: 3
+    GROUP RadioButtonList
+    GROUP uncompensated
+    GROUP compensated
+
+Unique XFA field names:
+  DOB (1)
+  FormNumber (2)
+  ICCRC (1)
+  ICCRCMember (1)
+  PrintButton1 (1)
+  PrintButton2 (1)
+  ResetButton1 (1)
+  ResetButton2 (1)
+  SaveButton1 (1)
+  SaveButton2 (1)
+  UCI (1)
+  application (1)
+  appoint (4)
+  cancel (1)
+  city (1)
+  country (1)
+  dateApplicantSigned (2)
+  dateSigned (2)
+  dateSpouseSigned (1)
+  email (1)
+  family (1)
+  familyName (4)
+  faxCountryCode (1)
+  faxNumber (1)
+  givenName (4)
+  lawyer (1)
+  membership (3)
+  membership2 (1)
+  membershipID (1)
+  num (2)
+  office (3)
+  organization (3)
+  other (2)
+  otherRep (1)
+  phoneCountryCode (1)
+  phoneNumber (1)
+  postalcode (1)
+  province (2)
+  province2 (1)
+  provincial (1)
+  quebec (1)
+  quebecLaw (1)
+  representative (2)
+  signatrureApplicant (5)
+  streetName (1)
+  streetNo (1)
+  totPage (2)
+  unit (1)
+  websitelink (1)
+
+Unique exclusive groups:
+  RadioButtonList (1)
+  compensated (1)
+  uncompensated (1)

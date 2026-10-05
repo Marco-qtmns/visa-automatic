@@ -1,0 +1,46 @@
+{
+  "version": 1,
+  "document_types": [
+    { "id": "passport_bio_page", "label": "Passport bio page" },
+    { "id": "identity_document", "label": "Identity document" },
+    { "id": "civil_status_document", "label": "Birth or civil-status certificate" },
+    { "id": "digital_photo", "label": "Digital photo" },
+    { "id": "bank_statements", "label": "Bank statements" }
+  ],
+  "document_groups": {
+    "trv_base_internal": [
+      {
+        "document_type": "passport_bio_page",
+        "owner_role": "applicant",
+        "requirement_level": "supporting",
+        "is_blocking": false
+      },
+      {
+        "document_type": "identity_document",
+        "owner_role": "applicant",
+        "requirement_level": "supporting",
+        "is_blocking": false
+      },
+      {
+        "document_type": "civil_status_document",
+        "owner_role": "applicant",
+        "requirement_level": "supporting",
+        "is_blocking": false
+      },
+      {
+        "document_type": "digital_photo",
+        "owner_role": "applicant",
+        "requirement_level": "supporting",
+        "is_blocking": false
+      }
+    ],
+    "trv_sponsor_confirmed": [
+      {
+        "document_type": "bank_statements",
+        "owner_role": "sponsor",
+        "requirement_level": "required",
+        "is_blocking": true
+      }
+    ]
+  }
+}

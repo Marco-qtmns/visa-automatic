@@ -1,0 +1,21 @@
+{
+  "version": 1,
+  "profiles": {
+    "passport_bio_page": [
+      {"check_id": "passport_bio_page_visible", "label": "Passport biographical page and details are visible", "assessment": "manual"}
+    ],
+    "identity_document": [
+      {"check_id": "identity_details_visible", "label": "Identity details are visible and belong to the assigned person", "assessment": "manual"}
+    ],
+    "civil_status_document": [
+      {"check_id": "civil_status_content_visible", "label": "Civil-status record content is visible and complete", "assessment": "manual"}
+    ],
+    "digital_photo": [
+      {"check_id": "photo_visual_requirements", "label": "Photo suitability against the applicable specification", "assessment": "manual"}
+    ],
+    "bank_statements": [
+      {"check_id": "bank_account_holder_confirmed", "label": "Account holder matches the assigned person", "assessment": "candidate_text_manual"},
+      {"check_id": "bank_statement_period_confirmed", "label": "Statement period is confirmed", "assessment": "candidate_period_manual"}
+    ]
+  }
+}

@@ -1,0 +1,253 @@
+schema_version: 4
+purpose: >-
+  Adaptation policy for the existing client-facing Canada intake, reflecting
+  the owner's decisions. The owner has already changed the live form. This is
+  NOT a verified transcription of its current headings or a complete replacement.
+  The supplied 234-column September 2026 export now has its own verified mapping.
+  The examples below are still proposals, not the exact live question list.
+
+implementation_status:
+  live_form_modified_by_this_repository: false
+  revised_export_verified: true
+  verified_header_sha256: "81820c7095e89bb2809f1c674838a95a088524b15efa4e70827a7b535ac0117b"
+  verified_schema_fixture: "tests/fixtures/canada_20260929_schema.json"
+  verified_column_count: 234
+  remaining_review:
+    - "Applicant sex and birth country are absent; confirm internally."
+    - "Parent 1/2 roles are not explicitly mother/father; confirm internally."
+    - "Parent/child name fields still say Nome completo; never split or assume given names."
+    - "Second parent birth-country label repeats genitor 1; use the verified block mapping."
+    - "Amount is labelled estimated spending without currency; confirm available CAD funds internally."
+    - "Current employment plus four history blocks; confirm ongoing status separately from today's end date."
+  proposed_titles_below: true
+  preserve_existing_questions: true
+  do_not_recreate_completed_changes: true
+  no_additional_client_questions_without_need: true
+
+form:
+  title: "CANADÁ — TURISMO — V2"
+  language: pt-BR
+  description: >-
+    Preencha as informações conforme os seus documentos. Perguntas adicionais
+    aparecem somente quando aplicáveis. Caso tenha mais de cinco filhos ou mais
+    de cinco atividades nos últimos dez anos, envie as informações pelo WhatsApp.
+  progress_bar: true
+  shuffle_questions: false
+  confirmation_message: >-
+    Recebemos suas respostas. Nossa equipe poderá pedir esclarecimentos ou
+    documentos adicionais pelo WhatsApp.
+
+non_negotiable_rules:
+  - Inspect the revised form/export first. Do not create another form or repeat work marked DONE.
+  - Preserve existing education, occupation, family, history, upload and declaration questions;
+    the examples below do not enumerate all existing questions.
+  - Existing repeated labels are acceptable when section boundaries make their roles deterministic.
+    The importer must distinguish applicant and host contacts; the client need not answer again.
+  - Proposed new numbered titles are examples, not evidence of the live export's exact headings.
+  - Use section routing for conditional answers. A blank answer never means Não.
+  - Keep the client-visible title natural Portuguese; do not expose technical IDs.
+  - Do not request native language, preferred language, UCI, representative data,
+    signatures, passwords, or payment details.
+  - Use Google Forms date controls for dates and short-text validation for emails.
+  - Do not split a Brazilian address into street, number, unit, city, and country.
+  - Do not collect more than five children or five activity blocks in the form.
+  - Never treat a legal guardian as a substitute for the requested mother or father.
+  - Guardian/court-decision information is handled outside this form with supporting files.
+
+answer_sets:
+  yes_no: ["Sim", "Não"]
+  sex: ["Masculino", "Feminino", "X"]
+  marital_status: ["Solteiro(a)", "Casado(a)", "União estável", "Divorciado(a)", "Viúvo(a)", "Separado(a)", "Outro"]
+  activity_type: ["Emprego", "Estudo", "Desempregado(a)", "Autônomo(a)", "Aposentado(a)", "Outro"]
+
+sections:
+  - id: applicant
+    title: "1. Identificação"
+    questions:
+      - {title: "Sobrenome conforme passaporte", type: short_text, required: true}
+      - {title: "Todos os nomes conforme passaporte", type: short_text, required: true}
+      - {title: "Nome completo conforme passaporte", type: short_text, required: true, note: "Campo de controle; não derive os outros campos dele."}
+      - {title: "Sexo", type: single_choice, choices_ref: sex, required: true}
+      - {title: "Data de nascimento", type: date, required: true}
+      - {title: "Cidade de nascimento", type: short_text, required: true}
+      - {title: "Estado de nascimento", type: short_text, required: false}
+      - {title: "País de nascimento", type: short_text, required: true}
+      - {title: "Nacionalidade atual", type: short_text, required: true}
+
+  - id: residence_contact
+    title: "2. Residência e contato"
+    questions:
+      - {title: "Endereço residencial completo", type: short_text, required: true, help: "Inclua quadra, conjunto, bloco, apartamento e demais referências, se aplicável."}
+      - {title: "CEP residencial", type: short_text, required: true}
+      # Keep already-existing city/state answers; do not add or require them again.
+      - {title: "E-mail do requerente", type: email, required: true}
+      - {title: "Telefone do requerente", type: short_text, required: true, help: "Inclua código do país e DDD."}
+      # Existing residence country may stay; do not add an address-country question.
+      - {title: "País de residência atual", type: short_text, required: true, existing_only: true}
+      - {title: "Status migratório no país de residência atual", type: short_text, required: true}
+      - {title: "Desde quando reside no país atual?", type: date, required: true}
+
+  - id: passport
+    title: "3. Passaporte e identidade"
+    questions:
+      - {title: "Número do passaporte", type: short_text, required: true}
+      - {title: "País que emitiu o passaporte", type: short_text, required: true}
+      - {title: "Data de emissão do passaporte", type: date, required: true}
+      - {title: "Data de validade do passaporte", type: date, required: true}
+      - {title: "Número da identidade", type: short_text, required: false}
+      - {title: "País de emissão da identidade", type: short_text, required: false}
+
+  - id: trip
+    title: "4. Viagem ao Canadá"
+    questions:
+      - {title: "Qual é o principal objetivo da sua viagem ao Canadá?", type: short_text, required: true}
+      - {title: "Data prevista de chegada no Canadá", type: date, required: true}
+      - {title: "Data prevista de saída do Canadá", type: date, required: true}
+      - {title: "Fundos disponíveis para a viagem em CAD", type: number, required: true}
+      - {title: "Quem pagará a viagem?", type: short_text, required: true}
+      - title: "Você vai visitar uma pessoa ou instituição no Canadá?"
+        type: single_choice
+        choices_ref: yes_no
+        required: true
+        branch: {Sim: host, "Não": partner_router}
+
+  - id: host
+    title: "4A. Pessoa ou instituição no Canadá"
+    questions:
+      - {title: "Nome completo da pessoa ou instituição no Canadá", type: short_text, required: true}
+      - {title: "Relação com o requerente", type: short_text, required: true}
+      - {title: "Endereço completo do anfitrião no Canadá", type: short_text, required: true}
+      - {title: "CEP/código postal do anfitrião no Canadá", type: short_text, required: true}
+      - {title: "Telefone do anfitrião no Canadá", type: short_text, required: true}
+      - {title: "E-mail do anfitrião no Canadá", type: email, required: true}
+    next_section: partner_router
+
+  - id: partner_router
+    title: "5. Cônjuge ou companheiro(a)"
+    questions:
+      - title: "Possui cônjuge ou companheiro(a)?"
+        type: single_choice
+        choices_ref: yes_no
+        required: true
+        branch: {Sim: partner, "Não": former_partner_router}
+
+  - id: partner
+    title: "5A. Dados do cônjuge ou companheiro(a)"
+    questions:
+      - {title: "Sobrenome do cônjuge", type: short_text, required: true}
+      - {title: "Nomes do cônjuge", type: short_text, required: true}
+      - {title: "Data de nascimento do cônjuge", type: date, required: true}
+      - {title: "País de nascimento do cônjuge", type: short_text, required: true}
+      - {title: "O cônjuge mora com você?", type: single_choice, choices_ref: yes_no, required: true}
+      - {title: "Endereço do cônjuge, se diferente", type: short_text, required_when: "O cônjuge mora com você? = Não"}
+      - {title: "O cônjuge viajará com você ao Canadá?", type: single_choice, choices_ref: yes_no, required: true}
+    next_section: former_partner_router
+
+  - id: former_partner_router
+    title: "5B. Relacionamento anterior"
+    questions:
+      - title: "Já foi casado(a) ou teve união estável anteriormente?"
+        type: single_choice
+        choices_ref: yes_no
+        required: true
+        branch: {Sim: former_partner, "Não": parents}
+
+  - id: former_partner
+    title: "5C. Dados do ex-cônjuge ou ex-companheiro(a)"
+    questions:
+      - {title: "Sobrenome do ex-cônjuge", type: short_text, required: true}
+      - {title: "Nomes do ex-cônjuge", type: short_text, required: true}
+      - {title: "Data de nascimento do ex-cônjuge", type: date, required: true}
+      - {title: "País de nascimento do ex-cônjuge", type: short_text, required: true}
+      - {title: "O ex-cônjuge mora com você?", type: single_choice, choices_ref: yes_no, required: true}
+      - {title: "Endereço do ex-cônjuge, se diferente", type: short_text, required_when: "O ex-cônjuge mora com você? = Não"}
+      - {title: "O ex-cônjuge viajará com você ao Canadá?", type: single_choice, choices_ref: yes_no, required: true}
+    next_section: parents
+
+  - id: parents
+    title: "5D. Mãe e pai"
+    questions:
+      - {title: "Sobrenome da mãe", type: short_text, required: true}
+      - {title: "Nomes da mãe", type: short_text, required: true}
+      - {title: "Data de nascimento da mãe", type: date, required: true}
+      - {title: "País de nascimento da mãe", type: short_text, required: true}
+      - {title: "Sobrenome do pai", type: short_text, required: true}
+      - {title: "Nomes do pai", type: short_text, required: true}
+      - {title: "Data de nascimento do pai", type: date, required: true}
+      - {title: "País de nascimento do pai", type: short_text, required: true}
+      - title: "Possui filhos?"
+        type: single_choice
+        choices_ref: yes_no
+        required: true
+        branch: {Sim: child_01, "Não": activities_01}
+
+  - id: child_01
+    title: "5E. Filho 01"
+    generation_instruction: >-
+      Create sections Filho 01 through Filho 05. For every suffix NN, create:
+      Sobrenome do filho NN; Nomes do filho NN; Data de nascimento do filho NN;
+      País de nascimento do filho NN; Relação do filho NN com o requerente;
+      Estado civil do filho NN; Ocupação atual do filho NN; Endereço completo do filho NN;
+      O filho NN viajará com você ao Canadá? Preserve existing requiredness; unknown
+      facts go to staff follow-up. End sections 01–04 with
+      Possui outro filho além do filho NN? (Sim/Não); Sim routes to next child, Não to
+      Atividade 01. End child 05 with information that further children go by WhatsApp.
+
+  - id: activities_01
+    title: "6. Atividades nos últimos 10 anos"
+    generation_instruction: >-
+      Create sections Atividade 01 through Atividade 05. For every suffix NN create:
+      Atividade NN — tipo; Atividade NN — início; Atividade NN — término;
+      Atividade NN — em andamento?;
+      Atividade NN — cargo; Atividade NN — organização; Atividade NN — cidade;
+      Atividade NN — estado/província. Use activity_type for tipo and date controls for
+      início/término. Retain an explicit present/ongoing option; no invented end date.
+      End sections 01–04 with Possui outra atividade após a atividade NN?
+      (Sim/Não); Sim routes to next activity and Não to history. Atividade 05 states that
+      additional periods are collected by WhatsApp. Do not collect company country.
+
+  - id: history
+    title: "7. Histórico de viagens e imigração"
+    questions:
+      - {title: "Nos últimos 10 anos, você viajou para outros países?", type: single_choice, choices_ref: yes_no, required: true}
+      - {title: "Histórico de viagens — países, datas e motivo", type: paragraph, required_when: "Nos últimos 10 anos, você viajou para outros países? = Sim"}
+      - {title: "Já teve visto canadense anteriormente?", type: single_choice, choices_ref: yes_no, required: true}
+      - {title: "Já teve pedido de visto, entrada ou permanência no Canadá recusado?", type: single_choice, choices_ref: yes_no, required: true}
+      - {title: "Já teve visto ou entrada recusada por outro país?", type: single_choice, choices_ref: yes_no, required: true}
+      - {title: "Detalhes de respostas Sim sobre imigração", type: paragraph, required_when: "any immigration answer = Sim"}
+
+  - id: letters_declarations
+    title: "8. Declarações e carta de intenção"
+    questions:
+      - {title: "Carta de intenção — apresentação pessoal", type: paragraph, required: true}
+      - {title: "Carta de intenção — motivo para escolher o Canadá", type: paragraph, required: true}
+      - {title: "Carta de intenção — atividades planejadas no Canadá", type: paragraph, required: true}
+      - {title: "Carta de intenção — plano após retorno ao Brasil", type: paragraph, required: true}
+      - {title: "Já cometeu, foi preso, acusado ou condenado por algum crime?", type: single_choice, choices_ref: yes_no, required: true}
+      - {title: "Já trabalhou ou se envolveu com forças militares, policiais, segurança, inteligência ou grupos armados?", type: single_choice, choices_ref: yes_no, required: true}
+      - {title: "Já teve algum problema relacionado à imigração ou permanência em outro país?", type: single_choice, choices_ref: yes_no, required: true}
+      - {title: "Detalhes de respostas Sim sobre declarações", type: paragraph, required_when: "any declaration answer = Sim"}
+      - {title: "Aceite das declarações", type: single_choice, choices: ["Confirmo que as informações prestadas são verdadeiras"], required: true}
+
+workarounds_outside_form:
+  more_than_five_children: "Collect complete information by WhatsApp; enter it during case review."
+  more_than_five_activities: "Collect complete information by WhatsApp; enter it during case review."
+  legal_guardianship: "Collect court decision and explanation as separate supporting material."
+  uci_and_language: "Obtain through direct client communication when actually needed."
+  prior_residences_and_detailed_travel: "Use the concise paragraph field, then clarify manually when needed."
+  postal_address_format: "Preserve the complete Brazilian address line plus separate CEP. Keep existing city/state values if present; do not add customer questions. Staff confirm country when needed."
+  education: "Keep existing level, course, institution, dates and country. Staff may confirm institution city/state and relevant post-secondary attendance; no new customer section."
+  finances: "One available-funds answer in CAD plus the existing payer question. Do not add estimated-cost questions. Legacy spending answers are not silently reclassified as available funds."
+
+implementation_notes:
+  - The current reader supports V1 titles. Implement and test a dedicated V2 reader before
+    connecting V2 exports to production intake.
+  - Preserve all raw answers. Do not infer names, sex, country, relationship, or immigration facts.
+  - Canada PDF generation remains disabled.
+
+acceptance_criteria:
+  - Each field is deterministically mapped by exact title and, where repeated, verified section/occurrence.
+  - Routing skips every inapplicable partner, former-partner, child, host, and activity section.
+  - A client with no partner, children, host, or extra activities sees no corresponding detail fields.
+  - A synthetic, anonymized V2 CSV export passes dedicated reader regression tests before release.
+  - The agent reports the form URL and the final CSV header list, but does not submit test client data.

@@ -1,0 +1,21 @@
+{
+  "settings_version": 5,
+  "default_client_country": "BRAZIL",
+  "recipient": {
+    "title": "",
+    "title_other": "",
+    "family_name": "",
+    "given_names": "",
+    "date_of_birth": "",
+    "address_line1": "",
+    "address_line2": "",
+    "address_line3": "",
+    "country": "",
+    "postcode": "",
+    "office_country_code": "",
+    "office_area_code": "",
+    "office_number": "",
+    "mobile": "",
+    "email": ""
+  }
+}

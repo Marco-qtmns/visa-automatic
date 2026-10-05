@@ -1,0 +1,1647 @@
+{
+  "schema_version": 1,
+  "provenance": "Exact 234 headers from the 2026-09-29 supplied export; no response values. PDF is supporting screenshots, not a complete export.",
+  "csv_sha256": "49bb2a5a22de0f725b81266d5fe41d8d57fd2f2742faf8fc638e6ec9c611ac1a",
+  "header_sha256": "81820c7095e89bb2809f1c674838a95a088524b15efa4e70827a7b535ac0117b",
+  "pdf_sha256": "0b411613b27f20bb47c831062eef0d4770c8f4aa76c6f32310118082b1b85235",
+  "columns": [
+    {
+      "csv_index": 0,
+      "header": "Carimbo de data/hora",
+      "normalized_header": "carimbo de data/hora",
+      "exact_occurrence": 1,
+      "normalized_occurrence": 1
+    },
+    {
+      "csv_index": 1,
+      "header": "Sobrenome completo, conforme o passaporte",
+      "normalized_header": "sobrenome completo, conforme o passaporte",
+      "exact_occurrence": 1,
+      "normalized_occurrence": 1
+    },
+    {
+      "csv_index": 2,
+      "header": "Nome, conforme o passaporte",
+      "normalized_header": "nome, conforme o passaporte",
+      "exact_occurrence": 1,
+      "normalized_occurrence": 1
+    },
+    {
+      "csv_index": 3,
+      "header": "Já usou outro nome?\n\nSe sim, informar todos os outros nomes que já usou no campo \"Outro\"",
+      "normalized_header": "ja usou outro nome? se sim, informar todos os outros nomes que ja usou no campo \"outro\"",
+      "exact_occurrence": 1,
+      "normalized_occurrence": 1
+    },
+    {
+      "csv_index": 4,
+      "header": "Data de nascimento",
+      "normalized_header": "data de nascimento",
+      "exact_occurrence": 1,
+      "normalized_occurrence": 1
+    },
+    {
+      "csv_index": 5,
+      "header": "Cidade de nascimento",
+      "normalized_header": "cidade de nascimento",
+      "exact_occurrence": 1,
+      "normalized_occurrence": 1
+    },
+    {
+      "csv_index": 6,
+      "header": "Estado de nascimento",
+      "normalized_header": "estado de nascimento",
+      "exact_occurrence": 1,
+      "normalized_occurrence": 1
+    },
+    {
+      "csv_index": 7,
+      "header": "Qual é sua nacionalidade?",
+      "normalized_header": "qual e sua nacionalidade?",
+      "exact_occurrence": 1,
+      "normalized_occurrence": 1
+    },
+    {
+      "csv_index": 8,
+      "header": "Possui outra cidadania? \n\nSe sim, forneça todas as outras nacionalidades no campo \"Outro\"",
+      "normalized_header": "possui outra cidadania? se sim, forneca todas as outras nacionalidades no campo \"outro\"",
+      "exact_occurrence": 1,
+      "normalized_occurrence": 1
+    },
+    {
+      "csv_index": 9,
+      "header": "Em qual país reside atualmente?",
+      "normalized_header": "em qual pais reside atualmente?",
+      "exact_occurrence": 1,
+      "normalized_occurrence": 1
+    },
+    {
+      "csv_index": 10,
+      "header": "Qual é seu status no país de residência?",
+      "normalized_header": "qual e seu status no pais de residencia?",
+      "exact_occurrence": 1,
+      "normalized_occurrence": 1
+    },
+    {
+      "csv_index": 11,
+      "header": "Desde quando reside nesse país atual? ",
+      "normalized_header": "desde quando reside nesse pais atual?",
+      "exact_occurrence": 1,
+      "normalized_occurrence": 1
+    },
+    {
+      "csv_index": 12,
+      "header": "Nos últimos 5 anos, você morou em algum outro país por 6 meses ou mais?",
+      "normalized_header": "nos ultimos 5 anos, voce morou em algum outro pais por 6 meses ou mais?",
+      "exact_occurrence": 1,
+      "normalized_occurrence": 1
+    },
+    {
+      "csv_index": 13,
+      "header": "Se sim, informe: país + status migratório nesse país + data de início da residência + data de término da residência",
+      "normalized_header": "se sim, informe: pais + status migratorio nesse pais + data de inicio da residencia + data de termino da residencia",
+      "exact_occurrence": 1,
+      "normalized_occurrence": 1
+    },
+    {
+      "csv_index": 14,
+      "header": "Estado civil atual",
+      "normalized_header": "estado civil atual",
+      "exact_occurrence": 1,
+      "normalized_occurrence": 1
+    },
+    {
+      "csv_index": 15,
+      "header": "Data em que seu casamento/união estável começou",
+      "normalized_header": "data em que seu casamento/uniao estavel comecou",
+      "exact_occurrence": 1,
+      "normalized_occurrence": 1
+    },
+    {
+      "csv_index": 16,
+      "header": "Sobrenome completo do cônjuge ",
+      "normalized_header": "sobrenome completo do conjuge",
+      "exact_occurrence": 1,
+      "normalized_occurrence": 1
+    },
+    {
+      "csv_index": 17,
+      "header": "Nome do cônjuge",
+      "normalized_header": "nome do conjuge",
+      "exact_occurrence": 1,
+      "normalized_occurrence": 1
+    },
+    {
+      "csv_index": 18,
+      "header": "Data de nascimento do cônjuge",
+      "normalized_header": "data de nascimento do conjuge",
+      "exact_occurrence": 1,
+      "normalized_occurrence": 1
+    },
+    {
+      "csv_index": 19,
+      "header": "País de nascimento do cônjuge",
+      "normalized_header": "pais de nascimento do conjuge",
+      "exact_occurrence": 1,
+      "normalized_occurrence": 1
+    },
+    {
+      "csv_index": 20,
+      "header": "Ocupação atual do cônjuge",
+      "normalized_header": "ocupacao atual do conjuge",
+      "exact_occurrence": 1,
+      "normalized_occurrence": 1
+    },
+    {
+      "csv_index": 21,
+      "header": "Seu cônjuge reside com você?\n\nSe não reside, informar o endereço completo do cônjuge no campo \"Outro\"",
+      "normalized_header": "seu conjuge reside com voce? se nao reside, informar o endereco completo do conjuge no campo \"outro\"",
+      "exact_occurrence": 1,
+      "normalized_occurrence": 1
+    },
+    {
+      "csv_index": 22,
+      "header": "Seu cônjuge vai acompanhar você para o Canadá?",
+      "normalized_header": "seu conjuge vai acompanhar voce para o canada?",
+      "exact_occurrence": 1,
+      "normalized_occurrence": 1
+    },
+    {
+      "csv_index": 23,
+      "header": "Você já foi casado ou esteve em união estável anteriormente?",
+      "normalized_header": "voce ja foi casado ou esteve em uniao estavel anteriormente?",
+      "exact_occurrence": 1,
+      "normalized_occurrence": 1
+    },
+    {
+      "csv_index": 24,
+      "header": "Sobrenome completo do ex-cônjuge",
+      "normalized_header": "sobrenome completo do ex-conjuge",
+      "exact_occurrence": 1,
+      "normalized_occurrence": 1
+    },
+    {
+      "csv_index": 25,
+      "header": "Nome do ex-cônjuge",
+      "normalized_header": "nome do ex-conjuge",
+      "exact_occurrence": 1,
+      "normalized_occurrence": 1
+    },
+    {
+      "csv_index": 26,
+      "header": "Data de nascimento do ex-cônjuge",
+      "normalized_header": "data de nascimento do ex-conjuge",
+      "exact_occurrence": 1,
+      "normalized_occurrence": 1
+    },
+    {
+      "csv_index": 27,
+      "header": "País de nascimento do ex-cônjuge",
+      "normalized_header": "pais de nascimento do ex-conjuge",
+      "exact_occurrence": 1,
+      "normalized_occurrence": 1
+    },
+    {
+      "csv_index": 28,
+      "header": "Qual foi o tipo de relacionamento?",
+      "normalized_header": "qual foi o tipo de relacionamento?",
+      "exact_occurrence": 1,
+      "normalized_occurrence": 1
+    },
+    {
+      "csv_index": 29,
+      "header": "Data de início do antigo relacionamento",
+      "normalized_header": "data de inicio do antigo relacionamento",
+      "exact_occurrence": 1,
+      "normalized_occurrence": 1
+    },
+    {
+      "csv_index": 30,
+      "header": "Data de término do antigo relacionamento",
+      "normalized_header": "data de termino do antigo relacionamento",
+      "exact_occurrence": 1,
+      "normalized_occurrence": 1
+    },
+    {
+      "csv_index": 31,
+      "header": "Cidade de nascimento do ex-cônjuge",
+      "normalized_header": "cidade de nascimento do ex-conjuge",
+      "exact_occurrence": 1,
+      "normalized_occurrence": 1
+    },
+    {
+      "csv_index": 32,
+      "header": "Ocupação atual do ex-cônjuge",
+      "normalized_header": "ocupacao atual do ex-conjuge",
+      "exact_occurrence": 1,
+      "normalized_occurrence": 1
+    },
+    {
+      "csv_index": 33,
+      "header": "Endereço atual do ex-cônjuge",
+      "normalized_header": "endereco atual do ex-conjuge",
+      "exact_occurrence": 1,
+      "normalized_occurrence": 1
+    },
+    {
+      "csv_index": 34,
+      "header": "Você consegue se comunicar em inglês, francês ou ambos?",
+      "normalized_header": "voce consegue se comunicar em ingles, frances ou ambos?",
+      "exact_occurrence": 1,
+      "normalized_occurrence": 1
+    },
+    {
+      "csv_index": 35,
+      "header": "Possui teste de proficiência em alguma dessas línguas?",
+      "normalized_header": "possui teste de proficiencia em alguma dessas linguas?",
+      "exact_occurrence": 1,
+      "normalized_occurrence": 1
+    },
+    {
+      "csv_index": 36,
+      "header": "Número do passaporte",
+      "normalized_header": "numero do passaporte",
+      "exact_occurrence": 1,
+      "normalized_occurrence": 1
+    },
+    {
+      "csv_index": 37,
+      "header": "País que emitiu o passaporte",
+      "normalized_header": "pais que emitiu o passaporte",
+      "exact_occurrence": 1,
+      "normalized_occurrence": 1
+    },
+    {
+      "csv_index": 38,
+      "header": "Data de emissão do passaporte",
+      "normalized_header": "data de emissao do passaporte",
+      "exact_occurrence": 1,
+      "normalized_occurrence": 1
+    },
+    {
+      "csv_index": 39,
+      "header": "Data de validade do passaporte",
+      "normalized_header": "data de validade do passaporte",
+      "exact_occurrence": 1,
+      "normalized_occurrence": 1
+    },
+    {
+      "csv_index": 40,
+      "header": "Você possui outro passaporte válido? ",
+      "normalized_header": "voce possui outro passaporte valido?",
+      "exact_occurrence": 1,
+      "normalized_occurrence": 1
+    },
+    {
+      "csv_index": 41,
+      "header": "Se sim, informe país e número do outro passaporte ",
+      "normalized_header": "se sim, informe pais e numero do outro passaporte",
+      "exact_occurrence": 1,
+      "normalized_occurrence": 1
+    },
+    {
+      "csv_index": 42,
+      "header": "Número da identidade",
+      "normalized_header": "numero da identidade",
+      "exact_occurrence": 1,
+      "normalized_occurrence": 1
+    },
+    {
+      "csv_index": 43,
+      "header": "País de emissão",
+      "normalized_header": "pais de emissao",
+      "exact_occurrence": 1,
+      "normalized_occurrence": 1
+    },
+    {
+      "csv_index": 44,
+      "header": "Data de emissão da identidade",
+      "normalized_header": "data de emissao da identidade",
+      "exact_occurrence": 1,
+      "normalized_occurrence": 1
+    },
+    {
+      "csv_index": 45,
+      "header": "Data de validade da identidade",
+      "normalized_header": "data de validade da identidade",
+      "exact_occurrence": 1,
+      "normalized_occurrence": 1
+    },
+    {
+      "csv_index": 46,
+      "header": "Você é residente permanente legal dos Estados Unidos e possui um Green Card válido? \n\nSe sim, forneça número e data de validade do Green Card no campo \"Outro\"",
+      "normalized_header": "voce e residente permanente legal dos estados unidos e possui um green card valido? se sim, forneca numero e data de validade do green card no campo \"outro\"",
+      "exact_occurrence": 1,
+      "normalized_occurrence": 1
+    },
+    {
+      "csv_index": 47,
+      "header": "Endereço completo",
+      "normalized_header": "endereco completo",
+      "exact_occurrence": 1,
+      "normalized_occurrence": 1
+    },
+    {
+      "csv_index": 48,
+      "header": "Cidade",
+      "normalized_header": "cidade",
+      "exact_occurrence": 1,
+      "normalized_occurrence": 1
+    },
+    {
+      "csv_index": 49,
+      "header": "Estado",
+      "normalized_header": "estado",
+      "exact_occurrence": 1,
+      "normalized_occurrence": 1
+    },
+    {
+      "csv_index": 50,
+      "header": "CEP",
+      "normalized_header": "cep",
+      "exact_occurrence": 1,
+      "normalized_occurrence": 1
+    },
+    {
+      "csv_index": 51,
+      "header": "E-mail ",
+      "normalized_header": "e-mail",
+      "exact_occurrence": 1,
+      "normalized_occurrence": 1
+    },
+    {
+      "csv_index": 52,
+      "header": "Telefone",
+      "normalized_header": "telefone",
+      "exact_occurrence": 1,
+      "normalized_occurrence": 1
+    },
+    {
+      "csv_index": 53,
+      "header": "Qual é o principal objetivo da sua viagem ao Canadá? ",
+      "normalized_header": "qual e o principal objetivo da sua viagem ao canada?",
+      "exact_occurrence": 1,
+      "normalized_occurrence": 1
+    },
+    {
+      "csv_index": 54,
+      "header": "Data prevista de chegada no Canadá ",
+      "normalized_header": "data prevista de chegada no canada",
+      "exact_occurrence": 1,
+      "normalized_occurrence": 1
+    },
+    {
+      "csv_index": 55,
+      "header": "Data prevista de saída do Canadá ",
+      "normalized_header": "data prevista de saida do canada",
+      "exact_occurrence": 1,
+      "normalized_occurrence": 1
+    },
+    {
+      "csv_index": 56,
+      "header": "Quantos dias pretende permanecer no Canadá?",
+      "normalized_header": "quantos dias pretende permanecer no canada?",
+      "exact_occurrence": 1,
+      "normalized_occurrence": 1
+    },
+    {
+      "csv_index": 57,
+      "header": "Valor aproximado que pretende gastar durante a viagem no Canadá?",
+      "normalized_header": "valor aproximado que pretende gastar durante a viagem no canada?",
+      "exact_occurrence": 1,
+      "normalized_occurrence": 1
+    },
+    {
+      "csv_index": 58,
+      "header": "Quem pagará pelos custos da viagem? ",
+      "normalized_header": "quem pagara pelos custos da viagem?",
+      "exact_occurrence": 1,
+      "normalized_occurrence": 1
+    },
+    {
+      "csv_index": 59,
+      "header": "Caso outra pessoa ou empresa pague pela viagem, informe quem será responsável pelos custos ",
+      "normalized_header": "caso outra pessoa ou empresa pague pela viagem, informe quem sera responsavel pelos custos",
+      "exact_occurrence": 1,
+      "normalized_occurrence": 1
+    },
+    {
+      "csv_index": 60,
+      "header": "Você pretende visitar alguma pessoa ou instituição no Canadá?",
+      "normalized_header": "voce pretende visitar alguma pessoa ou instituicao no canada?",
+      "exact_occurrence": 1,
+      "normalized_occurrence": 1
+    },
+    {
+      "csv_index": 61,
+      "header": "Nome completo da pessoa/instituição",
+      "normalized_header": "nome completo da pessoa/instituicao",
+      "exact_occurrence": 1,
+      "normalized_occurrence": 1
+    },
+    {
+      "csv_index": 62,
+      "header": "Relação com você",
+      "normalized_header": "relacao com voce",
+      "exact_occurrence": 1,
+      "normalized_occurrence": 1
+    },
+    {
+      "csv_index": 63,
+      "header": "Se for familiar, qual é o grau de parentesco com você? ",
+      "normalized_header": "se for familiar, qual e o grau de parentesco com voce?",
+      "exact_occurrence": 1,
+      "normalized_occurrence": 1
+    },
+    {
+      "csv_index": 64,
+      "header": "Status dessa pessoa no Canadá",
+      "normalized_header": "status dessa pessoa no canada",
+      "exact_occurrence": 1,
+      "normalized_occurrence": 1
+    },
+    {
+      "csv_index": 65,
+      "header": "Endereço completo no Canadá",
+      "normalized_header": "endereco completo no canada",
+      "exact_occurrence": 1,
+      "normalized_occurrence": 1
+    },
+    {
+      "csv_index": 66,
+      "header": "Código postal (postal code)",
+      "normalized_header": "codigo postal (postal code)",
+      "exact_occurrence": 1,
+      "normalized_occurrence": 1
+    },
+    {
+      "csv_index": 67,
+      "header": "Telefone",
+      "normalized_header": "telefone",
+      "exact_occurrence": 2,
+      "normalized_occurrence": 2
+    },
+    {
+      "csv_index": 68,
+      "header": "E-mail",
+      "normalized_header": "e-mail",
+      "exact_occurrence": 1,
+      "normalized_occurrence": 2
+    },
+    {
+      "csv_index": 69,
+      "header": "Qual seu nível de formação educacional mais recente (completo ou incompleto)?",
+      "normalized_header": "qual seu nivel de formacao educacional mais recente (completo ou incompleto)?",
+      "exact_occurrence": 1,
+      "normalized_occurrence": 1
+    },
+    {
+      "csv_index": 70,
+      "header": "Nome da instituição de ensino mais recente ",
+      "normalized_header": "nome da instituicao de ensino mais recente",
+      "exact_occurrence": 1,
+      "normalized_occurrence": 1
+    },
+    {
+      "csv_index": 71,
+      "header": "Curso",
+      "normalized_header": "curso",
+      "exact_occurrence": 1,
+      "normalized_occurrence": 1
+    },
+    {
+      "csv_index": 72,
+      "header": "Data de início do curso",
+      "normalized_header": "data de inicio do curso",
+      "exact_occurrence": 1,
+      "normalized_occurrence": 1
+    },
+    {
+      "csv_index": 73,
+      "header": "Data de conclusão do curso",
+      "normalized_header": "data de conclusao do curso",
+      "exact_occurrence": 1,
+      "normalized_occurrence": 1
+    },
+    {
+      "csv_index": 74,
+      "header": "País onde estudou",
+      "normalized_header": "pais onde estudou",
+      "exact_occurrence": 1,
+      "normalized_occurrence": 1
+    },
+    {
+      "csv_index": 75,
+      "header": "Data de início do emprego atual",
+      "normalized_header": "data de inicio do emprego atual",
+      "exact_occurrence": 1,
+      "normalized_occurrence": 1
+    },
+    {
+      "csv_index": 76,
+      "header": "Qual é sua profissão atual?",
+      "normalized_header": "qual e sua profissao atual?",
+      "exact_occurrence": 1,
+      "normalized_occurrence": 1
+    },
+    {
+      "csv_index": 77,
+      "header": "Descreva brevemente sua função atual",
+      "normalized_header": "descreva brevemente sua funcao atual",
+      "exact_occurrence": 1,
+      "normalized_occurrence": 1
+    },
+    {
+      "csv_index": 78,
+      "header": "Nome da empresa/instituição",
+      "normalized_header": "nome da empresa/instituicao",
+      "exact_occurrence": 1,
+      "normalized_occurrence": 1
+    },
+    {
+      "csv_index": 79,
+      "header": "Cidade da empresa/instituição",
+      "normalized_header": "cidade da empresa/instituicao",
+      "exact_occurrence": 1,
+      "normalized_occurrence": 1
+    },
+    {
+      "csv_index": 80,
+      "header": "Estado da empresa/instituição",
+      "normalized_header": "estado da empresa/instituicao",
+      "exact_occurrence": 1,
+      "normalized_occurrence": 1
+    },
+    {
+      "csv_index": 81,
+      "header": "Você exerceu outras atividades profissionais nos últimos 10 anos?",
+      "normalized_header": "voce exerceu outras atividades profissionais nos ultimos 10 anos?",
+      "exact_occurrence": 1,
+      "normalized_occurrence": 1
+    },
+    {
+      "csv_index": 82,
+      "header": "Tipo de atividade",
+      "normalized_header": "tipo de atividade",
+      "exact_occurrence": 1,
+      "normalized_occurrence": 1
+    },
+    {
+      "csv_index": 83,
+      "header": "Data de início",
+      "normalized_header": "data de inicio",
+      "exact_occurrence": 1,
+      "normalized_occurrence": 1
+    },
+    {
+      "csv_index": 84,
+      "header": "Data de término",
+      "normalized_header": "data de termino",
+      "exact_occurrence": 1,
+      "normalized_occurrence": 1
+    },
+    {
+      "csv_index": 85,
+      "header": "Cargo",
+      "normalized_header": "cargo",
+      "exact_occurrence": 1,
+      "normalized_occurrence": 1
+    },
+    {
+      "csv_index": 86,
+      "header": "Nome da empresa, empregador ou instituição",
+      "normalized_header": "nome da empresa, empregador ou instituicao",
+      "exact_occurrence": 1,
+      "normalized_occurrence": 1
+    },
+    {
+      "csv_index": 87,
+      "header": "Cidade",
+      "normalized_header": "cidade",
+      "exact_occurrence": 2,
+      "normalized_occurrence": 2
+    },
+    {
+      "csv_index": 88,
+      "header": "Estado",
+      "normalized_header": "estado",
+      "exact_occurrence": 2,
+      "normalized_occurrence": 2
+    },
+    {
+      "csv_index": 89,
+      "header": "Você possui outra atividade para informar nos últimos 10 anos?",
+      "normalized_header": "voce possui outra atividade para informar nos ultimos 10 anos?",
+      "exact_occurrence": 1,
+      "normalized_occurrence": 1
+    },
+    {
+      "csv_index": 90,
+      "header": "Tipo de atividade",
+      "normalized_header": "tipo de atividade",
+      "exact_occurrence": 2,
+      "normalized_occurrence": 2
+    },
+    {
+      "csv_index": 91,
+      "header": "Data de início",
+      "normalized_header": "data de inicio",
+      "exact_occurrence": 2,
+      "normalized_occurrence": 2
+    },
+    {
+      "csv_index": 92,
+      "header": "Data de término",
+      "normalized_header": "data de termino",
+      "exact_occurrence": 2,
+      "normalized_occurrence": 2
+    },
+    {
+      "csv_index": 93,
+      "header": "Cargo",
+      "normalized_header": "cargo",
+      "exact_occurrence": 2,
+      "normalized_occurrence": 2
+    },
+    {
+      "csv_index": 94,
+      "header": "Nome da empresa, empregador ou instituição",
+      "normalized_header": "nome da empresa, empregador ou instituicao",
+      "exact_occurrence": 2,
+      "normalized_occurrence": 2
+    },
+    {
+      "csv_index": 95,
+      "header": "Cidade",
+      "normalized_header": "cidade",
+      "exact_occurrence": 3,
+      "normalized_occurrence": 3
+    },
+    {
+      "csv_index": 96,
+      "header": "Estado",
+      "normalized_header": "estado",
+      "exact_occurrence": 3,
+      "normalized_occurrence": 3
+    },
+    {
+      "csv_index": 97,
+      "header": "Você possui outra atividade para informar nos últimos 10 anos?",
+      "normalized_header": "voce possui outra atividade para informar nos ultimos 10 anos?",
+      "exact_occurrence": 2,
+      "normalized_occurrence": 2
+    },
+    {
+      "csv_index": 98,
+      "header": "Tipo de atividade",
+      "normalized_header": "tipo de atividade",
+      "exact_occurrence": 3,
+      "normalized_occurrence": 3
+    },
+    {
+      "csv_index": 99,
+      "header": "Data de início",
+      "normalized_header": "data de inicio",
+      "exact_occurrence": 3,
+      "normalized_occurrence": 3
+    },
+    {
+      "csv_index": 100,
+      "header": "Data de término",
+      "normalized_header": "data de termino",
+      "exact_occurrence": 3,
+      "normalized_occurrence": 3
+    },
+    {
+      "csv_index": 101,
+      "header": "Cargo",
+      "normalized_header": "cargo",
+      "exact_occurrence": 3,
+      "normalized_occurrence": 3
+    },
+    {
+      "csv_index": 102,
+      "header": "Nome da empresa, empregador ou instituição",
+      "normalized_header": "nome da empresa, empregador ou instituicao",
+      "exact_occurrence": 3,
+      "normalized_occurrence": 3
+    },
+    {
+      "csv_index": 103,
+      "header": "Cidade",
+      "normalized_header": "cidade",
+      "exact_occurrence": 4,
+      "normalized_occurrence": 4
+    },
+    {
+      "csv_index": 104,
+      "header": "Estado",
+      "normalized_header": "estado",
+      "exact_occurrence": 4,
+      "normalized_occurrence": 4
+    },
+    {
+      "csv_index": 105,
+      "header": "Você possui outra atividade para informar nos últimos 10 anos?",
+      "normalized_header": "voce possui outra atividade para informar nos ultimos 10 anos?",
+      "exact_occurrence": 3,
+      "normalized_occurrence": 3
+    },
+    {
+      "csv_index": 106,
+      "header": "Tipo de atividade",
+      "normalized_header": "tipo de atividade",
+      "exact_occurrence": 4,
+      "normalized_occurrence": 4
+    },
+    {
+      "csv_index": 107,
+      "header": "Data de início",
+      "normalized_header": "data de inicio",
+      "exact_occurrence": 4,
+      "normalized_occurrence": 4
+    },
+    {
+      "csv_index": 108,
+      "header": "Data de término",
+      "normalized_header": "data de termino",
+      "exact_occurrence": 4,
+      "normalized_occurrence": 4
+    },
+    {
+      "csv_index": 109,
+      "header": "Cargo",
+      "normalized_header": "cargo",
+      "exact_occurrence": 4,
+      "normalized_occurrence": 4
+    },
+    {
+      "csv_index": 110,
+      "header": "Nome da empresa, empregador ou instituição",
+      "normalized_header": "nome da empresa, empregador ou instituicao",
+      "exact_occurrence": 4,
+      "normalized_occurrence": 4
+    },
+    {
+      "csv_index": 111,
+      "header": "Cidade",
+      "normalized_header": "cidade",
+      "exact_occurrence": 5,
+      "normalized_occurrence": 5
+    },
+    {
+      "csv_index": 112,
+      "header": "Estado",
+      "normalized_header": "estado",
+      "exact_occurrence": 5,
+      "normalized_occurrence": 5
+    },
+    {
+      "csv_index": 113,
+      "header": "Sobrenome completo do genitor 1",
+      "normalized_header": "sobrenome completo do genitor 1",
+      "exact_occurrence": 1,
+      "normalized_occurrence": 1
+    },
+    {
+      "csv_index": 114,
+      "header": "Nome completo do genitor 1",
+      "normalized_header": "nome completo do genitor 1",
+      "exact_occurrence": 1,
+      "normalized_occurrence": 1
+    },
+    {
+      "csv_index": 115,
+      "header": "Data de nascimento do genitor 1",
+      "normalized_header": "data de nascimento do genitor 1",
+      "exact_occurrence": 1,
+      "normalized_occurrence": 1
+    },
+    {
+      "csv_index": 116,
+      "header": "Cidade de nascimento do genitor 1",
+      "normalized_header": "cidade de nascimento do genitor 1",
+      "exact_occurrence": 1,
+      "normalized_occurrence": 1
+    },
+    {
+      "csv_index": 117,
+      "header": "País de nascimento do genitor 1",
+      "normalized_header": "pais de nascimento do genitor 1",
+      "exact_occurrence": 1,
+      "normalized_occurrence": 1
+    },
+    {
+      "csv_index": 118,
+      "header": "Estado civil do genitor 1",
+      "normalized_header": "estado civil do genitor 1",
+      "exact_occurrence": 1,
+      "normalized_occurrence": 1
+    },
+    {
+      "csv_index": 119,
+      "header": "Ocupação atual do genitor 1",
+      "normalized_header": "ocupacao atual do genitor 1",
+      "exact_occurrence": 1,
+      "normalized_occurrence": 1
+    },
+    {
+      "csv_index": 120,
+      "header": "Endereço completo atual do genitor 1",
+      "normalized_header": "endereco completo atual do genitor 1",
+      "exact_occurrence": 1,
+      "normalized_occurrence": 1
+    },
+    {
+      "csv_index": 121,
+      "header": "Se seu genitor 1 for falecido, informar a data e a cidade do óbito",
+      "normalized_header": "se seu genitor 1 for falecido, informar a data e a cidade do obito",
+      "exact_occurrence": 1,
+      "normalized_occurrence": 1
+    },
+    {
+      "csv_index": 122,
+      "header": "Seu genitor 1 acompanhará você ao Canadá?",
+      "normalized_header": "seu genitor 1 acompanhara voce ao canada?",
+      "exact_occurrence": 1,
+      "normalized_occurrence": 1
+    },
+    {
+      "csv_index": 123,
+      "header": "Sobrenome completo do genitor 2",
+      "normalized_header": "sobrenome completo do genitor 2",
+      "exact_occurrence": 1,
+      "normalized_occurrence": 1
+    },
+    {
+      "csv_index": 124,
+      "header": "Nome completo do genitor 2",
+      "normalized_header": "nome completo do genitor 2",
+      "exact_occurrence": 1,
+      "normalized_occurrence": 1
+    },
+    {
+      "csv_index": 125,
+      "header": "Data de nascimento do genitor 2",
+      "normalized_header": "data de nascimento do genitor 2",
+      "exact_occurrence": 1,
+      "normalized_occurrence": 1
+    },
+    {
+      "csv_index": 126,
+      "header": "Cidade de nascimento do genitor 2",
+      "normalized_header": "cidade de nascimento do genitor 2",
+      "exact_occurrence": 1,
+      "normalized_occurrence": 1
+    },
+    {
+      "csv_index": 127,
+      "header": "País de nascimento do genitor 1",
+      "normalized_header": "pais de nascimento do genitor 1",
+      "exact_occurrence": 2,
+      "normalized_occurrence": 2
+    },
+    {
+      "csv_index": 128,
+      "header": "Estado civil do genitor 2",
+      "normalized_header": "estado civil do genitor 2",
+      "exact_occurrence": 1,
+      "normalized_occurrence": 1
+    },
+    {
+      "csv_index": 129,
+      "header": "Ocupação atual do genitor 2",
+      "normalized_header": "ocupacao atual do genitor 2",
+      "exact_occurrence": 1,
+      "normalized_occurrence": 1
+    },
+    {
+      "csv_index": 130,
+      "header": "Endereço completo do genitor 2",
+      "normalized_header": "endereco completo do genitor 2",
+      "exact_occurrence": 1,
+      "normalized_occurrence": 1
+    },
+    {
+      "csv_index": 131,
+      "header": "Se seu genitor for falecido, informar a data e a cidade do óbito",
+      "normalized_header": "se seu genitor for falecido, informar a data e a cidade do obito",
+      "exact_occurrence": 1,
+      "normalized_occurrence": 1
+    },
+    {
+      "csv_index": 132,
+      "header": "Seu genitor 2 acompanhará você ao Canadá?",
+      "normalized_header": "seu genitor 2 acompanhara voce ao canada?",
+      "exact_occurrence": 1,
+      "normalized_occurrence": 1
+    },
+    {
+      "csv_index": 133,
+      "header": "Você possui filhos?",
+      "normalized_header": "voce possui filhos?",
+      "exact_occurrence": 1,
+      "normalized_occurrence": 1
+    },
+    {
+      "csv_index": 134,
+      "header": "Tipo de filiação",
+      "normalized_header": "tipo de filiacao",
+      "exact_occurrence": 1,
+      "normalized_occurrence": 1
+    },
+    {
+      "csv_index": 135,
+      "header": "Sobrenome completo do filho",
+      "normalized_header": "sobrenome completo do filho",
+      "exact_occurrence": 1,
+      "normalized_occurrence": 1
+    },
+    {
+      "csv_index": 136,
+      "header": "Nome completo do filho",
+      "normalized_header": "nome completo do filho",
+      "exact_occurrence": 1,
+      "normalized_occurrence": 1
+    },
+    {
+      "csv_index": 137,
+      "header": "Data de nascimento do filho",
+      "normalized_header": "data de nascimento do filho",
+      "exact_occurrence": 1,
+      "normalized_occurrence": 1
+    },
+    {
+      "csv_index": 138,
+      "header": "Estado civil do filho",
+      "normalized_header": "estado civil do filho",
+      "exact_occurrence": 1,
+      "normalized_occurrence": 1
+    },
+    {
+      "csv_index": 139,
+      "header": "Cidade e estado de nascimento do filho",
+      "normalized_header": "cidade e estado de nascimento do filho",
+      "exact_occurrence": 1,
+      "normalized_occurrence": 1
+    },
+    {
+      "csv_index": 140,
+      "header": "País de nascimento do filho",
+      "normalized_header": "pais de nascimento do filho",
+      "exact_occurrence": 1,
+      "normalized_occurrence": 1
+    },
+    {
+      "csv_index": 141,
+      "header": "Ocupação atual do filho",
+      "normalized_header": "ocupacao atual do filho",
+      "exact_occurrence": 1,
+      "normalized_occurrence": 1
+    },
+    {
+      "csv_index": 142,
+      "header": "Endereço completo do filho",
+      "normalized_header": "endereco completo do filho",
+      "exact_occurrence": 1,
+      "normalized_occurrence": 1
+    },
+    {
+      "csv_index": 143,
+      "header": "CEP do filho",
+      "normalized_header": "cep do filho",
+      "exact_occurrence": 1,
+      "normalized_occurrence": 1
+    },
+    {
+      "csv_index": 144,
+      "header": "Seu filho acompanhará você ao Canadá?",
+      "normalized_header": "seu filho acompanhara voce ao canada?",
+      "exact_occurrence": 1,
+      "normalized_occurrence": 1
+    },
+    {
+      "csv_index": 145,
+      "header": "Você possui outros filhos?",
+      "normalized_header": "voce possui outros filhos?",
+      "exact_occurrence": 1,
+      "normalized_occurrence": 1
+    },
+    {
+      "csv_index": 146,
+      "header": "Tipo de filiação",
+      "normalized_header": "tipo de filiacao",
+      "exact_occurrence": 2,
+      "normalized_occurrence": 2
+    },
+    {
+      "csv_index": 147,
+      "header": "Sobrenome completo do filho",
+      "normalized_header": "sobrenome completo do filho",
+      "exact_occurrence": 2,
+      "normalized_occurrence": 2
+    },
+    {
+      "csv_index": 148,
+      "header": "Nome completo do filho",
+      "normalized_header": "nome completo do filho",
+      "exact_occurrence": 2,
+      "normalized_occurrence": 2
+    },
+    {
+      "csv_index": 149,
+      "header": "Data de nascimento do filho",
+      "normalized_header": "data de nascimento do filho",
+      "exact_occurrence": 2,
+      "normalized_occurrence": 2
+    },
+    {
+      "csv_index": 150,
+      "header": "Estado civil do filho",
+      "normalized_header": "estado civil do filho",
+      "exact_occurrence": 2,
+      "normalized_occurrence": 2
+    },
+    {
+      "csv_index": 151,
+      "header": "Cidade e estado de nascimento do filho",
+      "normalized_header": "cidade e estado de nascimento do filho",
+      "exact_occurrence": 2,
+      "normalized_occurrence": 2
+    },
+    {
+      "csv_index": 152,
+      "header": "País de nascimento do filho",
+      "normalized_header": "pais de nascimento do filho",
+      "exact_occurrence": 2,
+      "normalized_occurrence": 2
+    },
+    {
+      "csv_index": 153,
+      "header": "Ocupação atual do filho",
+      "normalized_header": "ocupacao atual do filho",
+      "exact_occurrence": 2,
+      "normalized_occurrence": 2
+    },
+    {
+      "csv_index": 154,
+      "header": "Endereço completo do filho",
+      "normalized_header": "endereco completo do filho",
+      "exact_occurrence": 2,
+      "normalized_occurrence": 2
+    },
+    {
+      "csv_index": 155,
+      "header": "CEP do filho",
+      "normalized_header": "cep do filho",
+      "exact_occurrence": 2,
+      "normalized_occurrence": 2
+    },
+    {
+      "csv_index": 156,
+      "header": "Seu filho acompanhará você ao Canadá?",
+      "normalized_header": "seu filho acompanhara voce ao canada?",
+      "exact_occurrence": 2,
+      "normalized_occurrence": 2
+    },
+    {
+      "csv_index": 157,
+      "header": "Você possui outros filhos?",
+      "normalized_header": "voce possui outros filhos?",
+      "exact_occurrence": 2,
+      "normalized_occurrence": 2
+    },
+    {
+      "csv_index": 158,
+      "header": "Tipo de filiação",
+      "normalized_header": "tipo de filiacao",
+      "exact_occurrence": 3,
+      "normalized_occurrence": 3
+    },
+    {
+      "csv_index": 159,
+      "header": "Sobrenome completo do filho",
+      "normalized_header": "sobrenome completo do filho",
+      "exact_occurrence": 3,
+      "normalized_occurrence": 3
+    },
+    {
+      "csv_index": 160,
+      "header": "Nome completo do filho",
+      "normalized_header": "nome completo do filho",
+      "exact_occurrence": 3,
+      "normalized_occurrence": 3
+    },
+    {
+      "csv_index": 161,
+      "header": "Data de nascimento do filho",
+      "normalized_header": "data de nascimento do filho",
+      "exact_occurrence": 3,
+      "normalized_occurrence": 3
+    },
+    {
+      "csv_index": 162,
+      "header": "Estado civil do filho",
+      "normalized_header": "estado civil do filho",
+      "exact_occurrence": 3,
+      "normalized_occurrence": 3
+    },
+    {
+      "csv_index": 163,
+      "header": "Cidade e estado de nascimento do filho",
+      "normalized_header": "cidade e estado de nascimento do filho",
+      "exact_occurrence": 3,
+      "normalized_occurrence": 3
+    },
+    {
+      "csv_index": 164,
+      "header": "País de nascimento do filho",
+      "normalized_header": "pais de nascimento do filho",
+      "exact_occurrence": 3,
+      "normalized_occurrence": 3
+    },
+    {
+      "csv_index": 165,
+      "header": "Ocupação atual do filho",
+      "normalized_header": "ocupacao atual do filho",
+      "exact_occurrence": 3,
+      "normalized_occurrence": 3
+    },
+    {
+      "csv_index": 166,
+      "header": "Endereço completo do filho",
+      "normalized_header": "endereco completo do filho",
+      "exact_occurrence": 3,
+      "normalized_occurrence": 3
+    },
+    {
+      "csv_index": 167,
+      "header": "CEP do filho",
+      "normalized_header": "cep do filho",
+      "exact_occurrence": 3,
+      "normalized_occurrence": 3
+    },
+    {
+      "csv_index": 168,
+      "header": "Seu filho acompanhará você ao Canadá?",
+      "normalized_header": "seu filho acompanhara voce ao canada?",
+      "exact_occurrence": 3,
+      "normalized_occurrence": 3
+    },
+    {
+      "csv_index": 169,
+      "header": "Você possui outros filhos?",
+      "normalized_header": "voce possui outros filhos?",
+      "exact_occurrence": 3,
+      "normalized_occurrence": 3
+    },
+    {
+      "csv_index": 170,
+      "header": "Tipo de filiação",
+      "normalized_header": "tipo de filiacao",
+      "exact_occurrence": 4,
+      "normalized_occurrence": 4
+    },
+    {
+      "csv_index": 171,
+      "header": "Sobrenome completo do filho",
+      "normalized_header": "sobrenome completo do filho",
+      "exact_occurrence": 4,
+      "normalized_occurrence": 4
+    },
+    {
+      "csv_index": 172,
+      "header": "Nome completo do filho",
+      "normalized_header": "nome completo do filho",
+      "exact_occurrence": 4,
+      "normalized_occurrence": 4
+    },
+    {
+      "csv_index": 173,
+      "header": "Data de nascimento do filho",
+      "normalized_header": "data de nascimento do filho",
+      "exact_occurrence": 4,
+      "normalized_occurrence": 4
+    },
+    {
+      "csv_index": 174,
+      "header": "Estado civil do filho",
+      "normalized_header": "estado civil do filho",
+      "exact_occurrence": 4,
+      "normalized_occurrence": 4
+    },
+    {
+      "csv_index": 175,
+      "header": "Cidade e estado de nascimento do filho",
+      "normalized_header": "cidade e estado de nascimento do filho",
+      "exact_occurrence": 4,
+      "normalized_occurrence": 4
+    },
+    {
+      "csv_index": 176,
+      "header": "País de nascimento do filho",
+      "normalized_header": "pais de nascimento do filho",
+      "exact_occurrence": 4,
+      "normalized_occurrence": 4
+    },
+    {
+      "csv_index": 177,
+      "header": "Ocupação atual do filho",
+      "normalized_header": "ocupacao atual do filho",
+      "exact_occurrence": 4,
+      "normalized_occurrence": 4
+    },
+    {
+      "csv_index": 178,
+      "header": "Endereço completo do filho",
+      "normalized_header": "endereco completo do filho",
+      "exact_occurrence": 4,
+      "normalized_occurrence": 4
+    },
+    {
+      "csv_index": 179,
+      "header": "CEP do filho",
+      "normalized_header": "cep do filho",
+      "exact_occurrence": 4,
+      "normalized_occurrence": 4
+    },
+    {
+      "csv_index": 180,
+      "header": "Seu filho acompanhará você ao Canadá?",
+      "normalized_header": "seu filho acompanhara voce ao canada?",
+      "exact_occurrence": 4,
+      "normalized_occurrence": 4
+    },
+    {
+      "csv_index": 181,
+      "header": "Você possui outros filhos?",
+      "normalized_header": "voce possui outros filhos?",
+      "exact_occurrence": 4,
+      "normalized_occurrence": 4
+    },
+    {
+      "csv_index": 182,
+      "header": "Tipo de filiação",
+      "normalized_header": "tipo de filiacao",
+      "exact_occurrence": 5,
+      "normalized_occurrence": 5
+    },
+    {
+      "csv_index": 183,
+      "header": "Sobrenome completo do filho",
+      "normalized_header": "sobrenome completo do filho",
+      "exact_occurrence": 5,
+      "normalized_occurrence": 5
+    },
+    {
+      "csv_index": 184,
+      "header": "Nome completo do filho",
+      "normalized_header": "nome completo do filho",
+      "exact_occurrence": 5,
+      "normalized_occurrence": 5
+    },
+    {
+      "csv_index": 185,
+      "header": "Data de nascimento do filho(a).",
+      "normalized_header": "data de nascimento do filho(a).",
+      "exact_occurrence": 1,
+      "normalized_occurrence": 1
+    },
+    {
+      "csv_index": 186,
+      "header": "Estado civil do seu filho(a)",
+      "normalized_header": "estado civil do seu filho(a)",
+      "exact_occurrence": 1,
+      "normalized_occurrence": 1
+    },
+    {
+      "csv_index": 187,
+      "header": "Cidade e estado de nascimento do filho",
+      "normalized_header": "cidade e estado de nascimento do filho",
+      "exact_occurrence": 5,
+      "normalized_occurrence": 5
+    },
+    {
+      "csv_index": 188,
+      "header": "País de nascimento do filho",
+      "normalized_header": "pais de nascimento do filho",
+      "exact_occurrence": 5,
+      "normalized_occurrence": 5
+    },
+    {
+      "csv_index": 189,
+      "header": "Ocupação atual do filho",
+      "normalized_header": "ocupacao atual do filho",
+      "exact_occurrence": 5,
+      "normalized_occurrence": 5
+    },
+    {
+      "csv_index": 190,
+      "header": "Endereço completo do filho",
+      "normalized_header": "endereco completo do filho",
+      "exact_occurrence": 5,
+      "normalized_occurrence": 5
+    },
+    {
+      "csv_index": 191,
+      "header": "CEP do filho",
+      "normalized_header": "cep do filho",
+      "exact_occurrence": 5,
+      "normalized_occurrence": 5
+    },
+    {
+      "csv_index": 192,
+      "header": "Seu filho(a) acompanhará você ao Canadá?",
+      "normalized_header": "seu filho(a) acompanhara voce ao canada?",
+      "exact_occurrence": 1,
+      "normalized_occurrence": 1
+    },
+    {
+      "csv_index": 193,
+      "header": "Você possui irmãos residentes fora do país?",
+      "normalized_header": "voce possui irmaos residentes fora do pais?",
+      "exact_occurrence": 1,
+      "normalized_occurrence": 1
+    },
+    {
+      "csv_index": 194,
+      "header": "Para cada irmão que reside fora do seu país de cidadania/residência, forneça as informações abaixo: nome completo + data de nascimento + cidade de nascimento + endereço atual + ocupação atual + estado civil + status migratório no país atual",
+      "normalized_header": "para cada irmao que reside fora do seu pais de cidadania/residencia, forneca as informacoes abaixo: nome completo + data de nascimento + cidade de nascimento + endereco atual + ocupacao atual + estado civil + status migratorio no pais atual",
+      "exact_occurrence": 1,
+      "normalized_occurrence": 1
+    },
+    {
+      "csv_index": 195,
+      "header": "Nos últimos 10 anos, você viajou para outros países?",
+      "normalized_header": "nos ultimos 10 anos, voce viajou para outros paises?",
+      "exact_occurrence": 1,
+      "normalized_occurrence": 1
+    },
+    {
+      "csv_index": 196,
+      "header": "Informe os países visitados, data de entrada, data de saída e motivo da viagem",
+      "normalized_header": "informe os paises visitados, data de entrada, data de saida e motivo da viagem",
+      "exact_occurrence": 1,
+      "normalized_occurrence": 1
+    },
+    {
+      "csv_index": 197,
+      "header": "Já teve visto canadense anteriormente?",
+      "normalized_header": "ja teve visto canadense anteriormente?",
+      "exact_occurrence": 1,
+      "normalized_occurrence": 1
+    },
+    {
+      "csv_index": 198,
+      "header": "Já teve pedido de visto, entrada ou permanência no Canadá recusado?",
+      "normalized_header": "ja teve pedido de visto, entrada ou permanencia no canada recusado?",
+      "exact_occurrence": 1,
+      "normalized_occurrence": 1
+    },
+    {
+      "csv_index": 199,
+      "header": "Já teve visto ou entrada recusada por outro país?",
+      "normalized_header": "ja teve visto ou entrada recusada por outro pais?",
+      "exact_occurrence": 1,
+      "normalized_occurrence": 1
+    },
+    {
+      "csv_index": 200,
+      "header": "Já esteve no Canadá anteriormente?",
+      "normalized_header": "ja esteve no canada anteriormente?",
+      "exact_occurrence": 1,
+      "normalized_occurrence": 1
+    },
+    {
+      "csv_index": 201,
+      "header": "Quem é você? (nome completo, idade e breve apresentação pessoal)",
+      "normalized_header": "quem e voce? (nome completo, idade e breve apresentacao pessoal)",
+      "exact_occurrence": 1,
+      "normalized_occurrence": 1
+    },
+    {
+      "csv_index": 202,
+      "header": "Qual sua ocupação atual no Brasil? (profissão, área de atuação, tempo de experiência, empresa ou instituição, se aplicável)",
+      "normalized_header": "qual sua ocupacao atual no brasil? (profissao, area de atuacao, tempo de experiencia, empresa ou instituicao, se aplicavel)",
+      "exact_occurrence": 1,
+      "normalized_occurrence": 1
+    },
+    {
+      "csv_index": 203,
+      "header": "Por que você escolheu ir especificamente para o Canadá, e não para outro país?",
+      "normalized_header": "por que voce escolheu ir especificamente para o canada, e nao para outro pais?",
+      "exact_occurrence": 1,
+      "normalized_occurrence": 1
+    },
+    {
+      "csv_index": 204,
+      "header": "O que pretende fazer durante sua estadia no Canadá? (turismo, estudo, visita familiar, negócios etc.)",
+      "normalized_header": "o que pretende fazer durante sua estadia no canada? (turismo, estudo, visita familiar, negocios etc.)",
+      "exact_occurrence": 1,
+      "normalized_occurrence": 1
+    },
+    {
+      "csv_index": 205,
+      "header": "Caso possua familiares de 1º grau residindo fora do Brasil (mesmo que seja um país diferente do seu de destino), informe nome completo, grau de parentesco e status migratório no país onde residem",
+      "normalized_header": "caso possua familiares de 1o grau residindo fora do brasil (mesmo que seja um pais diferente do seu de destino), informe nome completo, grau de parentesco e status migratorio no pais onde residem",
+      "exact_occurrence": 1,
+      "normalized_occurrence": 1
+    },
+    {
+      "csv_index": 206,
+      "header": "Quais são seus planos após o término da viagem e retorno ao Brasil?",
+      "normalized_header": "quais sao seus planos apos o termino da viagem e retorno ao brasil?",
+      "exact_occurrence": 1,
+      "normalized_occurrence": 1
+    },
+    {
+      "csv_index": 207,
+      "header": "Já cometeu, foi preso, acusado ou condenado por algum crime?",
+      "normalized_header": "ja cometeu, foi preso, acusado ou condenado por algum crime?",
+      "exact_occurrence": 1,
+      "normalized_occurrence": 1
+    },
+    {
+      "csv_index": 208,
+      "header": "Já trabalhou ou se envolveu com forças militares, policiais, segurança, inteligência ou grupos armados?",
+      "normalized_header": "ja trabalhou ou se envolveu com forcas militares, policiais, seguranca, inteligencia ou grupos armados?",
+      "exact_occurrence": 1,
+      "normalized_occurrence": 1
+    },
+    {
+      "csv_index": 209,
+      "header": "Já teve algum problema relacionado à imigração ou permanência em outro país?",
+      "normalized_header": "ja teve algum problema relacionado a imigracao ou permanencia em outro pais?",
+      "exact_occurrence": 1,
+      "normalized_occurrence": 1
+    },
+    {
+      "csv_index": 210,
+      "header": "Já permaneceu em algum país após o vencimento de seu visto, incluindo o Canadá?",
+      "normalized_header": "ja permaneceu em algum pais apos o vencimento de seu visto, incluindo o canada?",
+      "exact_occurrence": 1,
+      "normalized_occurrence": 1
+    },
+    {
+      "csv_index": 211,
+      "header": "Se respondeu \"Sim\" a alguma declaração, forneça todos os detalhes relevantes, incluindo datas, país, circunstâncias, resultado e documentação disponível",
+      "normalized_header": "se respondeu \"sim\" a alguma declaracao, forneca todos os detalhes relevantes, incluindo datas, pais, circunstancias, resultado e documentacao disponivel",
+      "exact_occurrence": 1,
+      "normalized_occurrence": 1
+    },
+    {
+      "csv_index": 212,
+      "header": "Passaporte (cópia colorida da página com dados biométricos)",
+      "normalized_header": "passaporte (copia colorida da pagina com dados biometricos)",
+      "exact_occurrence": 1,
+      "normalized_occurrence": 1
+    },
+    {
+      "csv_index": 213,
+      "header": "Identidade (preferência pela versão digital do RG, CIN ou CNH)",
+      "normalized_header": "identidade (preferencia pela versao digital do rg, cin ou cnh)",
+      "exact_occurrence": 1,
+      "normalized_occurrence": 1
+    },
+    {
+      "csv_index": 214,
+      "header": "Certidão de nascimento ou casamento (se divorciado, com averbação de divórcio)",
+      "normalized_header": "certidao de nascimento ou casamento (se divorciado, com averbacao de divorcio)",
+      "exact_occurrence": 1,
+      "normalized_occurrence": 1
+    },
+    {
+      "csv_index": 215,
+      "header": "Letter of Acceptance\n(confirmação de matrícula, se for estudar no Canadá)",
+      "normalized_header": "letter of acceptance (confirmacao de matricula, se for estudar no canada)",
+      "exact_occurrence": 1,
+      "normalized_occurrence": 1
+    },
+    {
+      "csv_index": 216,
+      "header": "Extratos bancários dos últimos 3 meses",
+      "normalized_header": "extratos bancarios dos ultimos 3 meses",
+      "exact_occurrence": 1,
+      "normalized_occurrence": 1
+    },
+    {
+      "csv_index": 217,
+      "header": "Imposto de Renda",
+      "normalized_header": "imposto de renda",
+      "exact_occurrence": 1,
+      "normalized_occurrence": 1
+    },
+    {
+      "csv_index": 218,
+      "header": "Recibo do Imposto de Renda",
+      "normalized_header": "recibo do imposto de renda",
+      "exact_occurrence": 1,
+      "normalized_occurrence": 1
+    },
+    {
+      "csv_index": 219,
+      "header": "Contracheques dos últimos 3 meses",
+      "normalized_header": "contracheques dos ultimos 3 meses",
+      "exact_occurrence": 1,
+      "normalized_occurrence": 1
+    },
+    {
+      "csv_index": 220,
+      "header": "Declaração empregatícia",
+      "normalized_header": "declaracao empregaticia",
+      "exact_occurrence": 1,
+      "normalized_occurrence": 1
+    },
+    {
+      "csv_index": 221,
+      "header": "Contrato Social (se for empresário)",
+      "normalized_header": "contrato social (se for empresario)",
+      "exact_occurrence": 1,
+      "normalized_occurrence": 1
+    },
+    {
+      "csv_index": 222,
+      "header": "Cartão CNPJ (se for empresário)",
+      "normalized_header": "cartao cnpj (se for empresario)",
+      "exact_occurrence": 1,
+      "normalized_occurrence": 1
+    },
+    {
+      "csv_index": 223,
+      "header": "3 últimos pró-labores (se for empresário)",
+      "normalized_header": "3 ultimos pro-labores (se for empresario)",
+      "exact_occurrence": 1,
+      "normalized_occurrence": 1
+    },
+    {
+      "csv_index": 224,
+      "header": "Foto digital.\nFormato 5x7, sem sorrir, com fundo branco, cabelo atrás das orelhas e rosto centralizado",
+      "normalized_header": "foto digital. formato 5x7, sem sorrir, com fundo branco, cabelo atras das orelhas e rosto centralizado",
+      "exact_occurrence": 1,
+      "normalized_occurrence": 1
+    },
+    {
+      "csv_index": 225,
+      "header": "Páginas do passaporte com vistos e carimbos anteriores, todos digitalizados",
+      "normalized_header": "paginas do passaporte com vistos e carimbos anteriores, todos digitalizados",
+      "exact_occurrence": 1,
+      "normalized_occurrence": 1
+    },
+    {
+      "csv_index": 226,
+      "header": "Identidade",
+      "normalized_header": "identidade",
+      "exact_occurrence": 1,
+      "normalized_occurrence": 1
+    },
+    {
+      "csv_index": 227,
+      "header": "Extratos bancários dos últimos 3 meses",
+      "normalized_header": "extratos bancarios dos ultimos 3 meses",
+      "exact_occurrence": 2,
+      "normalized_occurrence": 2
+    },
+    {
+      "csv_index": 228,
+      "header": "Imposto de Renda",
+      "normalized_header": "imposto de renda",
+      "exact_occurrence": 2,
+      "normalized_occurrence": 2
+    },
+    {
+      "csv_index": 229,
+      "header": "Contracheques dos últimos 3 meses",
+      "normalized_header": "contracheques dos ultimos 3 meses",
+      "exact_occurrence": 2,
+      "normalized_occurrence": 2
+    },
+    {
+      "csv_index": 230,
+      "header": "Contrato Social (se for empresário)",
+      "normalized_header": "contrato social (se for empresario)",
+      "exact_occurrence": 2,
+      "normalized_occurrence": 2
+    },
+    {
+      "csv_index": 231,
+      "header": "Cartão CNPJ (se for empresário)",
+      "normalized_header": "cartao cnpj (se for empresario)",
+      "exact_occurrence": 2,
+      "normalized_occurrence": 2
+    },
+    {
+      "csv_index": 232,
+      "header": "3 últimos pró-labores (se for empresário)",
+      "normalized_header": "3 ultimos pro-labores (se for empresario)",
+      "exact_occurrence": 2,
+      "normalized_occurrence": 2
+    },
+    {
+      "csv_index": 233,
+      "header": "Aceite das Declarações",
+      "normalized_header": "aceite das declaracoes",
+      "exact_occurrence": 1,
+      "normalized_occurrence": 1
+    }
+  ]
+}

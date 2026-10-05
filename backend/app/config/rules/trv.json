@@ -1,0 +1,32 @@
+{
+  "version": 1,
+  "rules": [
+    {
+      "id": "TRV_BASE_INTERNAL_001",
+      "description": "Base internal TRV intake document checklist",
+      "when": { "visa_type": "TRV", "facts": {} },
+      "add_groups": ["trv_base_internal"],
+      "reason": "Base TRV intake documentation from the internal checklist; these source uploads are documented as supporting rather than universal legal requirements."
+    },
+    {
+      "id": "TRV_SPONSOR_BANK_001",
+      "description": "Financial sponsor bank statements",
+      "when": {
+        "visa_type": "TRV",
+        "facts": { "sponsor.exists": true }
+      },
+      "add_groups": ["trv_sponsor_confirmed"],
+      "reason": "A confirmed financial sponsor exists; collect the documented sponsor bank statements."
+    },
+    {
+      "id": "TRV_HOST_BRANCH_001",
+      "description": "Host branch reserved for documented host requirements",
+      "when": {
+        "visa_type": "TRV",
+        "facts": { "host.exists": true }
+      },
+      "add_groups": [],
+      "reason": "Host existence is confirmed, but no concrete host document requirement is sufficiently specified."
+    }
+  ]
+}

@@ -1,0 +1,75 @@
+956A GENERATOR - PUBLISHING TO GITHUB
+=====================================
+
+This file is for the repository owner/developer, not the normal Windows worker.
+
+1. Create a new PRIVATE GitHub repository, for example:
+
+       956A-generator
+
+   Keep it private because this is internal business software. Do not commit client
+   response files or generated client PDFs.
+
+2. Copy the CONTENTS of this project folder into the repository root.
+
+3. From Terminal in the project folder:
+
+       git init
+       git add .
+       git commit -m "956A Generator v0.1.3"
+       git branch -M main
+       git remote add origin https://github.com/YOUR-ACCOUNT/956A-generator.git
+       git push -u origin main
+
+4. To make GitHub build the Windows installer and publish it as a Release:
+
+       git tag v0.1.3
+       git push origin v0.1.3
+
+5. In GitHub, open:
+
+       Actions -> Build Windows release
+
+   Wait for the workflow to complete successfully.
+
+6. Then open:
+
+       Releases -> v0.1.3
+
+   GitHub should contain these assets:
+
+       956A_Generator_Setup.exe
+       956A_Generator_Setup.exe.sha256
+       956A_Generator_Windows_Portable.zip
+       956A_Generator_Windows_Portable.zip.sha256
+       instructions.txt
+
+7. Give the worker access to the private repository. The worker only needs the
+   instructions.txt file and the installer from Releases.
+
+HOW FUTURE UPDATES WORK
+-----------------------
+
+1. Make changes and commit them:
+
+       git add .
+       git commit -m "Describe update"
+       git push
+
+2. Increase VERSION.txt. Both build paths pass this version to Inno Setup.
+
+3. Create a new version tag, for example:
+
+       git tag v0.1.4
+       git push origin v0.1.4
+
+4. GitHub automatically builds and publishes the new Windows installer.
+
+MANUAL TEST WITHOUT A RELEASE
+-----------------------------
+The workflow can also be started manually:
+
+    GitHub -> Actions -> Build Windows release -> Run workflow
+
+This creates an Actions artifact called "956A-Generator-Windows" but does not create a
+public GitHub Release unless the workflow was triggered by a version tag.
