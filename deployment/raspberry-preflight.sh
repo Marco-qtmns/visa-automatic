@@ -32,6 +32,12 @@ report_update() {
 compose() {
     docker compose --env-file "$env_file" "$@"
 }
+resolve_backend_image() {
+    image_name=$(compose config --format json | python3 -c \
+        'import json,sys; print(json.load(sys.stdin)["services"]["backend"]["image"])')
+    [ -n "$image_name" ] || return 1
+    docker image inspect --format '{{.Id}}' "$image_name"
+}
 env_value() {
     sed -n "s/^$1=//p" "$env_file" | tail -1
 }
@@ -184,10 +190,11 @@ pass "PostgreSQL directory owner matches image UID $postgres_uid"
 
 compose build --pull backend frontend || critical "Application image build failed"
 pass "Backend and frontend images built"
-backend_image=$(compose images -q backend | head -1)
-[ -n "$backend_image" ] || critical "Built backend image could not be resolved"
+backend_image=$(resolve_backend_image) \
+    || critical "Current backend image could not be resolved after build"
 backend_identity=$(docker run --rm --entrypoint sh "$backend_image" -c \
-    'printf "%s:%s\n" "$(id -u)" "$(id -g)"')
+    'printf "%s:%s\n" "$(id -u)" "$(id -g)"') \
+    || critical "Current backend image could not run the runtime identity check"
 [ "$backend_identity" = "$BACKEND_RUNTIME_UID:$BACKEND_RUNTIME_GID" ] \
     || critical "Backend image runtime identity does not match deployment contract"
 pass "Backend image runtime identity matches the deployment contract"

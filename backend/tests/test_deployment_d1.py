@@ -202,6 +202,40 @@ def test_backend_runtime_identity_and_restore_normalization_contract():
     assert "verify_restored_staging" in verifier
 
 
+def test_backend_image_is_resolved_from_compose_after_build():
+    compose_source = (PROJECT_ROOT / "compose.yaml").read_text(encoding="utf-8")
+    assert "    image: visa-automatic-d1-backend:local" in compose_source
+
+    preflight = (
+        PROJECT_ROOT / "deployment/raspberry-preflight.sh"
+    ).read_text(encoding="utf-8")
+    build_index = preflight.index("compose build --pull backend frontend")
+    resolution_index = preflight.index("backend_image=$(resolve_backend_image)")
+    run_index = preflight.index(
+        'docker run --rm --entrypoint sh "$backend_image"', resolution_index
+    )
+    assert "backend_image=" not in preflight[:build_index]
+    assert build_index < resolution_index < run_index
+    assert "compose images -q backend" not in preflight
+    assert 'docker image inspect --format \'{{.Id}}\' "$image_name"' in preflight
+    assert (
+        '|| critical "Current backend image could not be resolved after build"'
+        in preflight
+    )
+    assert "Backend image runtime identity matches the deployment contract" in preflight
+
+    restore = (PROJECT_ROOT / "deployment/restore-test.sh").read_text(encoding="utf-8")
+    assert "compose images -q backend" not in restore
+    assert 'docker image inspect --format \'{{.Id}}\' "$image_name"' in restore
+    restore_resolution = restore.index("backend_image=$(resolve_backend_image)")
+    restore_run = restore.index(
+        'docker run --rm --entrypoint sh "$backend_image"', restore_resolution
+    )
+    assert restore_resolution < restore_run
+    assert "Current backend image could not be resolved from the Compose service" in restore
+    assert '"$backend_identity" != "$BACKEND_RUNTIME_UID:$BACKEND_RUNTIME_GID"' in restore
+
+
 def test_accepted_migration_chain_has_one_expected_head():
     script = ScriptDirectory.from_config(Config(str(PROJECT_ROOT / "backend/alembic.ini")))
     assert script.get_heads() == ["0009_canada_preparation_runs"]

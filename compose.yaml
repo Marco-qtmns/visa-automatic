@@ -21,6 +21,7 @@ services:
     networks: [data]
 
   backend:
+    image: visa-automatic-d1-backend:local
     build:
       context: .
       dockerfile: backend/Dockerfile

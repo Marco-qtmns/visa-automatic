@@ -73,6 +73,12 @@ fi
 compose() {
     docker compose --env-file "$env_file" "$@"
 }
+resolve_backend_image() {
+    image_name=$(compose config --format json | python3 -c \
+        'import json,sys; print(json.load(sys.stdin)["services"]["backend"]["image"])')
+    [ -n "$image_name" ] || return 1
+    docker image inspect --format '{{.Id}}' "$image_name"
+}
 report_status() {
     [ -z "$report_file" ] || python3 deployment/d1_report.py update \
         --report "$report_file" --field restore_result --value "$1"
@@ -105,13 +111,15 @@ fi
 python3 deployment/backup_manifest.py restore-storage \
     --manifest "$manifest" --documents "$documents" --generated "$generated"
 
-backend_image=$(compose images -q backend | head -1)
-if [ -z "$backend_image" ]; then
-    echo "Built backend image could not be resolved." >&2
+if ! backend_image=$(resolve_backend_image); then
+    echo "Current backend image could not be resolved from the Compose service." >&2
     exit 1
 fi
 backend_identity=$(docker run --rm --entrypoint sh "$backend_image" -c \
-    'printf "%s:%s\n" "$(id -u)" "$(id -g)"')
+    'printf "%s:%s\n" "$(id -u)" "$(id -g)"') || {
+    echo "Current backend image could not run the runtime identity check." >&2
+    exit 1
+}
 if [ "$backend_identity" != "$BACKEND_RUNTIME_UID:$BACKEND_RUNTIME_GID" ]; then
     echo "Backend image runtime identity does not match the deployment contract." >&2
     exit 1
