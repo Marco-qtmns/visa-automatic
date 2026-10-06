@@ -74,7 +74,7 @@ audit history, privacy, and review behavior. The default provider is disabled;
 manual Milestone 5 assignment continues without AI configuration.
 
 Milestone 7 adds explicit document quality checks and requirement-level
-completeness. Apply migration `0005_document_quality_completeness` and see
+completeness. Apply migration `0005_doc_quality_completeness` and see
 [QUALITY.md](QUALITY.md). The conservative local evaluator is configured with
 `QUALITY_PROVIDER=manual_only`; it never transmits uploads externally. Quality
 can derive requirement fulfilment but never transitions workflow state.

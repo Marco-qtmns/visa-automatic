@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import ast
 import io
 import json
 import re
@@ -153,12 +154,56 @@ def test_accepted_migration_chain_has_one_expected_head():
         "0008_canada_legacy_import",
         "0007_canada_application_model",
         "0006_whatsapp_fact_extraction",
-        "0005_document_quality_completeness",
+        "0005_doc_quality_completeness",
         "0004_document_classification",
         "0003_document_matching",
         "0002_workflow_state_machine",
         "0001_core_data_model",
     ]
+
+
+def test_migration_revision_graph_fits_alembic_version_column():
+    """Guard the VARCHAR(32) Alembic version table used by this project."""
+    revisions: dict[str, str | None] = {}
+    for path in sorted((PROJECT_ROOT / "backend/migrations/versions").glob("*.py")):
+        tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
+        metadata: dict[str, str | None] = {}
+        for node in tree.body:
+            if not isinstance(node, (ast.Assign, ast.AnnAssign)):
+                continue
+            targets = node.targets if isinstance(node, ast.Assign) else [node.target]
+            for target in targets:
+                if isinstance(target, ast.Name) and target.id in {"revision", "down_revision"}:
+                    metadata[target.id] = ast.literal_eval(node.value)
+
+        revision = metadata.get("revision")
+        assert isinstance(revision, str), f"{path.name} has no string revision"
+        assert len(revision) <= 32, f"{path.name} revision exceeds VARCHAR(32)"
+        assert revision not in revisions, f"duplicate revision: {revision}"
+        revisions[revision] = metadata.get("down_revision")
+
+    roots = [revision for revision, parent in revisions.items() if parent is None]
+    assert len(roots) == 1, f"expected one migration root, found {roots}"
+    for revision, parent in revisions.items():
+        assert parent is None or parent in revisions, (
+            f"revision {revision} references unknown down_revision {parent}"
+        )
+
+    children: dict[str, list[str]] = {revision: [] for revision in revisions}
+    for revision, parent in revisions.items():
+        if parent is not None:
+            children[parent].append(revision)
+    assert all(len(items) <= 1 for items in children.values()), "migration graph branches"
+    heads = [revision for revision, items in children.items() if not items]
+    assert heads == ["0009_canada_preparation_runs"]
+
+    visited: set[str] = set()
+    current: str | None = roots[0]
+    while current is not None:
+        assert current not in visited, f"migration graph contains a cycle at {current}"
+        visited.add(current)
+        current = children[current][0] if children[current] else None
+    assert visited == set(revisions), "migration graph is disconnected"
 
 
 def test_deployment_files_have_no_mac_paths_and_storage_is_separate():

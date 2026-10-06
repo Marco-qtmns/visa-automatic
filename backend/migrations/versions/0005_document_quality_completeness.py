@@ -1,6 +1,6 @@
 """add document quality and requirement completeness audit
 
-Revision ID: 0005_document_quality_completeness
+Revision ID: 0005_doc_quality_completeness
 Revises: 0004_document_classification
 Create Date: 2026-10-02
 """
@@ -11,7 +11,7 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 
-revision: str = "0005_document_quality_completeness"
+revision: str = "0005_doc_quality_completeness"
 down_revision: str | None = "0004_document_classification"
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None

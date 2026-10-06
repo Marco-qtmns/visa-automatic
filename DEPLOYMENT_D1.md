@@ -144,6 +144,14 @@ alembic -c backend/alembic.ini upgrade head
 Migration failure stops the backend before Uvicorn. The entrypoint never drops
 or recreates the database. Expected head: `0009_canada_preparation_runs`.
 
+Revision `0005_doc_quality_completeness` replaces the former 34-character
+identifier `0005_document_quality_completeness`, which cannot be stored in the
+project's standard Alembic `VARCHAR(32)` version column. Clean databases and
+databases at revisions `0001` through `0004` upgrade normally. A nonstandard
+database that was manually widened and stamped with the former identifier must
+be reconciled by an operator only after verifying its applied schema; do not
+blindly rewrite its version row.
+
 ## Routing and remote access
 
 The frontend is built with `NEXT_PUBLIC_API_BASE_URL=/api`. Caddy strips `/api`

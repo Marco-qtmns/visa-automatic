@@ -140,7 +140,7 @@ was added.
   policies, accepted-evidence filtering, and duplicate-month protection.
 - Added fulfilment provenance/events, safe automatic regression, waiver/manual
   preservation, service-layer reevaluation triggers, APIs and employee UI.
-- Added migration `0005_document_quality_completeness` and synthetic tests.
+- Added migration `0005_doc_quality_completeness` and synthetic tests.
 
 No WhatsApp extraction, form/letter generation integration, workflow auto-
 transition, external AI transmission, desktop packaging, or installer work was

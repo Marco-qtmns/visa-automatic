@@ -1,7 +1,7 @@
 """add WhatsApp imports and reviewed fact extraction
 
 Revision ID: 0006_whatsapp_fact_extraction
-Revises: 0005_document_quality_completeness
+Revises: 0005_doc_quality_completeness
 Create Date: 2026-10-02
 """
 from collections.abc import Sequence
@@ -12,7 +12,7 @@ from sqlalchemy.dialects import postgresql
 
 
 revision: str = "0006_whatsapp_fact_extraction"
-down_revision: str | None = "0005_document_quality_completeness"
+down_revision: str | None = "0005_doc_quality_completeness"
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
 
