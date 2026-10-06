@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import ast
+import importlib
 import io
 import json
 import re
@@ -16,11 +17,17 @@ from sqlalchemy import create_engine, text
 from sqlalchemy.orm import sessionmaker
 
 from backend.app.database import Base
+from backend.app import deployment_preflight as preflight_module
 from backend.app.deployment_preflight import (
     PROJECT_ROOT,
     environment_from_deployment_file,
     validate_deployment_configuration,
 )
+from backend.app.runtime_dependencies import (
+    AUTH_RUNTIME_REQUIREMENTS,
+    check_auth_runtime_dependencies,
+)
+from backend.scripts import runtime_import_smoke
 from backend.scripts import (
     synthetic_staging_case,
     verify_restored_staging,
@@ -141,6 +148,8 @@ def test_deployment_runtime_dependencies_are_pinned():
         if line.strip() and not line.startswith("#")
     ]
     assert requirements and all("==" in item for item in requirements)
+    pinned_distributions = {item.split("==", 1)[0].casefold() for item in requirements}
+    assert {item.distribution.casefold() for item in AUTH_RUNTIME_REQUIREMENTS} <= pinned_distributions
     package = json.loads((PROJECT_ROOT / "frontend/package.json").read_text())
     assert package["dependencies"] == {
         "next": "16.3.8", "react": "19.3.0", "react-dom": "19.3.0"
@@ -149,6 +158,47 @@ def test_deployment_runtime_dependencies_are_pinned():
     frontend_image = (PROJECT_ROOT / "frontend/Dockerfile").read_text()
     assert backend_image.startswith("FROM python:3.13.16-slim-bookworm")
     assert frontend_image.count("FROM node:22.23.3-bookworm-slim") == 3
+    assert backend_image.count("pip install --requirement /app/requirements.deploy.txt") == 1
+    assert "python -m backend.scripts.runtime_import_smoke" in backend_image
+    assert all(item.distribution not in backend_image for item in AUTH_RUNTIME_REQUIREMENTS)
+
+
+def test_auth_runtime_smoke_uses_real_argon2_fernet_and_stdlib_totp(capsys):
+    assert check_auth_runtime_dependencies() == (
+        True,
+        "auth_runtime_dependencies_available",
+        (),
+    )
+    assert runtime_import_smoke.main() == 0
+    assert capsys.readouterr().out.strip() == "PASS auth_runtime_dependencies_available"
+
+
+def test_missing_auth_dependency_has_stable_preflight_failure(monkeypatch):
+    def missing_cryptography(name: str):
+        if name == "cryptography.fernet":
+            raise ModuleNotFoundError("synthetic missing dependency")
+        return importlib.import_module(name)
+
+    ok, code, details = check_auth_runtime_dependencies(importer=missing_cryptography)
+    assert not ok
+    assert code == "auth_runtime_dependency_missing"
+    assert details == ("cryptography",)
+
+    monkeypatch.setattr(
+        preflight_module,
+        "check_auth_runtime_dependencies",
+        lambda: (False, "auth_runtime_dependency_missing", ("cryptography",)),
+    )
+    environment = environment_from_deployment_file(PROJECT_ROOT / ".env.production.example")
+    result = validate_deployment_configuration(environment, allow_placeholders=True)
+    auth_check = next(item for item in result["checks"] if item["name"] == "authentication_dependencies")
+    assert result["status"] == "FAIL"
+    assert auth_check == {
+        "name": "authentication_dependencies",
+        "status": "FAIL",
+        "code": "auth_runtime_dependency_missing",
+    }
+    assert "ModuleNotFoundError" not in json.dumps(result)
 
 
 def test_backend_runtime_identity_and_restore_normalization_contract():

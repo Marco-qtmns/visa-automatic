@@ -22,7 +22,8 @@ COPY templates/canada /app/templates/canada
 COPY deployment/environment-contract.json /app/deployment/environment-contract.json
 COPY deployment/backend-entrypoint.sh /usr/local/bin/visa-backend-entrypoint
 
-RUN chmod 0555 /usr/local/bin/visa-backend-entrypoint \
+RUN python -m backend.scripts.runtime_import_smoke \
+    && chmod 0555 /usr/local/bin/visa-backend-entrypoint \
     && chown -R visaautomatic:visaautomatic /app
 
 USER visaautomatic

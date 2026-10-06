@@ -44,6 +44,15 @@ The public backend allowlist is `/health`, `/health/live`, `/health/ready`,
 valid session. All business routers share a fail-closed authentication/CSRF
 dependency at the aggregate router boundary.
 
+## Deployment dependency guard
+
+`requirements.deploy.txt` is the production dependency authority. The backend
+image runs `python -m backend.scripts.runtime_import_smoke` during its build, and
+deployment preflight runs the same check at container startup. Missing Argon2,
+Fernet, email validation, or the standard-library TOTP implementation therefore
+fails closed with the stable code `auth_runtime_dependency_missing` instead of a
+raw import traceback.
+
 ## Deferred to M10B / production follow-up
 
 Recovery codes are intentionally not included in M10A rather than shipping a

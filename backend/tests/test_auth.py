@@ -5,6 +5,8 @@ import hashlib
 from datetime import timedelta
 
 import pytest
+from argon2.low_level import Type
+from cryptography.fernet import Fernet
 from alembic import command
 from alembic.config import Config
 from fastapi.routing import APIRoute
@@ -12,12 +14,16 @@ from fastapi.testclient import TestClient
 from sqlalchemy import create_engine, inspect, select, text
 
 from backend.app.auth import (
+    PASSWORD_HASHER,
     SESSION_COOKIE_NAME,
     create_user,
+    decrypt_secret,
+    encrypt_secret,
     hash_password,
     now_utc,
     require_authenticated_request,
     totp_code,
+    verify_totp,
     verify_password,
 )
 from backend.app.database import get_session
@@ -29,6 +35,15 @@ from backend.app.deployment_preflight import PROJECT_ROOT
 
 pytestmark = pytest.mark.real_auth
 PASSWORD = "ValidPassword123"
+
+
+def test_auth_cryptographic_implementations_remain_production_grade():
+    assert PASSWORD_HASHER.type is Type.ID
+    assert Fernet.generate_key()
+    encrypted = encrypt_secret("JBSWY3DPEHPK3PXP")
+    assert decrypt_secret(encrypted) == "JBSWY3DPEHPK3PXP"
+    code = totp_code("JBSWY3DPEHPK3PXP", at_time=1_700_000_000)
+    assert verify_totp("JBSWY3DPEHPK3PXP", code, at_time=1_700_000_000)
 
 
 @pytest.fixture(autouse=True)

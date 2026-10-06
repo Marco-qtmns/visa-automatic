@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import base64
 import hashlib
 import json
 import os
@@ -11,6 +12,8 @@ from urllib.parse import urlsplit
 from alembic.config import Config
 from alembic.script import ScriptDirectory
 from sqlalchemy.engine import make_url
+
+from .runtime_dependencies import check_auth_runtime_dependencies
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
@@ -61,16 +64,20 @@ def _origins_valid(raw: str | None) -> bool:
 def _authentication_valid(environment: Mapping[str, str], *, allow_placeholders: bool) -> bool:
     key = environment.get("MFA_ENCRYPTION_KEY", "")
     try:
-        from cryptography.fernet import Fernet
-        Fernet(key.encode("ascii"))
+        decoded_key = base64.b64decode(key.encode("ascii"), altchars=b"-_", validate=True)
         hours = int(environment.get("AUTH_SESSION_HOURS", "12"))
-    except (ValueError, TypeError):
+    except (ValueError, TypeError, UnicodeError):
         return False
-    if not 1 <= hours <= 168:
+    if len(decoded_key) != 32 or not 1 <= hours <= 168:
         return False
     if environment.get("AUTH_COOKIE_SECURE", "true").casefold() not in {"true", "false", "1", "0", "yes", "no"}:
         return False
     return allow_placeholders or key != MFA_KEY_PLACEHOLDER
+
+
+def _authentication_dependency_check() -> tuple[bool, str]:
+    ok, code, _details = check_auth_runtime_dependencies()
+    return ok, code
 
 
 def _storage_roots(
@@ -226,6 +233,7 @@ def validate_deployment_configuration(
     checks.append(_result("fact_extraction_provider", fact_ok, "provider_valid" if fact_ok else "provider_invalid"))
 
     for name, check in (
+        ("authentication_dependencies", _authentication_dependency_check),
         ("templates", _template_check),
         ("alembic_metadata", _migration_check),
         ("generator_dependencies", _dependency_check),
