@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import io
 
-import fitz
+import pymupdf as fitz
 from fastapi.testclient import TestClient
 import pytest
 from sqlalchemy import select

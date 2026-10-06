@@ -20,7 +20,7 @@ import tempfile
 import unicodedata
 import xml.etree.ElementTree as ET
 
-import fitz
+import pymupdf as fitz
 
 from .review import editable_fields
 from .official_options import REPRESENTATIVE_ACTIONS, REPRESENTATIVE_CATEGORIES

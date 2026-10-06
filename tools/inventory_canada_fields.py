@@ -12,7 +12,7 @@ import json
 from pathlib import Path
 import re
 import xml.etree.ElementTree as ET
-import fitz
+import pymupdf as fitz
 
 ROOT = Path(__file__).resolve().parents[1]
 

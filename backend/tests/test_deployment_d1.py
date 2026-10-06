@@ -5,6 +5,7 @@ import io
 import json
 import re
 import subprocess
+import sys
 import tarfile
 from pathlib import Path
 
@@ -28,6 +29,10 @@ from backend.scripts import (
 from deployment.backup_manifest import create_manifest, restore_storage, verify_manifest
 from deployment.d1_acceptance import acceptance
 from deployment.d1_report import initial_report, update_report
+from deployment.synthetic_smoke_contract import (
+    EXPECTED_ARTIFACT_TYPES,
+    parse_producer_output,
+)
 
 
 def _environment_names(path: Path) -> set[str]:
@@ -364,6 +369,95 @@ def test_deployment_logging_does_not_print_secret_environment_or_smoke_payload()
     assert all("| python3" in line for line in smoke_output_lines)
 
 
+def test_supported_pymupdf_import_does_not_write_stdout():
+    result = subprocess.run(
+        [
+            sys.executable,
+            "-c",
+            "import pymupdf; import canada.pdf_drafts; "
+            "import backend.scripts.synthetic_staging_case",
+        ],
+        cwd=PROJECT_ROOT,
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    assert result.stdout == ""
+
+
+def test_synthetic_command_stdout_is_exactly_one_json_document(monkeypatch, capsys):
+    payload = {
+        "case_id": "case-id",
+        "document_id": "document-id",
+        "run_id": "run-id",
+        "artifact_types": list(EXPECTED_ARTIFACT_TYPES),
+        "package_status": "current",
+    }
+    monkeypatch.setattr(
+        synthetic_staging_case,
+        "create_synthetic_case",
+        lambda *, continuation: payload if continuation else None,
+    )
+    monkeypatch.setattr(sys, "argv", ["synthetic_staging_case", "--continuation"])
+
+    synthetic_staging_case.main()
+
+    captured = capsys.readouterr()
+    assert captured.err == ""
+    assert captured.out == json.dumps(payload, sort_keys=True) + "\n"
+    assert json.loads(captured.out) == payload
+    assert set(json.loads(captured.out)) >= {
+        "case_id", "document_id", "run_id", "artifact_types"
+    }
+
+
+def test_synthetic_command_does_not_hide_generation_failure(monkeypatch, capsys):
+    def fail(*, continuation):
+        raise RuntimeError("synthetic generation failed")
+
+    monkeypatch.setattr(synthetic_staging_case, "create_synthetic_case", fail)
+    monkeypatch.setattr(sys, "argv", ["synthetic_staging_case", "--continuation"])
+
+    with pytest.raises(RuntimeError, match="synthetic generation failed"):
+        synthetic_staging_case.main()
+    assert capsys.readouterr().out == ""
+
+
+@pytest.mark.parametrize(
+    ("raw", "message"),
+    [
+        ("", "empty"),
+        ("not-json", "exactly one JSON document"),
+        ('{"case_id": "case-id"} trailing', "exactly one JSON document"),
+        (
+            'warning: deprecated import\n{"case_id": "case-id"}',
+            "exactly one JSON document",
+        ),
+    ],
+)
+def test_synthetic_smoke_contract_rejects_invalid_output(raw, message):
+    with pytest.raises(ValueError, match=message):
+        parse_producer_output(raw)
+
+
+def test_synthetic_smoke_contract_requires_keys_and_expected_artifacts():
+    with pytest.raises(ValueError, match="document_id, run_id, artifact_types"):
+        parse_producer_output('{"case_id": "case-id"}')
+
+    payload = {
+        "case_id": "case-id",
+        "document_id": "document-id",
+        "run_id": "run-id",
+        "artifact_types": list(EXPECTED_ARTIFACT_TYPES),
+    }
+    assert parse_producer_output(json.dumps(payload)) == payload
+    assert tuple(payload["artifact_types"]) == EXPECTED_ARTIFACT_TYPES
+
+    payload["artifact_types"] = ["imm5257"]
+    with pytest.raises(ValueError, match="unexpected artifact_types"):
+        parse_producer_output(json.dumps(payload))
+
+
 @pytest.mark.parametrize(
     ("continuation", "expected"),
     [
@@ -372,7 +466,7 @@ def test_deployment_logging_does_not_print_secret_environment_or_smoke_payload()
     ],
 )
 def test_synthetic_deployment_fixture_generates_and_verifies(
-    tmp_path, monkeypatch, continuation, expected
+    tmp_path, monkeypatch, capsys, continuation, expected
 ):
     engine = create_engine(f"sqlite+pysqlite:///{tmp_path / 'smoke.db'}")
     Base.metadata.create_all(engine)
@@ -383,6 +477,7 @@ def test_synthetic_deployment_fixture_generates_and_verifies(
     monkeypatch.setenv("DOCUMENT_STORAGE_ROOT", str(tmp_path / "documents"))
     monkeypatch.setenv("GENERATED_ARTIFACT_STORAGE_ROOT", str(tmp_path / "generated"))
     result = synthetic_staging_case.create_synthetic_case(continuation=continuation)
+    assert capsys.readouterr().out == ""
     assert result["package_status"] == "current"
     assert result["workflow_state"] == "PREPARE"
     assert result["requirement_count"] > 0

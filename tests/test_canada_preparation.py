@@ -4,7 +4,7 @@ import tempfile
 import unittest
 from unittest.mock import patch
 
-import fitz
+import pymupdf as fitz
 
 from canada.models import CanadaCase, FamilyMember, Activity
 from canada.preparation import prepare_case, parse_narrative, is_confirmed, ordered_activities, child_given_names

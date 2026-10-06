@@ -7,7 +7,7 @@ import unittest
 from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-import fitz
+import pymupdf as fitz
 import settings
 from models import RecipientData
 from source_readers import applicant_from_csv_row, read_google_forms_pdf

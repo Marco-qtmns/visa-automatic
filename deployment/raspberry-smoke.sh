@@ -62,6 +62,7 @@ compose exec -T backend alembic -c backend/alembic.ini current \
 
 smoke_json=$(compose exec -T backend \
     python -m backend.scripts.synthetic_staging_case --continuation)
+smoke_json=$(printf '%s' "$smoke_json" | python3 deployment/synthetic_smoke_contract.py)
 case_id=$(printf '%s' "$smoke_json" | python3 -c 'import json,sys; print(json.load(sys.stdin)["case_id"])')
 document_id=$(printf '%s' "$smoke_json" | python3 -c 'import json,sys; print(json.load(sys.stdin)["document_id"])')
 run_id=$(printf '%s' "$smoke_json" | python3 -c 'import json,sys; print(json.load(sys.stdin)["run_id"])')

@@ -6,7 +6,7 @@ import tempfile
 import unittest
 import xml.etree.ElementTree as ET
 
-import fitz
+import pymupdf as fitz
 
 from canada.case_store import load_case, save_case
 from canada.models import CanadaCase, FamilyMember, Activity

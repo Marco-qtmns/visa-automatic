@@ -5,7 +5,7 @@ import xml.etree.ElementTree as ET
 from collections import Counter
 from pathlib import Path
 
-import fitz
+import pymupdf as fitz
 
 
 ROOT = Path(__file__).resolve().parents[1]

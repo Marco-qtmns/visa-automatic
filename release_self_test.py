@@ -9,7 +9,7 @@ import traceback
 def run(report_path: str, app_class) -> int:
     report = {"ok": False, "checks": []}
     try:
-        import fitz
+        import pymupdf as fitz
         import settings
         from form956a import generate_956a, resource_path, _format_pdf_date
         from models import ApplicantData, RecipientData

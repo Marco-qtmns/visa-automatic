@@ -16,7 +16,7 @@ import xml.etree.ElementTree as ET
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from canada.source_readers import read_google_forms_csv, canada_case_from_csv_row, CsvResponseRow
 from tools.inventory_canada_fields import inventory
-import fitz
+import pymupdf as fitz
 
 ROOT = Path(__file__).resolve().parents[1]
 FIXTURES = ROOT / 'tests/fixtures'

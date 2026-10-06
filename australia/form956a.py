@@ -4,7 +4,7 @@ import re
 import sys
 from pathlib import Path
 
-import fitz
+import pymupdf as fitz
 
 from .models import ApplicantData, RecipientData
 
