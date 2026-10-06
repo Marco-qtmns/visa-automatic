@@ -255,10 +255,15 @@ directories outside live `DATA_ROOT`, then run:
 The script verifies hashes, refuses the configured live database, requires
 empty distinct roots, checks that the destination has no public tables, uses
 `pg_restore --exit-on-error` without cleanup/drop, and extracts only safe regular
-files/directories with private modes. It then runs an isolated backend verifier
+files/directories with private modes. A short-lived root helper from the backend
+image receives only the two validated restore mounts, normalizes their ownership
+to the centrally configured backend runtime UID/GID, and reapplies directory
+mode `0700` and file mode `0600`. It never receives live `DATA_ROOT`. The helper
+then exits, and the isolated verifier runs as the image's normal non-root user
 against the destination database and destination mounts, checking schema,
 synthetic table counts, document/artifact existence, artifact hashes, and a
-current package.
+current package. Restore refuses to continue if the built image identity differs
+from `deployment/backend-runtime-identity.env`.
 A successful PostgreSQL restore remains unverified until this is actually done.
 
 ## Update and rollback

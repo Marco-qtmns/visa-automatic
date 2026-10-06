@@ -150,6 +150,58 @@ def test_deployment_runtime_dependencies_are_pinned():
     assert frontend_image.count("FROM node:22.23.3-bookworm-slim") == 3
 
 
+def test_backend_runtime_identity_and_restore_normalization_contract():
+    contract_path = PROJECT_ROOT / "deployment/backend-runtime-identity.env"
+    contract = {
+        name: value
+        for name, value in (
+            line.split("=", 1)
+            for line in contract_path.read_text(encoding="utf-8").splitlines()
+            if line and not line.startswith("#")
+        )
+    }
+    assert set(contract) == {"BACKEND_RUNTIME_UID", "BACKEND_RUNTIME_GID"}
+    assert all(re.fullmatch(r"[1-9][0-9]*", value) for value in contract.values())
+
+    dockerfile = (PROJECT_ROOT / "backend/Dockerfile").read_text(encoding="utf-8")
+    assert "COPY deployment/backend-runtime-identity.env" in dockerfile
+    assert ". /tmp/backend-runtime-identity.env" in dockerfile
+    assert 'groupadd --gid "$BACKEND_RUNTIME_GID"' in dockerfile
+    assert 'useradd --uid "$BACKEND_RUNTIME_UID"' in dockerfile
+    assert "USER visaautomatic" in dockerfile
+    assert contract["BACKEND_RUNTIME_UID"] not in dockerfile
+    assert contract["BACKEND_RUNTIME_GID"] not in dockerfile
+
+    scripts = {
+        name: (PROJECT_ROOT / "deployment" / name).read_text(encoding="utf-8")
+        for name in ("prepare-host.sh", "raspberry-preflight.sh", "restore-test.sh")
+    }
+    for source in scripts.values():
+        assert '. "$script_dir/backend-runtime-identity.env"' in source
+        assert contract["BACKEND_RUNTIME_UID"] not in source
+        assert contract["BACKEND_RUNTIME_GID"] not in source
+
+    restore = scripts["restore-test.sh"]
+    assert "backend_identity=$(docker run --rm --entrypoint sh" in restore
+    assert '"$backend_identity" != "$BACKEND_RUNTIME_UID:$BACKEND_RUNTIME_GID"' in restore
+    privileged = restore.split("docker run --rm --user 0:0", 1)[1].split(
+        "configured_url=", 1
+    )[0]
+    assert privileged.count('-v "') == 2
+    assert "compose run" not in privileged
+    assert "data_root" not in privileged.casefold()
+    assert "sudo" not in privileged
+    assert 'chown -R "$runtime_uid:$runtime_gid"' in privileged
+    assert "find \"$root\" -type d -exec chmod 0700" in privileged
+    assert "find \"$root\" -type f -exec chmod 0600" in privileged
+    assert "chmod 0777" not in restore and "chmod 777" not in restore
+
+    verifier = restore.split("compose run --rm --no-deps --entrypoint sh", 1)[1]
+    assert "--user" not in verifier
+    assert "actual_identity=$(id -u):$(id -g)" in verifier
+    assert "verify_restored_staging" in verifier
+
+
 def test_accepted_migration_chain_has_one_expected_head():
     script = ScriptDirectory.from_config(Config(str(PROJECT_ROOT / "backend/alembic.ini")))
     assert script.get_heads() == ["0009_canada_preparation_runs"]

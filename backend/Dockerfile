@@ -7,8 +7,11 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 
 WORKDIR /app
 
-RUN groupadd --gid 10001 visaautomatic \
-    && useradd --uid 10001 --gid visaautomatic --create-home --shell /usr/sbin/nologin visaautomatic
+COPY deployment/backend-runtime-identity.env /tmp/backend-runtime-identity.env
+RUN . /tmp/backend-runtime-identity.env \
+    && groupadd --gid "$BACKEND_RUNTIME_GID" visaautomatic \
+    && useradd --uid "$BACKEND_RUNTIME_UID" --gid visaautomatic --create-home --shell /usr/sbin/nologin visaautomatic \
+    && rm /tmp/backend-runtime-identity.env
 
 COPY requirements.deploy.txt /app/requirements.deploy.txt
 RUN python -m pip install --requirement /app/requirements.deploy.txt

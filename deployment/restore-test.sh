@@ -1,6 +1,9 @@
 #!/bin/sh
 set -eu
 
+script_dir=$(CDPATH= cd "$(dirname "$0")" && pwd)
+. "$script_dir/backend-runtime-identity.env"
+
 env_file=.env.production
 manifest=
 destination_database=
@@ -102,6 +105,37 @@ fi
 python3 deployment/backup_manifest.py restore-storage \
     --manifest "$manifest" --documents "$documents" --generated "$generated"
 
+backend_image=$(compose images -q backend | head -1)
+if [ -z "$backend_image" ]; then
+    echo "Built backend image could not be resolved." >&2
+    exit 1
+fi
+backend_identity=$(docker run --rm --entrypoint sh "$backend_image" -c \
+    'printf "%s:%s\n" "$(id -u)" "$(id -g)"')
+if [ "$backend_identity" != "$BACKEND_RUNTIME_UID:$BACKEND_RUNTIME_GID" ]; then
+    echo "Backend image runtime identity does not match the deployment contract." >&2
+    exit 1
+fi
+
+docker run --rm --user 0:0 --entrypoint sh \
+    -v "$documents:/restore-target/document-storage:rw" \
+    -v "$generated:/restore-target/generated-artifact-storage:rw" \
+    "$backend_image" -c '
+        set -eu
+        runtime_uid=$1
+        runtime_gid=$2
+        for root in /restore-target/document-storage /restore-target/generated-artifact-storage; do
+            [ -d "$root" ]
+            chown -R "$runtime_uid:$runtime_gid" "$root"
+            find "$root" -type d -exec chmod 0700 {} +
+            find "$root" -type f -exec chmod 0600 {} +
+            if find "$root" \( ! -user "$runtime_uid" -o ! -group "$runtime_gid" \) -print -quit | grep . >/dev/null; then
+                echo "Restore ownership normalization failed." >&2
+                exit 1
+            fi
+        done
+    ' sh "$BACKEND_RUNTIME_UID" "$BACKEND_RUNTIME_GID"
+
 configured_url=$(sed -n 's/^DATABASE_URL=//p' "$env_file" | tail -1)
 if [ -z "$configured_url" ]; then
     echo "Required database connection configuration is missing." >&2
@@ -112,11 +146,20 @@ restore_url=$(printf '%s\n%s\n' "$configured_url" "$destination_database" | pyth
 export DATABASE_URL="$restore_url"
 export DOCUMENT_STORAGE_ROOT=/restore-target/document-storage
 export GENERATED_ARTIFACT_STORAGE_ROOT=/restore-target/generated-artifact-storage
-compose run --rm --no-deps --entrypoint python \
+compose run --rm --no-deps --entrypoint sh \
     -e DATABASE_URL -e DOCUMENT_STORAGE_ROOT -e GENERATED_ARTIFACT_STORAGE_ROOT \
     -v "$documents:/restore-target/document-storage:rw" \
     -v "$generated:/restore-target/generated-artifact-storage:rw" \
-    backend -m backend.scripts.verify_restored_staging >/dev/null
+    backend -c '
+        set -eu
+        expected_identity=$1:$2
+        actual_identity=$(id -u):$(id -g)
+        if [ "$actual_identity" != "$expected_identity" ]; then
+            echo "Restore verifier is not running as the normal backend user." >&2
+            exit 1
+        fi
+        exec python -m backend.scripts.verify_restored_staging
+    ' sh "$BACKEND_RUNTIME_UID" "$BACKEND_RUNTIME_GID" >/dev/null
 unset DATABASE_URL DOCUMENT_STORAGE_ROOT GENERATED_ARTIFACT_STORAGE_ROOT
 
 trap - EXIT HUP INT TERM

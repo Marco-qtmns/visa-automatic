@@ -1,6 +1,9 @@
 #!/bin/sh
 set -eu
 
+script_dir=$(CDPATH= cd "$(dirname "$0")" && pwd)
+. "$script_dir/backend-runtime-identity.env"
+
 env_file=.env.production
 report_file=deployment/reports/d1-result.json
 write_report=true
@@ -164,7 +167,9 @@ for directory in postgres-data document-storage generated-artifact-storage backu
 done
 for directory in document-storage generated-artifact-storage; do
     owner=$(stat -c '%u' "$data_root/$directory")
-    [ "$owner" = 10001 ] || critical "Backend storage owner must be UID 10001: $directory"
+    group=$(stat -c '%g' "$data_root/$directory")
+    [ "$owner:$group" = "$BACKEND_RUNTIME_UID:$BACKEND_RUNTIME_GID" ] \
+        || critical "Backend storage owner does not match the runtime identity: $directory"
 done
 pass "Persistent directory layout and backend permissions are valid"
 
@@ -179,6 +184,13 @@ pass "PostgreSQL directory owner matches image UID $postgres_uid"
 
 compose build --pull backend frontend || critical "Application image build failed"
 pass "Backend and frontend images built"
+backend_image=$(compose images -q backend | head -1)
+[ -n "$backend_image" ] || critical "Built backend image could not be resolved"
+backend_identity=$(docker run --rm --entrypoint sh "$backend_image" -c \
+    'printf "%s:%s\n" "$(id -u)" "$(id -g)"')
+[ "$backend_identity" = "$BACKEND_RUNTIME_UID:$BACKEND_RUNTIME_GID" ] \
+    || critical "Backend image runtime identity does not match deployment contract"
+pass "Backend image runtime identity matches the deployment contract"
 compose up -d postgres || critical "PostgreSQL start failed"
 wait_healthy postgres || critical "PostgreSQL did not become healthy"
 pass "PostgreSQL healthy"
