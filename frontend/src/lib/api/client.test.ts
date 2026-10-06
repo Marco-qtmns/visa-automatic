@@ -36,3 +36,17 @@ it("sends document uploads as browser-managed multipart form data", async () => 
   expect((init.body as FormData).get("document_type")).toBe("passport_bio_page");
   expect(init.headers).not.toHaveProperty("Content-Type");
 });
+
+it("includes credentials and the CSRF cookie on mutations without storing auth tokens", async () => {
+  document.cookie = "va_csrf=csrf-test-value; path=/";
+  const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify({}), {
+    status: 201, headers: { "Content-Type": "application/json" },
+  }));
+  vi.stubGlobal("fetch", fetchMock);
+  await api.createCase({ case_number: "SYN-1", visa_type: "TRV", purpose: "test" });
+  const [, init] = fetchMock.mock.calls[0];
+  expect(init.credentials).toBe("include");
+  expect(init.headers["X-CSRF-Token"]).toBe("csrf-test-value");
+  expect(localStorage.length).toBe(0);
+  expect(sessionStorage.length).toBe(0);
+});

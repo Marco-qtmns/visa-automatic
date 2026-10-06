@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "expected_alembic_head": "0009_canada_preparation_runs",
+  "expected_alembic_head": "0010_auth_foundation",
   "variables": [
     {"name": "DATA_ROOT", "service": "compose/host", "required": true, "env_file": true, "safe_example": "/srv/visa-automatic/data", "default": null, "secret": false, "validation": "absolute safe path on SSD/NVMe; not /, /home, or /srv", "missing_behavior": "Compose interpolation fails before startup"},
     {"name": "BIND_ADDRESS", "service": "proxy", "required": false, "env_file": true, "safe_example": "127.0.0.1", "default": "127.0.0.1", "secret": false, "validation": "IP address or resolvable host bind value", "missing_behavior": "loopback-only default is used"},
@@ -12,6 +12,9 @@
     {"name": "DOCUMENT_STORAGE_ROOT", "service": "backend", "required": true, "env_file": false, "safe_example": "/srv/visa-automatic/document-storage", "default": "backend/storage outside deployment", "secret": false, "validation": "absolute writable directory, outside repository and distinct from generated storage", "missing_behavior": "Compose supplies a fixed container path"},
     {"name": "GENERATED_ARTIFACT_STORAGE_ROOT", "service": "backend", "required": true, "env_file": false, "safe_example": "/srv/visa-automatic/generated-artifact-storage", "default": "backend/generated-storage outside deployment", "secret": false, "validation": "absolute writable directory, outside repository and distinct from document storage", "missing_behavior": "Compose supplies a fixed container path"},
     {"name": "CORS_ORIGINS", "service": "backend", "required": true, "env_file": true, "safe_example": "https://visa-pi.example-tailnet.ts.net", "default": "localhost development origins outside deployment", "secret": false, "validation": "comma-separated exact http/https origins; wildcard forbidden", "missing_behavior": "Compose interpolation fails before startup"},
+    {"name": "MFA_ENCRYPTION_KEY", "service": "backend", "required": true, "env_file": true, "safe_example": "cmVwbGFjZS13aXRoLWdlbmVyYXRlZC1rZXktMDAwMDA=", "default": null, "secret": true, "validation": "URL-safe base64 Fernet key generated outside the repository; example is a known placeholder", "missing_behavior": "Compose interpolation fails before startup"},
+    {"name": "AUTH_SESSION_HOURS", "service": "backend", "required": false, "env_file": true, "safe_example": "12", "default": "12", "secret": false, "validation": "integer 1..168", "missing_behavior": "12-hour employee sessions are used"},
+    {"name": "AUTH_COOKIE_SECURE", "service": "backend", "required": false, "env_file": true, "safe_example": "true", "default": "true", "secret": false, "validation": "true in deployment; false only for local HTTP development", "missing_behavior": "secure cookies are used"},
     {"name": "MAX_UPLOAD_SIZE_MB", "service": "backend", "required": false, "env_file": true, "safe_example": "20", "default": "20", "secret": false, "validation": "integer 1..1024", "missing_behavior": "backend default is used"},
     {"name": "MAX_GENERATED_ARTIFACT_MB", "service": "backend", "required": false, "env_file": true, "safe_example": "30", "default": "30", "secret": false, "validation": "integer 1..1024", "missing_behavior": "backend default is used"},
     {"name": "MAX_CONVERSATION_IMPORT_MB", "service": "backend", "required": false, "env_file": true, "safe_example": "2", "default": "2", "secret": false, "validation": "integer 1..1024", "missing_behavior": "backend default is used"},

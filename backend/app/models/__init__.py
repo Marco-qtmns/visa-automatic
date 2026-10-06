@@ -31,6 +31,7 @@ from .core import (
 )
 from .canada import *  # noqa: F401,F403
 from .preparation import PreparationArtifact, PreparationRun
+from .auth import AuthSession, LoginThrottle, MfaChallenge, SecurityEvent, User, UserRole
 
 __all__ = [
     "Case",
@@ -64,4 +65,10 @@ __all__ = [
     "WorkflowTransition",
     "PreparationRun",
     "PreparationArtifact",
+    "User",
+    "UserRole",
+    "AuthSession",
+    "MfaChallenge",
+    "LoginThrottle",
+    "SecurityEvent",
 ]

@@ -71,9 +71,13 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
     response = await fetch(`${API_BASE_URL}${path}`, {
       ...init,
       cache: "no-store",
+      credentials: "include",
       headers: {
         ...(init?.body && !(init.body instanceof FormData)
           ? { "Content-Type": "application/json" }
+          : {}),
+        ...(!["GET", "HEAD"].includes((init?.method ?? "GET").toUpperCase())
+          ? { "X-CSRF-Token": csrfTokenFromCookie() }
           : {}),
         ...init?.headers,
       },
@@ -82,6 +86,9 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
     throw new ApiError("Visa Automatic backend is not reachable.");
   }
   if (!response.ok) {
+    if (response.status === 401 && typeof window !== "undefined") {
+      window.dispatchEvent(new Event("visa-auth-expired"));
+    }
     let detail: unknown;
     try {
       detail = (await response.json()).detail;
@@ -97,12 +104,37 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   return (await response.json()) as T;
 }
 
+function csrfTokenFromCookie(): string {
+  if (typeof document === "undefined") return "";
+  const item = document.cookie.split(";").map((value) => value.trim())
+    .find((value) => value.startsWith("va_csrf="));
+  return item ? decodeURIComponent(item.slice("va_csrf=".length)) : "";
+}
+
+export type AuthUser = {
+  id: string; email: string; display_name: string;
+  role: "ADMIN" | "CASE_WORKER" | "REVIEWER";
+  is_active: boolean; mfa_enabled: boolean;
+};
+export type LoginChallenge = {
+  status: "mfa_required" | "mfa_enrollment_required";
+  challenge_token: string; expires_in_seconds: number;
+  enrollment_secret: string | null; provisioning_uri: string | null;
+};
+export type Authenticated = { status: "authenticated"; user: AuthUser; csrf_token: string };
+
 const json = (method: "POST" | "PATCH" | "PUT", body: unknown): RequestInit => ({
   method,
   body: JSON.stringify(body),
 });
 
 export const api = {
+  login: (email: string, password: string) =>
+    request<LoginChallenge>("/auth/login", json("POST", { email, password })),
+  verifyMfa: (challengeToken: string, code: string) =>
+    request<Authenticated>("/auth/mfa/verify", json("POST", { challenge_token: challengeToken, code })),
+  me: () => request<{ user: AuthUser }>("/auth/me"),
+  logout: () => request<void>("/auth/logout", { method: "POST" }),
   listCases: () => request<CaseRecord[]>("/cases"),
   createCase: (payload: CaseCreate) =>
     request<CaseRecord>("/cases", json("POST", payload)),

@@ -15,8 +15,9 @@ from sqlalchemy.engine import make_url
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 CONTRACT_PATH = PROJECT_ROOT / "deployment" / "environment-contract.json"
-EXPECTED_ALEMBIC_HEAD = "0009_canada_preparation_runs"
+EXPECTED_ALEMBIC_HEAD = "0010_auth_foundation"
 PLACEHOLDER_MARKERS = ("replace-with", "change-me", "example-password")
+MFA_KEY_PLACEHOLDER = "cmVwbGFjZS13aXRoLWdlbmVyYXRlZC1rZXktMDAwMDA="
 
 
 def _result(name: str, ok: bool, code: str) -> dict[str, str]:
@@ -55,6 +56,21 @@ def _origins_valid(raw: str | None) -> bool:
         if parsed.path not in {"", "/"} or parsed.query or parsed.fragment:
             return False
     return True
+
+
+def _authentication_valid(environment: Mapping[str, str], *, allow_placeholders: bool) -> bool:
+    key = environment.get("MFA_ENCRYPTION_KEY", "")
+    try:
+        from cryptography.fernet import Fernet
+        Fernet(key.encode("ascii"))
+        hours = int(environment.get("AUTH_SESSION_HOURS", "12"))
+    except (ValueError, TypeError):
+        return False
+    if not 1 <= hours <= 168:
+        return False
+    if environment.get("AUTH_COOKIE_SECURE", "true").casefold() not in {"true", "false", "1", "0", "yes", "no"}:
+        return False
+    return allow_placeholders or key != MFA_KEY_PLACEHOLDER
 
 
 def _storage_roots(
@@ -189,6 +205,9 @@ def validate_deployment_configuration(
 
     origins_ok = _origins_valid(env.get("CORS_ORIGINS"))
     checks.append(_result("cors_origins", origins_ok, "cors_origins_valid" if origins_ok else "cors_origins_invalid"))
+
+    auth_ok = _authentication_valid(env, allow_placeholders=allow_placeholders)
+    checks.append(_result("authentication", auth_ok, "authentication_valid" if auth_ok else "authentication_invalid"))
 
     ai_provider = env.get("AI_PROVIDER", "").strip().casefold()
     ai_ok = ai_provider in {"", "disabled", "local_text", "local-text"}

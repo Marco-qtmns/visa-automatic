@@ -5,6 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from .api import router
+from .api.auth import router as auth_router
 from .services import (
     DocumentUploadTooLarge,
     DomainNotFound,
@@ -25,15 +26,22 @@ def configured_cors_origins() -> list[str]:
     ]
 
 
-app = FastAPI(title="Visa Automatic", version="0.1.0")
+app = FastAPI(
+    title="Visa Automatic",
+    version="0.1.0",
+    docs_url=None,
+    redoc_url=None,
+    openapi_url=None,
+)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=configured_cors_origins(),
-    allow_credentials=False,
+    allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-    allow_headers=["Content-Type"],
+    allow_headers=["Content-Type", "X-CSRF-Token"],
 )
 app.include_router(router)
+app.include_router(auth_router)
 
 
 @app.exception_handler(DomainNotFound)

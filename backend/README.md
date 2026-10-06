@@ -115,3 +115,8 @@ staging Compose configuration, readiness diagnostics, persistent private
 storage, and smoke/backup procedures. See [`../DEPLOYMENT_D1.md`](../DEPLOYMENT_D1.md).
 It is not approved for real multi-user customer data and does not add
 authentication.
+
+Milestone M10A adds mandatory password plus TOTP authentication, revocable
+server-side sessions, CSRF protection, the three employee roles, and a safe
+administrator bootstrap command. Apply migration `0010_auth_foundation` and see
+[`AUTHENTICATION.md`](AUTHENTICATION.md).
