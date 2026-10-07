@@ -77,6 +77,7 @@ export function AuthShell({ children }: { children: ReactNode }) {
           <nav aria-label="Primary navigation">
             <span className="user-identity">{bootstrap.user.display_name} · {bootstrap.user.role}</span>
             <Link href="/cases">Cases</Link>
+            {bootstrap.user.role !== "REVIEWER" ? <Link href="/intake">Intake</Link> : null}
             {bootstrap.user.role === "ADMIN" ? <Link href="/admin/users">Users &amp; audit</Link> : null}
             <Link href="/cases/new" className="button button-small">New application</Link>
             <button type="button" className="button button-small" onClick={() => void logout()}>Log out</button>

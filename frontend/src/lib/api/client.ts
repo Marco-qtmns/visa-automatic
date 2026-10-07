@@ -34,6 +34,8 @@ import type {
   CanadaApplicationRecord,
   CanadaImportRun,
   CanadaImportChange,
+  IntakeMetrics,
+  IntakeSubmission,
 } from "./types";
 
 const API_BASE_URL = (
@@ -173,6 +175,16 @@ export const api = {
     request<{ status: "ok"; user_id: string; revoked_sessions: number }>(`/auth/users/${userId}/mfa/reset`, json("POST", {})),
   listSecurityAudit: () => request<AuditEvent[]>("/auth/audit-events"),
   listCaseAudit: (caseId: string) => request<AuditEvent[]>(`/cases/${caseId}/audit-events`),
+  listIntakeSubmissions: () => request<IntakeSubmission[]>("/intake/submissions"),
+  intakeMetrics: () => request<IntakeMetrics>("/intake/metrics"),
+  uploadGoogleFormsIntake: (file: File, sourceExternalId?: string, caseId?: string) => {
+    const body = new FormData(); body.set("file", file);
+    if (sourceExternalId) body.set("source_external_id", sourceExternalId);
+    if (caseId) body.set("case_id", caseId);
+    return request<IntakeSubmission>("/intake/submissions/google-forms-csv", { method: "POST", body });
+  },
+  retryIntakeSubmission: (submissionId: string, caseId?: string) =>
+    request<IntakeSubmission>(`/intake/submissions/${submissionId}/retry`, json("POST", { case_id: caseId || null })),
   listCases: () => request<CaseRecord[]>("/cases"),
   createCase: (payload: CaseCreate) =>
     request<CaseRecord>("/cases", json("POST", payload)),

@@ -18,7 +18,7 @@ from .runtime_dependencies import check_auth_runtime_dependencies
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 CONTRACT_PATH = PROJECT_ROOT / "deployment" / "environment-contract.json"
-EXPECTED_ALEMBIC_HEAD = "0012_import_raw_provenance"
+EXPECTED_ALEMBIC_HEAD = "0013_automated_intake"
 PLACEHOLDER_MARKERS = ("replace-with", "change-me", "example-password")
 MFA_KEY_PLACEHOLDER = "cmVwbGFjZS13aXRoLWdlbmVyYXRlZC1rZXktMDAwMDA="
 
@@ -86,6 +86,7 @@ def _storage_roots(
     values = [
         environment.get("DOCUMENT_STORAGE_ROOT", ""),
         environment.get("GENERATED_ARTIFACT_STORAGE_ROOT", ""),
+        environment.get("INTAKE_STORAGE_ROOT", ""),
     ]
     if not all(values):
         return False, "storage_root_missing"
@@ -93,7 +94,7 @@ def _storage_roots(
     if not all(root.is_absolute() for root in roots):
         return False, "storage_root_not_absolute"
     resolved = [root.resolve(strict=False) for root in roots]
-    if resolved[0] == resolved[1]:
+    if len(set(resolved)) != len(resolved):
         return False, "storage_roots_not_separate"
     if any(root == PROJECT_ROOT or PROJECT_ROOT in root.parents for root in resolved):
         return False, "persistent_storage_inside_repository"
@@ -274,4 +275,5 @@ def environment_from_deployment_file(path: Path) -> dict[str, str]:
             "GENERATED_ARTIFACT_STORAGE_ROOT",
             str(data_root / "generated-artifact-storage"),
         )
+        values.setdefault("INTAKE_STORAGE_ROOT", str(data_root / "intake-storage"))
     return values

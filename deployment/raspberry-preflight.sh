@@ -165,13 +165,13 @@ if [ "${disk_kb:-0}" -ge 10485760 ]; then
 else
     fail "Less than 10 GiB free on DATA_ROOT"
 fi
-for directory in postgres-data document-storage generated-artifact-storage backups; do
+for directory in postgres-data document-storage generated-artifact-storage intake-storage backups; do
     path="$data_root/$directory"
     [ -d "$path" ] || critical "Persistent directory missing: $directory"
     mode=$(stat -c '%a' "$path")
     [ "$mode" = 700 ] || critical "Persistent directory must have mode 0700: $directory"
 done
-for directory in document-storage generated-artifact-storage; do
+for directory in document-storage generated-artifact-storage intake-storage; do
     owner=$(stat -c '%u' "$data_root/$directory")
     group=$(stat -c '%g' "$data_root/$directory")
     [ "$owner:$group" = "$BACKEND_RUNTIME_UID:$BACKEND_RUNTIME_GID" ] \
@@ -209,8 +209,8 @@ pass "Backend healthy"
 report_update service_health.backend PASS
 revision_output=$(compose exec -T backend alembic -c backend/alembic.ini current)
 revision=$(printf '%s\n' "$revision_output" | awk 'NR == 1 {print $1}')
-[ "$revision" = 0012_import_raw_provenance ] || critical "Alembic did not reach expected head"
-pass "Alembic reached 0012_import_raw_provenance"
+[ "$revision" = 0013_automated_intake ] || critical "Alembic did not reach expected head"
+pass "Alembic reached 0013_automated_intake"
 report_update alembic_revision "$revision"
 
 compose up -d frontend || critical "Frontend start failed"

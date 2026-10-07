@@ -104,14 +104,18 @@ def _ensure_empty_directory(path: Path) -> Path:
     return resolved
 
 
-def restore_storage(manifest_path: Path, documents: Path, generated: Path) -> None:
+def restore_storage(
+    manifest_path: Path, documents: Path, generated: Path, intake: Path
+) -> None:
     document_root = _ensure_empty_directory(documents)
     generated_root = _ensure_empty_directory(generated)
-    if document_root == generated_root:
+    intake_root = _ensure_empty_directory(intake)
+    if len({document_root, generated_root, intake_root}) != 3:
         raise ValueError("restore_storage_roots_must_be_separate")
     targets = {
         "document-storage": document_root,
         "generated-artifact-storage": generated_root,
+        "intake-storage": intake_root,
     }
     archive_path = backup_file(manifest_path, "storage")
     with tarfile.open(archive_path, "r:gz") as archive:
@@ -145,6 +149,7 @@ def restore_storage(manifest_path: Path, documents: Path, generated: Path) -> No
             destination.chmod(0o600)
     document_root.chmod(0o700)
     generated_root.chmod(0o700)
+    intake_root.chmod(0o700)
 
 
 def main() -> None:
@@ -164,6 +169,7 @@ def main() -> None:
     restore.add_argument("--manifest", type=Path, required=True)
     restore.add_argument("--documents", type=Path, required=True)
     restore.add_argument("--generated", type=Path, required=True)
+    restore.add_argument("--intake", type=Path, required=True)
     args = parser.parse_args()
     if args.command == "create":
         create_manifest(
@@ -177,7 +183,7 @@ def main() -> None:
     elif args.command == "resolve-file":
         print(backup_file(args.manifest, args.kind))
     else:
-        restore_storage(args.manifest, args.documents, args.generated)
+        restore_storage(args.manifest, args.documents, args.generated, args.intake)
 
 
 if __name__ == "__main__":

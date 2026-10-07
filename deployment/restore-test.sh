@@ -9,6 +9,7 @@ manifest=
 destination_database=
 documents=
 generated=
+intake=
 report_file=
 confirmed=false
 while [ "$#" -gt 0 ]; do
@@ -18,14 +19,15 @@ while [ "$#" -gt 0 ]; do
         --destination-database) destination_database=$2; shift 2 ;;
         --documents) documents=$2; shift 2 ;;
         --generated) generated=$2; shift 2 ;;
+        --intake) intake=$2; shift 2 ;;
         --report) report_file=$2; shift 2 ;;
         --confirm-empty-target) confirmed=true; shift ;;
         *) echo "Unknown or incomplete argument." >&2; exit 2 ;;
     esac
 done
 if [ "$confirmed" != true ] || [ -z "$manifest" ] || [ -z "$destination_database" ] \
-    || [ -z "$documents" ] || [ -z "$generated" ]; then
-    echo "Restore requires --manifest, --destination-database, --documents, --generated, and --confirm-empty-target." >&2
+    || [ -z "$documents" ] || [ -z "$generated" ] || [ -z "$intake" ]; then
+    echo "Restore requires --manifest, --destination-database, --documents, --generated, --intake, and --confirm-empty-target." >&2
     exit 2
 fi
 if [ ! -f "$env_file" ] || [ ! -f "$manifest" ]; then
@@ -44,7 +46,7 @@ case "$destination_database" in
     *[!A-Za-z0-9_]*|'') echo "Destination database name is invalid." >&2; exit 2 ;;
 esac
 live_root=$(realpath "$data_root")
-for path in "$documents" "$generated"; do
+for path in "$documents" "$generated" "$intake"; do
     case "$path" in
         /*) ;;
         *) echo "Restore storage targets must be absolute paths." >&2; exit 2 ;;
@@ -65,7 +67,7 @@ for path in "$documents" "$generated"; do
             ;;
     esac
 done
-if [ "$documents" = "$generated" ]; then
+if [ "$documents" = "$generated" ] || [ "$documents" = "$intake" ] || [ "$generated" = "$intake" ]; then
     echo "Restore storage targets must be separate." >&2
     exit 2
 fi
@@ -109,7 +111,7 @@ if [ "$restored_table_count" -le 0 ]; then
     exit 1
 fi
 python3 deployment/backup_manifest.py restore-storage \
-    --manifest "$manifest" --documents "$documents" --generated "$generated"
+    --manifest "$manifest" --documents "$documents" --generated "$generated" --intake "$intake"
 
 if ! backend_image=$(resolve_backend_image); then
     echo "Current backend image could not be resolved from the Compose service." >&2
@@ -128,11 +130,12 @@ fi
 docker run --rm --user 0:0 --entrypoint sh \
     -v "$documents:/restore-target/document-storage:rw" \
     -v "$generated:/restore-target/generated-artifact-storage:rw" \
+    -v "$intake:/restore-target/intake-storage:rw" \
     "$backend_image" -c '
         set -eu
         runtime_uid=$1
         runtime_gid=$2
-        for root in /restore-target/document-storage /restore-target/generated-artifact-storage; do
+        for root in /restore-target/document-storage /restore-target/generated-artifact-storage /restore-target/intake-storage; do
             [ -d "$root" ]
             chown -R "$runtime_uid:$runtime_gid" "$root"
             find "$root" -type d -exec chmod 0700 {} +
@@ -154,10 +157,12 @@ restore_url=$(printf '%s\n%s\n' "$configured_url" "$destination_database" | pyth
 export DATABASE_URL="$restore_url"
 export DOCUMENT_STORAGE_ROOT=/restore-target/document-storage
 export GENERATED_ARTIFACT_STORAGE_ROOT=/restore-target/generated-artifact-storage
+export INTAKE_STORAGE_ROOT=/restore-target/intake-storage
 compose run --rm --no-deps --entrypoint sh \
-    -e DATABASE_URL -e DOCUMENT_STORAGE_ROOT -e GENERATED_ARTIFACT_STORAGE_ROOT \
+    -e DATABASE_URL -e DOCUMENT_STORAGE_ROOT -e GENERATED_ARTIFACT_STORAGE_ROOT -e INTAKE_STORAGE_ROOT \
     -v "$documents:/restore-target/document-storage:rw" \
     -v "$generated:/restore-target/generated-artifact-storage:rw" \
+    -v "$intake:/restore-target/intake-storage:rw" \
     backend -c '
         set -eu
         expected_identity=$1:$2
@@ -168,7 +173,7 @@ compose run --rm --no-deps --entrypoint sh \
         fi
         exec python -m backend.scripts.verify_restored_staging
     ' sh "$BACKEND_RUNTIME_UID" "$BACKEND_RUNTIME_GID" >/dev/null
-unset DATABASE_URL DOCUMENT_STORAGE_ROOT GENERATED_ARTIFACT_STORAGE_ROOT
+unset DATABASE_URL DOCUMENT_STORAGE_ROOT GENERATED_ARTIFACT_STORAGE_ROOT INTAKE_STORAGE_ROOT
 
 trap - EXIT HUP INT TERM
 report_status PASS

@@ -34,6 +34,7 @@ canada-drafts-*/
 /output/
 /backend/storage/
 /backend/generated-storage/
+/backend/intake-storage/
 # Application source, not runtime storage. Keep this explicit if storage
 # exclusions are broadened in the future.
 !/backend/app/storage/

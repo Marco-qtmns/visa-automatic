@@ -51,7 +51,10 @@ export function CanadaImportSection({ caseId, onChanged }: { caseId: string; onC
   }
 
   const counts = selected?.counts_json ?? {};
-  const attention = changes.filter(item => ["conflict", "ambiguous", "accepted"].includes(item.status));
+  const attention = changes.filter(item =>
+    ["conflict", "ambiguous", "accepted"].includes(item.status)
+    || (item.status === "new" && item.classification !== "SAFE_NEW")
+  );
   const attentionSections = [...new Set(attention.map(item => item.domain_section))];
   const detected = Object.values(counts).reduce((sum, value) => sum + value, 0);
   return <details id="canada-import" open>
@@ -68,7 +71,7 @@ export function CanadaImportSection({ caseId, onChanged }: { caseId: string; onC
       <div className="success-message" role="status"><strong>Google Forms / CSV processed</strong><br />{detected} application values detected · {counts.same ?? 0} agree with the current application · {counts.applied ?? 0} safely applied · {attention.length} require review</div>
       <div className="summary-grid" aria-label="Import counts">{[["Safe values applied", counts.applied], ["Already current", counts.same], ["Needs review", attention.length]].map(([label, count]) => <div className="summary-item" key={label}><strong>{count ?? 0}</strong><span>{label}</span></div>)}</div>
       {selected.warnings_json.length > 0 && <div><strong>Warnings</strong><ul>{selected.warnings_json.map((warning, index) => <li key={`${warning}-${index}`}>{warning}</li>)}</ul></div>}
-      {counts.new ? <div className="button-row"><button className="button" disabled={busy} onClick={() => act(() => api.applyCanadaImport(selected.id, "safe", actor))}>Process safe values</button></div> : null}
+      {changes.some(item => item.status === "new" && item.classification === "SAFE_NEW") ? <div className="button-row"><button className="button" disabled={busy} onClick={() => act(() => api.applyCanadaImport(selected.id, "safe", actor))}>Process safe values</button></div> : null}
       {attention.some(item => item.status === "accepted") ? <div className="button-row"><button className="button button-secondary" disabled={busy} onClick={() => act(() => api.applyCanadaImport(selected.id, "accepted", actor))}>Apply resolved values</button></div> : null}
       {!attention.length ? <div className="empty-state">No imported values need employee review.</div> : null}
       {attentionSections.map(section => <div key={section}><h3>{section}</h3>{attention.filter(item => item.domain_section === section).map(change => <article className="summary-item" key={change.id}>

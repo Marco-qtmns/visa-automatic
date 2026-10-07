@@ -68,7 +68,7 @@ compose exec -T postgres \
     pg_dump --username "$postgres_user" --dbname "$postgres_db" --format custom \
     > "$partial/postgres.dump"
 compose exec -T backend \
-    python -c "import sys, tarfile; archive = tarfile.open(fileobj=sys.stdout.buffer, mode='w|gz'); archive.add('/srv/visa-automatic/document-storage', arcname='document-storage'); archive.add('/srv/visa-automatic/generated-artifact-storage', arcname='generated-artifact-storage'); archive.close()" \
+    python -c "import sys, tarfile; archive = tarfile.open(fileobj=sys.stdout.buffer, mode='w|gz'); archive.add('/srv/visa-automatic/document-storage', arcname='document-storage'); archive.add('/srv/visa-automatic/generated-artifact-storage', arcname='generated-artifact-storage'); archive.add('/srv/visa-automatic/intake-storage', arcname='intake-storage'); archive.close()" \
     > "$partial/private-storage.tar.gz"
 
 commit=$(git rev-parse HEAD)

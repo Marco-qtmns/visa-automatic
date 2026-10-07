@@ -51,6 +51,7 @@ private/Tailscale client -> APP_PORT -> Caddy
 FastAPI -> PostgreSQL :5432 (internal network only)
         -> /srv/visa-automatic/document-storage
         -> /srv/visa-automatic/generated-artifact-storage
+        -> /srv/visa-automatic/intake-storage
 ```
 
 Only Caddy publishes a host port. Caddy, frontend, and backend share an app
@@ -65,6 +66,7 @@ DATA_ROOT/
   postgres-data/
   document-storage/
   generated-artifact-storage/
+  intake-storage/
   backups/
 ```
 
@@ -239,7 +241,7 @@ filenames, and hashes—never database URL or password.
 ## Separate empty-target restore
 
 Never restore over the live staging database or live storage. Create an empty
-database owned by the configured staging DB user and two empty absolute
+database owned by the configured staging DB user and three empty absolute
 directories outside live `DATA_ROOT`, then run:
 
 ```bash
@@ -249,6 +251,7 @@ directories outside live `DATA_ROOT`, then run:
   --destination-database visa_automatic_restore_test \
   --documents /separate/restore/document-storage \
   --generated /separate/restore/generated-artifact-storage \
+  --intake /separate/restore/intake-storage \
   --report deployment/reports/d1-result.json \
   --confirm-empty-target
 ```
@@ -322,6 +325,7 @@ Final sequence:
   --destination-database visa_automatic_restore_test \
   --documents /separate/restore/document-storage \
   --generated /separate/restore/generated-artifact-storage \
+  --intake /separate/restore/intake-storage \
   --report deployment/reports/d1-result.json --confirm-empty-target
 python3 deployment/d1_acceptance.py --report deployment/reports/d1-result.json
 ```

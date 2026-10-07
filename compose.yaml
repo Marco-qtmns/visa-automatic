@@ -30,6 +30,7 @@ services:
       DATABASE_URL: ${DATABASE_URL:?Set DATABASE_URL}
       DOCUMENT_STORAGE_ROOT: /srv/visa-automatic/document-storage
       GENERATED_ARTIFACT_STORAGE_ROOT: /srv/visa-automatic/generated-artifact-storage
+      INTAKE_STORAGE_ROOT: /srv/visa-automatic/intake-storage
       CORS_ORIGINS: ${CORS_ORIGINS:?Set CORS_ORIGINS}
       MFA_ENCRYPTION_KEY: ${MFA_ENCRYPTION_KEY:?Set MFA_ENCRYPTION_KEY}
       AUTH_SESSION_HOURS: ${AUTH_SESSION_HOURS:-12}
@@ -49,6 +50,9 @@ services:
       - type: bind
         source: ${DATA_ROOT:?Set DATA_ROOT}/generated-artifact-storage
         target: /srv/visa-automatic/generated-artifact-storage
+      - type: bind
+        source: ${DATA_ROOT:?Set DATA_ROOT}/intake-storage
+        target: /srv/visa-automatic/intake-storage
     depends_on:
       postgres:
         condition: service_healthy

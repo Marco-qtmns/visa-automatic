@@ -78,10 +78,13 @@ def test_permission_matrix_is_static_and_role_ordered():
     reviewer = permissions_for_role(UserRole.REVIEWER)
     admin = permissions_for_role(UserRole.ADMIN)
     assert Permission.PREPARATION_RUN in worker
+    assert {Permission.INTAKE_READ, Permission.INTAKE_PROCESS} <= worker
     assert Permission.WORKFLOW_REVIEW not in worker
     assert Permission.WORKFLOW_SUBMIT not in worker
     assert {Permission.WORKFLOW_REVIEW, Permission.WORKFLOW_SUBMIT, Permission.CASE_AUDIT_READ} <= reviewer
     assert Permission.USER_EDIT not in reviewer
+    assert Permission.INTAKE_READ not in reviewer
+    assert Permission.INTAKE_PROCESS not in reviewer
     assert admin == frozenset(Permission)
 
 
@@ -323,7 +326,9 @@ def test_migration_upgrades_0010_to_single_new_head(tmp_path, monkeypatch):
     engine = create_engine(url)
     with engine.begin() as connection:
         for table in Base.metadata.sorted_tables:
-            if table.name != "application_audit_events":
+            if table.name not in {
+                "application_audit_events", "intake_submissions", "intake_processing_attempts"
+            }:
                 table.create(connection)
         connection.execute(text(
             "ALTER TABLE canada_import_candidates DROP COLUMN raw_value_json"
@@ -333,8 +338,11 @@ def test_migration_upgrades_0010_to_single_new_head(tmp_path, monkeypatch):
     config = Config(str(PROJECT_ROOT / "backend/alembic.ini"))
     command.upgrade(config, "head")
     with engine.connect() as connection:
-        assert connection.scalar(text("SELECT version_num FROM alembic_version")) == "0012_import_raw_provenance"
+        assert connection.scalar(text("SELECT version_num FROM alembic_version")) == "0013_automated_intake"
     assert "application_audit_events" in inspect(engine).get_table_names()
+    assert {"intake_submissions", "intake_processing_attempts"} <= set(
+        inspect(engine).get_table_names()
+    )
     assert "raw_value_json" in {
         column["name"] for column in inspect(engine).get_columns("canada_import_candidates")
     }

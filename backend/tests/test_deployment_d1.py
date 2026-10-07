@@ -52,7 +52,7 @@ def _environment_names(path: Path) -> set[str]:
 
 def test_environment_contract_matches_example_and_preflight():
     contract = json.loads((PROJECT_ROOT / "deployment/environment-contract.json").read_text())
-    assert contract["expected_alembic_head"] == "0012_import_raw_provenance"
+    assert contract["expected_alembic_head"] == "0013_automated_intake"
     variables = contract["variables"]
     assert len({item["name"] for item in variables}) == len(variables)
     for item in variables:
@@ -91,6 +91,7 @@ def test_preflight_rejects_unsafe_configuration_without_echoing_secret(tmp_path)
     environment["DATA_ROOT"] = "/"
     environment["DOCUMENT_STORAGE_ROOT"] = str(tmp_path / "same")
     environment["GENERATED_ARTIFACT_STORAGE_ROOT"] = str(tmp_path / "same")
+    environment["INTAKE_STORAGE_ROOT"] = str(tmp_path / "intake")
     environment["DATABASE_URL"] = "postgresql+psycopg://user:do-not-print@postgres/db"
     environment["AI_API_KEY"] = "do-not-print"
     result = validate_deployment_configuration(environment)
@@ -112,9 +113,11 @@ def test_preflight_can_check_real_separate_writable_roots(tmp_path):
         "MFA_ENCRYPTION_KEY": "bTEwYS10ZXN0LWVuY3J5cHRpb24ta2V5LTAwMDAwMDA=",
         "DOCUMENT_STORAGE_ROOT": str(tmp_path / "documents"),
         "GENERATED_ARTIFACT_STORAGE_ROOT": str(tmp_path / "generated"),
+        "INTAKE_STORAGE_ROOT": str(tmp_path / "intake"),
     })
     (tmp_path / "documents").mkdir()
     (tmp_path / "generated").mkdir()
+    (tmp_path / "intake").mkdir()
     result = validate_deployment_configuration(environment, check_writable=True)
     assert result["status"] == "PASS"
 
@@ -238,7 +241,7 @@ def test_backend_runtime_identity_and_restore_normalization_contract():
     privileged = restore.split("docker run --rm --user 0:0", 1)[1].split(
         "configured_url=", 1
     )[0]
-    assert privileged.count('-v "') == 2
+    assert privileged.count('-v "') == 3
     assert "compose run" not in privileged
     assert "data_root" not in privileged.casefold()
     assert "sudo" not in privileged
@@ -289,9 +292,10 @@ def test_backend_image_is_resolved_from_compose_after_build():
 
 def test_accepted_migration_chain_has_one_expected_head():
     script = ScriptDirectory.from_config(Config(str(PROJECT_ROOT / "backend/alembic.ini")))
-    assert script.get_heads() == ["0012_import_raw_provenance"]
+    assert script.get_heads() == ["0013_automated_intake"]
     revisions = list(script.walk_revisions(base="base", head="heads"))
     assert [item.revision for item in revisions] == [
+        "0013_automated_intake",
         "0012_import_raw_provenance",
         "0011_authorization_audit",
         "0010_auth_foundation",
@@ -340,7 +344,7 @@ def test_migration_revision_graph_fits_alembic_version_column():
             children[parent].append(revision)
     assert all(len(items) <= 1 for items in children.values()), "migration graph branches"
     heads = [revision for revision, items in children.items() if not items]
-    assert heads == ["0012_import_raw_provenance"]
+    assert heads == ["0013_automated_intake"]
 
     visited: set[str] = set()
     current: str | None = roots[0]
@@ -364,8 +368,10 @@ def test_deployment_files_have_no_mac_paths_and_storage_is_separate():
     compose = (PROJECT_ROOT / "compose.yaml").read_text()
     assert "${DATA_ROOT:?Set DATA_ROOT}/document-storage" in compose
     assert "${DATA_ROOT:?Set DATA_ROOT}/generated-artifact-storage" in compose
+    assert "${DATA_ROOT:?Set DATA_ROOT}/intake-storage" in compose
     assert "DOCUMENT_STORAGE_ROOT: /srv/visa-automatic/document-storage" in compose
     assert "GENERATED_ARTIFACT_STORAGE_ROOT: /srv/visa-automatic/generated-artifact-storage" in compose
+    assert "INTAKE_STORAGE_ROOT: /srv/visa-automatic/intake-storage" in compose
     postgres_block, backend_block = compose.split("  backend:", 1)
     assert "ports:" not in postgres_block
     frontend_block = backend_block.split("  frontend:", 1)[0]
@@ -392,6 +398,7 @@ def _synthetic_archive(path: Path) -> None:
         for root, filename, content in (
             ("document-storage", "doc-key", b"synthetic-document"),
             ("generated-artifact-storage", "artifact-key", b"synthetic-artifact"),
+            ("intake-storage", "raw-key", b"synthetic-intake"),
         ):
             directory = tarfile.TarInfo(root)
             directory.type = tarfile.DIRTYPE
@@ -417,14 +424,17 @@ def test_backup_manifest_hashes_and_safe_storage_restore(tmp_path):
     verified = verify_manifest(manifest)
     assert set(verified["files"]) == {"database", "storage"}
     assert "password" not in manifest.read_text().casefold()
-    documents, generated = tmp_path / "restored-documents", tmp_path / "restored-generated"
-    documents.mkdir(); generated.mkdir()
-    restore_storage(manifest, documents, generated)
+    documents = tmp_path / "restored-documents"
+    generated = tmp_path / "restored-generated"
+    intake = tmp_path / "restored-intake"
+    documents.mkdir(); generated.mkdir(); intake.mkdir()
+    restore_storage(manifest, documents, generated, intake)
     assert (documents / "doc-key").read_bytes() == b"synthetic-document"
     assert (generated / "artifact-key").read_bytes() == b"synthetic-artifact"
+    assert (intake / "raw-key").read_bytes() == b"synthetic-intake"
     assert (documents / "doc-key").stat().st_mode & 0o777 == 0o600
     with pytest.raises(ValueError, match="empty"):
-        restore_storage(manifest, documents, tmp_path / "unused")
+        restore_storage(manifest, documents, tmp_path / "unused", intake)
     (backup / "postgres.dump").write_bytes(b"tampered")
     with pytest.raises(ValueError, match="hash_mismatch"):
         verify_manifest(manifest)
@@ -445,9 +455,10 @@ def test_restore_rejects_archive_path_traversal(tmp_path):
         alembic_revision="0009_canada_preparation_runs",
     )
     documents, generated = tmp_path / "documents", tmp_path / "generated"
-    documents.mkdir(); generated.mkdir()
+    intake = tmp_path / "intake"
+    documents.mkdir(); generated.mkdir(); intake.mkdir()
     with pytest.raises(ValueError, match="unsafe_storage_archive_path"):
-        restore_storage(manifest, documents, generated)
+        restore_storage(manifest, documents, generated, intake)
 
 
 def test_d1_report_is_sanitized_and_acceptance_fails_for_not_run(tmp_path):
@@ -617,6 +628,7 @@ def test_synthetic_deployment_fixture_generates_and_verifies(
     monkeypatch.setattr(verify_restored_staging, "SessionLocal", factory)
     monkeypatch.setenv("DOCUMENT_STORAGE_ROOT", str(tmp_path / "documents"))
     monkeypatch.setenv("GENERATED_ARTIFACT_STORAGE_ROOT", str(tmp_path / "generated"))
+    monkeypatch.setenv("INTAKE_STORAGE_ROOT", str(tmp_path / "intake"))
     result = synthetic_staging_case.create_synthetic_case(continuation=continuation)
     assert capsys.readouterr().out == ""
     assert result["package_status"] == "current"
@@ -635,11 +647,11 @@ def test_synthetic_deployment_fixture_generates_and_verifies(
         ))
         session.execute(
             text("INSERT INTO alembic_version (version_num) VALUES (:revision)"),
-            {"revision": "0012_import_raw_provenance"},
+            {"revision": "0013_automated_intake"},
         )
     restored = verify_restored_staging.verify()
     assert restored["status"] == "PASS"
-    assert restored["alembic_revision"] == "0012_import_raw_provenance"
+    assert restored["alembic_revision"] == "0013_automated_intake"
     assert restored["current_package_count"] == 1
     assert set(restored["artifact_types"]) == expected
     engine.dispose()
@@ -668,6 +680,7 @@ def test_public_repository_hygiene_has_no_high_confidence_secrets():
     for pattern in (
         ".env", "*.db", "*.sqlite", "/backend/storage/",
         "/backend/generated-storage/", "/deployment/reports/",
+        "/backend/intake-storage/",
         "*.whatsapp-export.txt", "*.canada-case.json",
     ):
         assert pattern in ignore

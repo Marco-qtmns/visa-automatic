@@ -33,6 +33,8 @@ class Permission(StrEnum):
     WORKFLOW_REVIEW = "WORKFLOW_REVIEW"
     WORKFLOW_SUBMIT = "WORKFLOW_SUBMIT"
     CASE_AUDIT_READ = "CASE_AUDIT_READ"
+    INTAKE_READ = "INTAKE_READ"
+    INTAKE_PROCESS = "INTAKE_PROCESS"
     AUDIT_READ = "AUDIT_READ"
     USER_READ = "USER_READ"
     USER_CREATE = "USER_CREATE"
@@ -59,8 +61,10 @@ WORK_PERMISSIONS = frozenset({
     Permission.WORKFLOW_WORK,
 })
 
+INTAKE_PERMISSIONS = frozenset({Permission.INTAKE_READ, Permission.INTAKE_PROCESS})
+
 ROLE_PERMISSIONS: dict[UserRole, frozenset[Permission]] = {
-    UserRole.CASE_WORKER: WORK_PERMISSIONS,
+    UserRole.CASE_WORKER: WORK_PERMISSIONS | INTAKE_PERMISSIONS,
     UserRole.REVIEWER: WORK_PERMISSIONS | frozenset({
         Permission.WORKFLOW_REVIEW,
         Permission.WORKFLOW_SUBMIT,
@@ -179,6 +183,12 @@ _assign(Permission.PREPARATION_READ,
 _assign(Permission.PREPARATION_RUN, "prepare_case")
 _assign(Permission.WORKFLOW_WORK, "transition_case")
 _assign(Permission.CASE_AUDIT_READ, "list_case_audit_events")
+_assign(Permission.INTAKE_READ,
+    "list_intake_submissions", "get_intake_submission", "intake_metrics",
+)
+_assign(Permission.INTAKE_PROCESS,
+    "receive_google_forms_csv", "retry_intake_submission",
+)
 
 PUBLIC_ENDPOINTS = frozenset({"health", "health_live", "health_ready", "login", "verify_mfa"})
 AUTHENTICATED_ENDPOINTS = frozenset({"me", "logout"})
@@ -258,7 +268,8 @@ def authorize_business_request(
         )
     enforce_permission(user, permission)
     if request.method not in {"GET", "HEAD", "OPTIONS"} and endpoint_name not in {
-        "create_case", "transition_case", "prepare_case"
+        "create_case", "transition_case", "prepare_case",
+        "receive_google_forms_csv", "retry_intake_submission",
     }:
         target_id = next(
             (str(value) for key, value in request.path_params.items() if key.endswith("_id")),

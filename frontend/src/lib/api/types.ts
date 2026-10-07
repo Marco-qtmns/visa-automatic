@@ -408,6 +408,38 @@ export interface CaseSummary {
   updated_at: string;
 }
 
+export interface IntakeSubmission {
+  id: string;
+  source_type: string;
+  source_external_id: string | null;
+  source_filename: string | null;
+  source_hash: string;
+  received_at: string;
+  mapping_version: string;
+  processing_status: "RECEIVED" | "PROCESSING" | "PROCESSED" | "NEEDS_REVIEW" | "FAILED";
+  case_id: string | null;
+  import_run_id: string | null;
+  processing_started_at: string | null;
+  processing_completed_at: string | null;
+  failure_code: string | null;
+  failure_message: string | null;
+  issue_count: number;
+  duplicate_receive_count: number;
+  retry_count: number;
+  applicant_display_name: string | null;
+  case_number: string | null;
+}
+
+export interface IntakeMetrics {
+  submissions_received: number;
+  successfully_processed: number;
+  duplicates_ignored: number;
+  new_cases_created: number;
+  existing_cases_matched: number;
+  review_required: number;
+  failed: number;
+}
+
 export interface CanadaApplicationRecord {
   id: string;
   case_id: string;
