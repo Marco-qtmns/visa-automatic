@@ -6,8 +6,8 @@ import { StatusBadge } from "./StatusBadge";
 
 function issueTarget(issue: PreparationIssue): string {
   if (issue.section === "imports") return "#canada-import";
-  if (issue.section === "facts") return "#facts";
-  if (issue.section === "documents") return "#requirements";
+  if (issue.section === "facts") return "#needs-attention";
+  if (issue.section === "documents") return "#documents";
   return "#canada-application";
 }
 
@@ -39,7 +39,7 @@ export function PreparationSection({ caseId, value, history, onChanged }: {
         <div><p className="eyebrow">Canonical application</p><h2 id="preparation-readiness-title">Preparation</h2></div>
         <StatusBadge value={value.package_status} />
       </div>
-      <p className="muted">Policy {readiness.policy_version} · payload schema {readiness.schema_version} · {readiness.blocking_count} blockers · {readiness.warning_count} warnings</p>
+      <p className="muted">{readiness.blocking_count} blockers · {readiness.warning_count} warnings</p>
       {!readiness.ready ? (
         <div className="detail-stack">{readiness.sections.map(section => (
           <div key={section.section} className="summary-item">
@@ -57,13 +57,14 @@ export function PreparationSection({ caseId, value, history, onChanged }: {
         {value.package_status === "submitted_discrepancy" && <div className="error-panel">The submitted case differs from its generated application package. The submitted workflow remains closed.</div>}
         {error && <div className="form-error" role="alert">{error}</div>}
       </div>}
+      <details><summary>Advanced: technical readiness and preparation history</summary><p className="muted">Policy {readiness.policy_version} · payload schema {readiness.schema_version}</p>
       <h3>Preparation history</h3>
       {!history.length ? <div className="empty-state">No preparation runs yet.</div> : <div className="detail-stack">{history.map((run, index) => <details key={run.id}>
         <summary>Run {history.length - index} · {run.status}{value.current_run?.id === run.id ? " · Current" : run.status === "succeeded" ? " · Outdated" : ""}</summary>
         <p className="muted">{new Date(run.started_at).toLocaleString()} · {run.initiated_by}</p>
         {run.error_summary && <p>{run.error_summary}</p>}
         {!!run.artifacts.length && <ArtifactList run={run} />}
-      </details>)}</div>}
+      </details>)}</div>}</details>
     </section>
   );
 }

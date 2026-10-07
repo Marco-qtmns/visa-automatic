@@ -72,6 +72,8 @@ export function CommunicationsSection({ caseId, conversations, messages, runs, c
   function selectFile(event: ChangeEvent<HTMLInputElement>) { setFile(event.target.files?.[0] ?? null); }
 
   const pending = candidates.filter(item => item.status === "proposed" || item.status === "conflict");
+  const resolved = candidates.filter(item => ["accepted", "corrected"].includes(item.status)).length;
+  const keptExisting = candidates.filter(item => item.status === "rejected").length;
   return <section className="section-card" id="communications">
     <div className="section-heading"><div><h2>WhatsApp communications</h2><span className="muted">Imported conversations are evidence. Facts become authoritative only after employee review.</span></div><button className="button button-small" onClick={() => setPasteOpen(!pasteOpen)}>Paste conversation</button></div>
     {message && <div className="success-message" role="status">{message}</div>}{error && <div className="form-error" role="alert">{error}</div>}
@@ -86,6 +88,7 @@ export function CommunicationsSection({ caseId, conversations, messages, runs, c
       </div>;
     })}</div>}
 
+    <div className="summary-grid"><div className="summary-item"><strong>{candidates.length}</strong><span>Items detected</span></div><div className="summary-item"><strong>{resolved}</strong><span>Safely filled or confirmed</span></div><div className="summary-item"><strong>{keptExisting}</strong><span>Resolved / kept existing</span></div><div className="summary-item"><strong>{pending.length}</strong><span>Need review</span></div></div>
     <h3>WhatsApp facts to review</h3>
     {!pending.length ? <div className="empty-state">No extracted facts require review.</div> : <div className="record-list">{pending.map(candidate => {
       const sourceMessages = candidate.source_message_ids_json.map(id => messages.find(item => item.id === id)).filter((item): item is ConversationMessage => Boolean(item));

@@ -54,9 +54,9 @@ class ReadModel(BaseModel):
 class CaseCreate(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
-    case_number: str = Field(min_length=1, max_length=64)
-    visa_type: str = Field(min_length=1, max_length=64)
-    purpose: str = Field(min_length=1, max_length=128)
+    case_number: str | None = Field(default=None, min_length=1, max_length=64)
+    visa_type: str = Field(default="canada_trv", min_length=1, max_length=64)
+    purpose: str = Field(default="To be confirmed", min_length=1, max_length=128)
 
 
 class CaseUpdate(BaseModel):

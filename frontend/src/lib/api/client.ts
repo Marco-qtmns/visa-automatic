@@ -54,11 +54,14 @@ function errorMessage(detail: unknown, fallback: string): string {
   if (typeof detail === "string") return detail;
   if (typeof detail === "object" && detail !== null && "message" in detail) {
     const message = String(detail.message);
-    const reasons = "blocking_reasons" in detail && Array.isArray(detail.blocking_reasons)
+    const rawReasons = "blocking_reasons" in detail && Array.isArray(detail.blocking_reasons)
       ? detail.blocking_reasons
+      : "issues" in detail && Array.isArray(detail.issues) ? detail.issues : [];
+    const reasons = rawReasons
           .map((item) => typeof item === "object" && item !== null && "message" in item ? String(item.message) : null)
+          .map((item, index) => item ?? (typeof rawReasons[index] === "string" ? String(rawReasons[index]) : null))
           .filter(Boolean)
-      : [];
+      ;
     return reasons.length ? `${message} ${reasons.join("; ")}` : message;
   }
   if (Array.isArray(detail)) {
@@ -131,6 +134,11 @@ export type LoginChallenge = {
   enrollment_secret: string | null; provisioning_uri: string | null;
 };
 export type Authenticated = { status: "authenticated"; user: AuthUser; csrf_token: string };
+export type ApplicationBootstrap = {
+  user: AuthUser;
+  case_summary: CaseSummary[];
+  timings_ms: { database: number; total: number };
+};
 export type AdminUser = AuthUser & {
   created_at: string; last_successful_login_at: string | null; active_session_count: number;
 };
@@ -152,6 +160,7 @@ export const api = {
   verifyMfa: (challengeToken: string, code: string) =>
     request<Authenticated>("/auth/mfa/verify", json("POST", { challenge_token: challengeToken, code })),
   me: () => request<{ user: AuthUser }>("/auth/me"),
+  bootstrap: () => request<ApplicationBootstrap>("/app/bootstrap"),
   logout: () => request<void>("/auth/logout", { method: "POST" }),
   listUsers: () => request<AdminUser[]>("/auth/users"),
   createUser: (payload: { email: string; display_name: string; password: string; role: AuthUser["role"] }) =>
@@ -379,30 +388,7 @@ export const api = {
 };
 
 export async function loadCaseSummaries(): Promise<CaseSummary[]> {
-  const cases = await api.listCases();
-  return Promise.all(
-    cases.map(async (caseRecord) => {
-      const [people, nextAction, requirements, documents] = await Promise.all([
-        api.listPeople(caseRecord.id),
-        api.getNextAction(caseRecord.id),
-        api.listRequirements(caseRecord.id),
-        api.listDocuments(caseRecord.id),
-      ]);
-      const applicant = people.find((person) => person.roles.includes("applicant"));
-      const active = requirements.filter((requirement) => requirement.active);
-      const resolved = active.filter(
-        (requirement) => requirement.fulfillment_status !== "pending",
-      );
-      return {
-        case: caseRecord,
-        applicantName: applicant
-          ? `${applicant.first_name} ${applicant.last_name}`
-          : "No applicant assigned",
-        nextAction,
-        requirementProgress: `${resolved.length}/${active.length} requirements · ${documents.length} documents`,
-      };
-    }),
-  );
+  return (await api.bootstrap()).case_summary;
 }
 
 export async function loadCaseDetail(caseId: string): Promise<CaseDetailBundle> {

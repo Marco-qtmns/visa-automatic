@@ -4,10 +4,12 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 
 import { loadCaseSummaries, type CaseSummary } from "@/lib/api";
+import { useBootstrapCases } from "./AuthShell";
 import { StatusBadge } from "./StatusBadge";
 
 export function CaseListClient() {
-  const [items, setItems] = useState<CaseSummary[] | null>(null);
+  const bootstrapCases = useBootstrapCases();
+  const [items, setItems] = useState<CaseSummary[] | null>(bootstrapCases);
   const [error, setError] = useState("");
 
   async function load() {
@@ -19,29 +21,33 @@ export function CaseListClient() {
     }
   }
 
-  useEffect(() => { void load(); }, []);
+  useEffect(() => { if (bootstrapCases === null) void load(); }, [bootstrapCases]);
   if (error) return <div className="error-panel" role="alert">{error} <button className="button button-small" onClick={() => void load()}>Retry</button></div>;
   if (items === null) return <div className="state-panel">Loading cases…</div>;
-  if (!items.length) return <div className="state-panel"><div><h2>No cases yet</h2><p>Create the first case to begin manual intake.</p><Link className="button" href="/cases/new">Create case</Link></div></div>;
+  if (!items.length) return <div className="state-panel"><div><h2>No applications yet</h2><p>Start with a source or create an empty application.</p><Link className="button" href="/cases/new">New application</Link></div></div>;
 
-  return (
-    <div className="table-wrap">
+  const queues: CaseSummary["queue"][] = ["ACTION_REQUIRED", "REVIEW", "READY", "WAITING"];
+  return <div className="case-queues">
+    {queues.map(queue => {
+      const group = items.filter(item => item.queue === queue);
+      if (!group.length) return null;
+      return <section key={queue} className="section-card"><div className="section-heading"><h2>{queue.replaceAll("_", " / ")}</h2><span className="badge">{group.length}</span></div><div className="table-wrap">
       <table>
-        <thead><tr><th>Case</th><th>Applicant</th><th>Visa / purpose</th><th>State</th><th>Progress</th><th>Next action</th><th>Last updated</th></tr></thead>
+        <thead><tr><th>Applicant</th><th>Case</th><th>Stage</th><th>Open issues</th><th>Next action</th><th>Last updated</th></tr></thead>
         <tbody>
-          {items.map((item) => (
-            <tr key={item.case.id}>
-              <td><Link className="case-link" href={`/cases/${item.case.id}`}>{item.case.case_number}</Link></td>
-              <td>{item.applicantName}</td>
-              <td>{item.case.visa_type}<br /><span className="muted">{item.case.purpose}</span></td>
-              <td><StatusBadge value={item.case.workflow_state} /></td>
-              <td>{item.requirementProgress}</td>
-              <td>{item.nextAction.title}</td>
-              <td>{new Date(item.case.updated_at).toLocaleString()}</td>
+          {group.map((item) => (
+            <tr key={item.id}>
+              <td><Link className="case-link" href={`/cases/${item.id}`}>{item.display_name}</Link></td>
+              <td>{item.case_number}<br /><span className="muted">{item.visa_type}</span></td>
+              <td><StatusBadge value={item.workflow_state} /></td>
+              <td>{item.issue_count}</td>
+              <td>{item.next_action}</td>
+              <td>{new Date(item.updated_at).toLocaleString()}</td>
             </tr>
           ))}
         </tbody>
       </table>
-    </div>
-  );
+    </div></section>;
+    })}
+  </div>;
 }

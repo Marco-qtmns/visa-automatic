@@ -147,6 +147,12 @@ fieldset { margin: 0; border: 0; padding: 0; }
 .enrollment-panel { padding: 1rem; background: #f3f6fa; border-radius: 8px; }
 .setup-key, .setup-uri { display: block; overflow-wrap: anywhere; padding: .6rem; margin-top: .4rem; background: white; }
 .user-identity { color: #dfe8f5; font-size: .9rem; }
+.source-first { max-width: 900px; margin: 0 auto; }
+.source-actions { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1rem; margin-top: 1.5rem; }
+.source-actions .button { min-height: 4.5rem; justify-content: center; }
+.case-queues { display: grid; gap: 1.25rem; }
+.case-queues .section-card { padding: 0; overflow: hidden; }
+.case-queues .section-heading { padding: 1rem 1.25rem 0; }
 
 @media (max-width: 850px) {
   .detail-grid, .form-grid { grid-template-columns: 1fr; }

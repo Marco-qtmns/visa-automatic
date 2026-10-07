@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import uuid
+from datetime import datetime, timezone
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Literal
@@ -330,7 +331,15 @@ class CaseApplicationService:
                 target_entity_type="CASE", target_entity_id=case.id, case_id=case.id,
             )
 
-        case = self.core.create_case(payload, before_commit=audit)
+        values = payload.model_dump()
+        if not values.get("case_number"):
+            case_id = uuid.uuid4()
+            year = datetime.now(timezone.utc).year
+            values["case_number"] = f"CA-{year}-{case_id.int % 100_000_000:08d}"
+            payload = schemas.CaseCreate(**values)
+        else:
+            case_id = None
+        case = self.core.create_case(payload, case_id=case_id, before_commit=audit)
         self.engine.evaluate(case.id)
         return case
 

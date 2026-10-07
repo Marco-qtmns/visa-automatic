@@ -118,5 +118,5 @@ authentication.
 
 Milestone M10A adds mandatory password plus TOTP authentication, revocable
 server-side sessions, CSRF protection, the three employee roles, and a safe
-administrator bootstrap command. Apply migrations through `0011_authorization_audit` and see
+administrator bootstrap command. Apply migrations through `0012_import_raw_provenance` and see
 [`AUTHENTICATION.md`](AUTHENTICATION.md).

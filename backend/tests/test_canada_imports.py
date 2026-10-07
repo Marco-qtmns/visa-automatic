@@ -54,6 +54,12 @@ def test_preview_new_same_empty_and_idempotent(session):
     }
     assert preview(session, case, legacy).id == run.id
     assert session.scalar(select(func.count(cm.CanadaLegacyImportRun.id))) == 1
+    same = next(item for item in changes if item.status == "same")
+    importer = CanadaLegacyImportService(session)
+    importer.apply(run.id, mode="safe")
+    session.refresh(same)
+    assert same.status == "same"
+    assert same.reviewed_at is None
 
 
 def test_confirmed_conflict_requires_resolution_and_safe_batch_excludes_it(session):
@@ -178,3 +184,187 @@ def test_failed_apply_rolls_back_the_complete_batch(session):
     session.refresh(applicant)
     assert applicant.last_name == "Synthetic"
     assert session.get(cm.PersonBiography, applicant.id) is None
+
+
+@pytest.mark.parametrize("source, expected", [
+    ("Brasil", "BRA"), ("Brazil", "BRA"), ("Brésil", "BRA"),
+    ("Brasilien", "BRA"), ("Switzerland", "CHE"), ("Schweiz", "CHE"),
+    ("Canada", "CAN"), ("BRA", "BRA"),
+])
+def test_country_names_normalize_to_iso_alpha3_without_truncation(session, source, expected):
+    case, _applicant, _app = setup_application(session)
+    legacy = CanadaCase()
+    legacy.identity.birth_country = source
+    run = preview(session, case, legacy, hashlib.sha256(source.encode()).hexdigest())
+    change = CanadaLegacyImportService(session).changes(run.id)[0]
+    assert change.proposed_value_json == expected
+    assert change.raw_value_json == source
+    assert change.classification == "SAFE_NEW"
+
+
+def test_unknown_country_is_preserved_for_review_and_identifies_target(session):
+    case, _applicant, _app = setup_application(session)
+    legacy = CanadaCase()
+    legacy.identity.birth_country = "Atlantis"
+    run = preview(session, case, legacy, "6" * 64)
+    change = CanadaLegacyImportService(session).changes(run.id)[0]
+    assert change.proposed_value_json == "Atlantis"
+    assert change.status == "ambiguous"
+    assert change.classification == "INVALID"
+    assert change.target_label == "Applicant — Birth Country"
+
+
+@pytest.mark.parametrize("record_key, owner", [
+    ("parent:mother:1", "Mother"),
+    ("parent:father:2", "Father"),
+    ("spouse", "Spouse"),
+])
+def test_repeated_people_have_distinguishable_stable_target_labels(record_key, owner):
+    item = cm.CanadaImportCandidate(
+        import_run_id=uuid.uuid4(), domain_section="Family",
+        employee_label="Birth country", target_entity_type="family_biography",
+        target_field="birth_country_code", operation="create_or_set",
+        source_path="family.members[*].birth_country", source_record_key=record_key,
+        source_classification="applicant_direct", source_reference="test",
+        raw_value_json="Brazil", proposed_value_json="BRA", current_value_json=None,
+        status="new", review_policy="safe_direct_batch", conflict_policy="review",
+    )
+    assert item.target_label == f"{owner} — Birth country"
+
+
+def test_unknown_alpha3_country_is_not_written_to_canonical_field(session):
+    case, applicant, _app = setup_application(session)
+    legacy = CanadaCase()
+    legacy.identity.birth_country = "XYZ"
+    run = preview(session, case, legacy, "8" * 64)
+    importer = CanadaLegacyImportService(session)
+    change = importer.changes(run.id)[0]
+    assert change.raw_value_json == "XYZ"
+    assert change.status == "ambiguous"
+    importer.apply(run.id, mode="safe")
+    assert session.get(cm.PersonBiography, applicant.id) is None
+
+
+def test_safe_gate_excludes_non_direct_candidates(session):
+    case, _applicant, _app = setup_application(session)
+    legacy = CanadaCase()
+    legacy.trip.purpose = "Visit"
+    run = preview(session, case, legacy, "9" * 64)
+    importer = CanadaLegacyImportService(session)
+    item = importer.changes(run.id)[0]
+    item.source_classification = "legacy_derived"
+    session.commit()
+    importer.apply(run.id, mode="safe")
+    session.refresh(item)
+    assert item.status == "new"
+
+
+def test_safe_gate_excludes_unresolved_competing_candidate(session):
+    case, _applicant, _app = setup_application(session)
+    legacy = CanadaCase()
+    legacy.trip.purpose = "Visit"
+    run = preview(session, case, legacy, "d" * 64)
+    importer = CanadaLegacyImportService(session)
+    item = importer.changes(run.id)[0]
+    competitor = cm.CanadaImportCandidate(
+        import_run_id=run.id, domain_section=item.domain_section,
+        employee_label=item.employee_label, target_entity_type=item.target_entity_type,
+        target_entity_id=item.target_entity_id, target_field=item.target_field,
+        operation=item.operation, source_path="staff_review.competing_purpose",
+        source_record_key=item.source_record_key,
+        source_classification="applicant_direct", source_reference="test:competing",
+        raw_value_json="Other", proposed_value_json="Other", current_value_json=None,
+        status="new", review_policy="safe_direct_batch", conflict_policy="review",
+    )
+    session.add(competitor)
+    session.commit()
+    importer.apply(run.id, mode="safe")
+    session.refresh(item)
+    assert item.status == "new"
+
+
+def test_exact_same_csv_twice_reuses_run_and_does_not_duplicate_state(session):
+    case, _applicant, _app = setup_application(session)
+    content = (Path(__file__).parents[2] / "tests/fixtures/canada_csv_synthetic.csv").read_bytes()
+    importer = CanadaLegacyImportService(session)
+    first = importer.preview_upload(case.id, "google_verified_csv", content, "synthetic.csv")
+    importer.apply(first.id, mode="safe")
+    counts_after_first = {
+        "persons": session.scalar(select(func.count(models.Person.id)).where(models.Person.case_id == case.id)),
+        "biographies": session.scalar(select(func.count(cm.PersonBiography.person_id))),
+        "activities": session.scalar(select(func.count(cm.ActivityRecord.id))),
+        "travel": session.scalar(select(func.count(cm.TravelHistoryRecord.id))),
+        "family": session.scalar(select(func.count(cm.FamilyRelationship.id))),
+        "candidates": session.scalar(select(func.count(cm.CanadaImportCandidate.id))),
+    }
+    second = importer.preview_upload(case.id, "google_verified_csv", content, "synthetic.csv")
+    importer.apply(second.id, mode="safe")
+    assert second.id == first.id
+    assert session.scalar(select(func.count(cm.CanadaLegacyImportRun.id))) == 1
+    assert counts_after_first == {
+        "persons": session.scalar(select(func.count(models.Person.id)).where(models.Person.case_id == case.id)),
+        "biographies": session.scalar(select(func.count(cm.PersonBiography.person_id))),
+        "activities": session.scalar(select(func.count(cm.ActivityRecord.id))),
+        "travel": session.scalar(select(func.count(cm.TravelHistoryRecord.id))),
+        "family": session.scalar(select(func.count(cm.FamilyRelationship.id))),
+        "candidates": session.scalar(select(func.count(cm.CanadaImportCandidate.id))),
+    }
+
+
+def test_retry_after_failed_apply_has_no_partial_duplicate_state(session):
+    case, applicant, _app = setup_application(session)
+    legacy = CanadaCase()
+    legacy.identity.family_name = "Imported"
+    legacy.identity.date_of_birth = "not-a-date"
+    run = preview(session, case, legacy, "b" * 64)
+    importer = CanadaLegacyImportService(session)
+    for item in importer.changes(run.id):
+        if item.status in {"conflict", "ambiguous"}:
+            importer.review(item.id, "use_imported")
+    with pytest.raises(DomainValidationError):
+        importer.apply(run.id)
+    bad_date = next(item for item in importer.changes(run.id) if item.source_path == "identity.date_of_birth")
+    importer.review(bad_date.id, "reject")
+    importer.apply(run.id)
+    assert session.get(models.Person, applicant.id).last_name == "Imported"
+    assert session.scalar(select(func.count(cm.PersonBiography.person_id)).where(cm.PersonBiography.person_id == applicant.id)) == 0
+
+
+def test_low_level_apply_failure_is_sanitized_and_transactional(session, monkeypatch):
+    case, applicant, _app = setup_application(session)
+    legacy = CanadaCase()
+    legacy.identity.family_name = "Imported"
+    run = preview(session, case, legacy, "c" * 64)
+    importer = CanadaLegacyImportService(session)
+    change = importer.changes(run.id)[0]
+    importer.review(change.id, "use_imported")
+    monkeypatch.setattr(importer, "_apply_candidate", lambda *_args: (_ for _ in ()).throw(RuntimeError("SELECT secret FROM users password=leak")))
+    with pytest.raises(DomainValidationError) as captured:
+        importer.apply(run.id)
+    assert captured.value.api_detail == {
+        "code": "IMPORT_APPLY_FAILED",
+        "message": "Import could not be applied.",
+        "issues": ["Review the highlighted value and try again."],
+    }
+    assert "SELECT" not in str(captured.value.api_detail)
+    session.refresh(applicant)
+    assert applicant.last_name == "Synthetic"
+
+
+def test_source_first_import_can_identify_an_unnamed_case(session):
+    case = models.Case(case_number="CA-SOURCE-FIRST", visa_type="canada_trv", purpose="To be confirmed")
+    session.add(case)
+    session.commit()
+    legacy = CanadaCase()
+    legacy.identity.given_names = "Amina"
+    legacy.identity.family_name = "Diallo"
+    importer = CanadaLegacyImportService(session)
+    run = importer.preview_case(
+        case.id, legacy, source_type="google_verified_csv",
+        source_identifier="synthetic.csv", source_hash="7" * 64,
+    )
+    importer.apply(run.id, mode="safe", reviewed_by="worker")
+    applicant = session.scalar(select(models.Person).where(models.Person.case_id == case.id))
+    application = session.scalar(select(cm.CanadaApplication).where(cm.CanadaApplication.case_id == case.id))
+    assert (applicant.first_name, applicant.last_name, applicant.roles) == ("Amina", "Diallo", ["applicant"])
+    assert application.applicant_person_id == applicant.id

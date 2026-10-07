@@ -325,11 +325,17 @@ def test_migration_upgrades_0010_to_single_new_head(tmp_path, monkeypatch):
         for table in Base.metadata.sorted_tables:
             if table.name != "application_audit_events":
                 table.create(connection)
+        connection.execute(text(
+            "ALTER TABLE canada_import_candidates DROP COLUMN raw_value_json"
+        ))
         connection.execute(text("CREATE TABLE alembic_version (version_num VARCHAR(32) PRIMARY KEY)"))
         connection.execute(text("INSERT INTO alembic_version VALUES ('0010_auth_foundation')"))
     config = Config(str(PROJECT_ROOT / "backend/alembic.ini"))
     command.upgrade(config, "head")
     with engine.connect() as connection:
-        assert connection.scalar(text("SELECT version_num FROM alembic_version")) == "0011_authorization_audit"
+        assert connection.scalar(text("SELECT version_num FROM alembic_version")) == "0012_import_raw_provenance"
     assert "application_audit_events" in inspect(engine).get_table_names()
+    assert "raw_value_json" in {
+        column["name"] for column in inspect(engine).get_columns("canada_import_candidates")
+    }
     engine.dispose()

@@ -125,7 +125,7 @@ def _assign(permission: Permission, *endpoint_names: str) -> None:
 
 
 _assign(Permission.CASE_READ,
-    "list_cases", "get_case", "list_persons", "get_person", "list_conversations",
+    "application_bootstrap", "list_cases", "get_case", "list_persons", "get_person", "list_conversations",
     "list_conversation_messages", "get_workflow", "get_next_action", "get_application",
     "get_bundle", "mapping_specification", "list_imports", "get_import", "list_changes",
 )

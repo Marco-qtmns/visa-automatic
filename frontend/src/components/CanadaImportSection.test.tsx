@@ -22,14 +22,16 @@ const run: CanadaImportRun = {
 };
 const base: CanadaImportChange = {
   id: "change-new", import_run_id: run.id, domain_section: "Applicant", employee_label: "Date of birth",
+  target_label: "Applicant — Date of birth", classification: "SAFE_NEW",
   target_entity_type: "person_biography", target_entity_id: null, target_field: "date_of_birth",
   operation: "create_or_set", source_path: "identity.date_of_birth", source_record_key: "scalar",
   source_classification: "applicant_direct", source_reference: "case#identity.date_of_birth",
+  raw_value_json: "17/04/1992",
   proposed_value_json: "1992-04-17", current_value_json: null, status: "new", conflict_type: null,
   review_policy: "safe_direct_batch", conflict_policy: "never_overwrite_reviewed",
   reviewed_by: null, reviewed_at: null, created_at: "2026-10-02T00:00:00Z",
 };
-const conflict: CanadaImportChange = { ...base, id: "change-conflict", domain_section: "Passport", employee_label: "Passport number", source_path: "passport.number", target_field: "number", current_value_json: "AB123456", proposed_value_json: "XY987654", status: "conflict", conflict_type: "confirmed_canonical_value" };
+const conflict: CanadaImportChange = { ...base, id: "change-conflict", domain_section: "Passport", employee_label: "Passport number", target_label: "Applicant — Passport number", classification: "CONFLICT", source_path: "passport.number", target_field: "number", current_value_json: "AB123456", proposed_value_json: "XY987654", status: "conflict", conflict_type: "confirmed_canonical_value" };
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -41,24 +43,25 @@ beforeEach(() => {
 
 it("renders preview counts, warnings, and domain sections", async () => {
   render(<CanadaImportSection caseId="case-1" onChanged={vi.fn().mockResolvedValue(undefined)} />);
-  expect(await screen.findByText("Passport number")).toBeInTheDocument();
+  expect(await screen.findByText("Applicant — Passport number")).toBeInTheDocument();
   expect(screen.getByText("Address needs component review")).toBeInTheDocument();
-  expect(screen.getByText("Conflicts")).toBeInTheDocument();
+  expect(screen.getByText("Needs review")).toBeInTheDocument();
 });
 
 it("resolves a conflict individually", async () => {
   const user = userEvent.setup();
   render(<CanadaImportSection caseId="case-1" onChanged={vi.fn().mockResolvedValue(undefined)} />);
-  await screen.findByText("Passport number");
+  await screen.findByText("Applicant — Passport number");
   await user.click(screen.getByRole("button", { name: "Use imported" }));
   expect(api.resolveCanadaImportChange).toHaveBeenCalledWith("change-conflict", "use_imported", "manual-ui", undefined);
 });
 
-it("offers safe batch acceptance without a conflict-inclusive action", async () => {
+it("does not render deterministic safe values as review cards", async () => {
   const user = userEvent.setup();
   render(<CanadaImportSection caseId="case-1" onChanged={vi.fn().mockResolvedValue(undefined)} />);
-  await screen.findByText("Date of birth");
-  await user.click(screen.getByRole("button", { name: "Accept all safe new values" }));
+  await screen.findByText("Applicant — Passport number");
+  expect(screen.queryByText("Applicant — Date of birth")).not.toBeInTheDocument();
+  await user.click(screen.getByRole("button", { name: "Process safe values" }));
   expect(api.applyCanadaImport).toHaveBeenCalledWith("import-1", "safe", "manual-ui");
   expect(screen.queryByRole("button", { name: /accept all including conflicts/i })).not.toBeInTheDocument();
 });

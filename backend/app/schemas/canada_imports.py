@@ -32,6 +32,8 @@ class CanadaImportCandidateRead(ImportReadModel):
     import_run_id: uuid.UUID
     domain_section: str
     employee_label: str
+    target_label: str
+    classification: str
     target_entity_type: str
     target_entity_id: uuid.UUID | None
     target_field: str
@@ -40,6 +42,7 @@ class CanadaImportCandidateRead(ImportReadModel):
     source_record_key: str
     source_classification: str
     source_reference: str
+    raw_value_json: Any
     proposed_value_json: Any
     current_value_json: Any | None
     status: str

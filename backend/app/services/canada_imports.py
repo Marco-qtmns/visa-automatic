@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import hashlib
+import logging
 import tempfile
 import uuid
 from dataclasses import asdict
@@ -51,12 +52,17 @@ LABELS = {
 
 COUNTRY_CODES = {
     "brazil": "BRA", "brasil": "BRA", "canada": "CAN", "canadá": "CAN",
-    "switzerland": "CHE", "suíça": "CHE", "suisse": "CHE",
+    "brésil": "BRA", "brasilien": "BRA",
+    "switzerland": "CHE", "schweiz": "CHE", "suíça": "CHE", "suisse": "CHE",
     "united states": "USA", "estados unidos": "USA", "usa": "USA",
     "portugal": "PRT", "germany": "DEU", "alemanha": "DEU",
     "france": "FRA", "frança": "FRA", "italy": "ITA", "itália": "ITA",
     "united kingdom": "GBR", "reino unido": "GBR", "spain": "ESP", "espanha": "ESP",
 }
+ISO_ALPHA3_CODES = frozenset("""
+ABW AFG AGO AIA ALA ALB AND ARE ARG ARM ASM ATA ATF ATG AUS AUT AZE BDI BEL BEN BES BFA BGD BGR BHR BHS BIH BLM BLR BLZ BMU BOL BRA BRB BRN BTN BVT BWA CAF CAN CCK CHE CHL CHN CIV CMR COD COG COK COL COM CPV CRI CUB CUW CXR CYM CYP CZE DEU DJI DMA DNK DOM DZA ECU EGY ERI ESH ESP EST ETH FIN FJI FLK FRA FRO FSM GAB GBR GEO GGY GHA GIB GIN GLP GMB GNB GNQ GRC GRD GRL GTM GUF GUM GUY HKG HMD HND HRV HTI HUN IDN IMN IND IOT IRL IRN IRQ ISL ISR ITA JAM JEY JOR JPN KAZ KEN KGZ KHM KIR KNA KOR KWT LAO LBN LBR LBY LCA LIE LKA LSO LTU LUX LVA MAC MAF MAR MCO MDA MDG MDV MEX MHL MKD MLI MLT MMR MNE MNG MNP MOZ MRT MSR MTQ MUS MWI MYS MYT NAM NCL NER NFK NGA NIC NIU NLD NOR NPL NRU NZL OMN PAK PAN PCN PER PHL PLW PNG POL PRI PRK PRT PRY PSE PYF QAT REU ROU RUS RWA SAU SDN SEN SGP SGS SHN SJM SLB SLE SLV SMR SOM SPM SRB SSD STP SUR SVK SVN SWE SWZ SXM SYC SYR TCA TCD TGO THA TJK TKL TKM TLS TON TTO TUN TUR TUV TWN TZA UGA UKR UMI URY USA UZB VAT VCT VEN VGB VIR VNM VUT WLF WSM YEM ZAF ZMB ZWE
+""".split())
+LOGGER = logging.getLogger(__name__)
 
 
 class LegacySourceAdapter:
@@ -148,7 +154,7 @@ def _country(value: Any) -> str | None:
     if _blank(value):
         return None
     text = str(value).strip()
-    if len(text) in {2, 3}:
+    if text.upper() in ISO_ALPHA3_CODES:
         return text.upper()
     return COUNTRY_CODES.get(text.casefold())
 
@@ -222,8 +228,10 @@ class CanadaLegacyImportService:
         case = self.session.get(models.Case, case_id)
         if case is None: raise DomainNotFound("Case not found")
         app = self.session.scalar(select(cm.CanadaApplication).where(cm.CanadaApplication.case_id == case_id))
-        if app is None or app.applicant_person_id is None:
-            raise DomainValidationError("create a Canada application and explicitly select its applicant before import")
+        if app is None:
+            app = cm.CanadaApplication(case_id=case_id)
+            self.session.add(app)
+            self.session.flush()
         digest = source_hash or hashlib.sha256(repr(asdict(legacy)).encode()).hexdigest()
         existing = self.session.scalar(select(cm.CanadaLegacyImportRun).where(
             cm.CanadaLegacyImportRun.case_id == case_id,
@@ -291,6 +299,7 @@ class CanadaLegacyImportService:
         entity_type, entity, target_field = self._target(app, group, field, record_key)
         warning_count = len(warnings)
         proposed = self._transform(group, field, raw, warnings, record_key)
+        transform_invalid = len(warnings) > warning_count
         if proposed is None and field not in {"post_secondary_education"}:
             return None
         current = getattr(entity, target_field, None) if entity is not None and target_field != "*" else None
@@ -309,11 +318,8 @@ class CanadaLegacyImportService:
         if group == "trip" and field in {"visiting_person_or_institution", "host_name"}:
             status, conflict_type = "ambiguous", "host_type_ambiguous"
             warnings.append("Host type must be selected explicitly; person/institution was not guessed.")
-        elif len(warnings) > warning_count and (
-            (isinstance(proposed, str) and mapping.transform == "date")
-            or (target_field in {"country_code", "issuing_country_code"} and isinstance(proposed, str) and len(proposed) > 3)
-        ):
-            status, conflict_type = "ambiguous", "transformation_requires_review"
+        elif transform_invalid:
+            status, conflict_type = "ambiguous", "invalid_value"
         elif entity is not None and not _blank(current) and not _equal(current, proposed):
             status, conflict_type = "conflict", "different_canonical_value"
         if entity is not None and self._reviewed(run.case_id, entity_type, entity.id, target_field) and not _equal(current, proposed):
@@ -330,13 +336,14 @@ class CanadaLegacyImportService:
             source_path=mapping.legacy_path, source_record_key=record_key,
             source_classification=source_classification,
             source_reference=f"{run.source_type}:{run.source_identifier}#{mapping.legacy_path}",
+            raw_value_json=_json_value(raw),
             proposed_value_json=_json_value(proposed), current_value_json=_json_value(current),
             status=status, conflict_type=conflict_type,
             review_policy=mapping.review_policy, conflict_policy=mapping.conflict_policy,
         )
 
     def _target(self, app: cm.CanadaApplication, group: str, field: str, key: str):
-        applicant = self.session.get(models.Person, app.applicant_person_id)
+        applicant = self.session.get(models.Person, app.applicant_person_id) if app.applicant_person_id else None
         if group == "identity":
             if field in {"family_name", "given_names"}:
                 return "person", applicant, "last_name" if field == "family_name" else "first_name"
@@ -344,19 +351,19 @@ class CanadaLegacyImportService:
                 entity = self.session.scalar(select(cm.ApplicantResidence).where(cm.ApplicantResidence.application_id == app.id, cm.ApplicantResidence.is_current.is_(True)))
                 return "residence", entity, {"residence_country":"country_code", "residence_status":"immigration_status_code", "residence_since":"resident_since"}[field]
             if field in {"nationality", "other_citizenship"}:
-                entity = self.session.scalar(select(cm.PersonCitizenship).where(cm.PersonCitizenship.person_id == applicant.id, cm.PersonCitizenship.is_primary.is_(field == "nationality")))
+                entity = self.session.scalar(select(cm.PersonCitizenship).where(cm.PersonCitizenship.person_id == applicant.id, cm.PersonCitizenship.is_primary.is_(field == "nationality"))) if applicant else None
                 return "citizenship", entity, "country_code"
-            entity = self.session.get(cm.PersonBiography, applicant.id)
+            entity = self.session.get(cm.PersonBiography, applicant.id) if applicant else None
             return "person_biography", entity, {"birth_country":"birth_country_code", "city_of_birth":"birth_city", "state_of_birth":"birth_state_province"}.get(field, field)
         if group == "passport":
             if field.startswith("identity_"):
-                entity = self.session.scalar(select(cm.PersonIdentifier).where(cm.PersonIdentifier.person_id == applicant.id, cm.PersonIdentifier.identifier_type == "national_identity"))
+                entity = self.session.scalar(select(cm.PersonIdentifier).where(cm.PersonIdentifier.person_id == applicant.id, cm.PersonIdentifier.identifier_type == "national_identity")) if applicant else None
                 return "person_identifier", entity, {"identity_number":"value", "identity_country":"country_code", "identity_issue_date":"issue_date", "identity_expiry_date":"expiry_date"}[field]
             entity = self.session.scalar(select(cm.TravelDocument).where(cm.TravelDocument.application_id == app.id, cm.TravelDocument.is_primary.is_(True)))
             return "travel_document", entity, {"issuing_country":"issuing_country_code", "other_passport_details":"details"}.get(field, field)
         if group == "contact":
             if field in {"email", "phone"}:
-                entity = self.session.scalar(select(cm.ContactPoint).where(cm.ContactPoint.person_id == applicant.id, cm.ContactPoint.type == field, cm.ContactPoint.is_primary.is_(True)))
+                entity = self.session.scalar(select(cm.ContactPoint).where(cm.ContactPoint.person_id == applicant.id, cm.ContactPoint.type == field, cm.ContactPoint.is_primary.is_(True))) if applicant else None
                 return "contact", entity, "value"
             context = "mailing" if field.startswith("mailing_") or field == "mailing_address" else "residential"
             entity = self.session.scalar(select(cm.Address).where(cm.Address.application_id == app.id, cm.Address.context == context, cm.Address.owner_id == app.id))
@@ -522,11 +529,15 @@ class CanadaLegacyImportService:
         changes = self.changes(import_id)
         if mode == "safe":
             for item in changes:
-                if item.status in {"new", "same"} and item.source_classification == "applicant_direct" and item.review_policy == "safe_direct_batch":
+                if self._is_safe_new(item, changes):
                     item.status, item.reviewed_by, item.reviewed_at = "accepted", reviewed_by, datetime.now(timezone.utc)
         accepted = [item for item in changes if item.status == "accepted"]
         try:
             app = self.session.scalar(select(cm.CanadaApplication).where(cm.CanadaApplication.case_id == run.case_id))
+            if app is None:
+                raise DomainValidationError("Canada application is missing")
+            if app.applicant_person_id is None:
+                self._create_imported_applicant(run, app, accepted)
             representative = [item for item in accepted if item.target_entity_type == "representative_profile"]
             if representative:
                 revision = self._apply_representative_batch(run, representative)
@@ -545,9 +556,48 @@ class CanadaLegacyImportService:
         except Exception as error:
             self.session.rollback()
             if isinstance(error, (DomainValidationError, DomainNotFound)): raise
-            raise DomainValidationError(f"Canada import batch failed transactionally: {error}") from error
+            LOGGER.exception("Canada import batch failed", extra={"import_run_id": str(import_id)})
+            failure = DomainValidationError(
+                "Import could not be applied. Review the highlighted values and try again."
+            )
+            failure.api_detail = {
+                "code": "IMPORT_APPLY_FAILED",
+                "message": "Import could not be applied.",
+                "issues": ["Review the highlighted value and try again."],
+            }
+            raise failure from error
         self.session.refresh(run)
         return run
+
+    @staticmethod
+    def _is_safe_new(item: cm.CanadaImportCandidate,
+                     changes: list[cm.CanadaImportCandidate]) -> bool:
+        """The single integrity gate for unattended canonical writes."""
+        if not (
+            item.status == "new"
+            and _blank(item.current_value_json)
+            and item.conflict_type is None
+            and item.source_classification == "applicant_direct"
+            and item.review_policy == "safe_direct_batch"
+            and item.target_field != "*"
+            and item.source_path in {entry.legacy_path for entry in AUDITED_GENERATOR_MAPPINGS}
+        ):
+            return False
+        identity = (
+            item.target_entity_type,
+            str(item.target_entity_id) if item.target_entity_id else item.source_record_key,
+            item.target_field,
+        )
+        relevant = [candidate for candidate in changes if candidate.id != item.id and (
+            candidate.target_entity_type,
+            str(candidate.target_entity_id) if candidate.target_entity_id else candidate.source_record_key,
+            candidate.target_field,
+        ) == identity]
+        return not any(
+            candidate.status in {"new", "conflict", "ambiguous", "accepted"}
+            or not _equal(candidate.proposed_value_json, item.proposed_value_json)
+            for candidate in relevant
+        )
 
     def _apply_candidate(self, run, app, item):
         entity = self.session.get(self._model(item.target_entity_type), item.target_entity_id) if item.target_entity_id and self._model(item.target_entity_type) else None
@@ -558,6 +608,39 @@ class CanadaLegacyImportService:
         if item.target_field != "*": setattr(entity, item.target_field, value)
         self.session.add(entity); self.session.flush()
         self._provenance(run, item, entity)
+
+    def _create_imported_applicant(self, run, app, accepted):
+        first = next((
+            item.proposed_value_json for item in accepted
+            if item.source_path == "identity.given_names"
+        ), None)
+        last = next((
+            item.proposed_value_json for item in accepted
+            if item.source_path == "identity.family_name"
+        ), None)
+        if not first or not last:
+            raise DomainValidationError(
+                "Applicant identity is incomplete. Review the given and family name before applying this import."
+            )
+        person = models.Person(
+            case_id=run.case_id,
+            first_name=str(first),
+            last_name=str(last),
+            roles=["applicant"],
+        )
+        self.session.add(person)
+        self.session.flush()
+        app.applicant_person_id = person.id
+        self.session.add(cm.CasePersonRole(
+            case_id=run.case_id,
+            person_id=person.id,
+            role=cm.OperationalRole.APPLICANT,
+            assigned_by=run.imported_by,
+        ))
+        self.session.flush()
+        for item in accepted:
+            if item.target_entity_type == "person" and item.target_entity_id is None:
+                item.target_entity_id = person.id
 
     def _model(self, entity_type):
         return {"person":models.Person, "family_person":models.Person, "person_biography":cm.PersonBiography,
@@ -575,6 +658,8 @@ class CanadaLegacyImportService:
     def _create_target(self, run, app, item):
         et, key = item.target_entity_type, item.source_record_key
         applicant_id = app.applicant_person_id
+        if et == "person":
+            return self.session.get(models.Person, applicant_id)
         if et == "person_biography": return self.session.get(cm.PersonBiography, applicant_id) or cm.PersonBiography(person_id=applicant_id)
         if et == "citizenship": return cm.PersonCitizenship(person_id=applicant_id, country_code=str(item.proposed_value_json), is_primary=item.source_path.endswith("nationality"), sort_order=0 if item.source_path.endswith("nationality") else 1)
         if et == "person_identifier": return self.session.scalar(select(cm.PersonIdentifier).where(cm.PersonIdentifier.person_id == applicant_id, cm.PersonIdentifier.identifier_type == "national_identity")) or cm.PersonIdentifier(person_id=applicant_id, identifier_type="national_identity", value=str(item.proposed_value_json) if item.target_field == "value" else "PENDING-REVIEW", country_code=str(item.proposed_value_json) if item.target_field == "country_code" else "UNK")

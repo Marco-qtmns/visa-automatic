@@ -34,7 +34,7 @@ export interface CaseRecord {
   updated_at: string;
 }
 
-export type CaseCreate = Pick<CaseRecord, "case_number" | "visa_type" | "purpose">;
+export type CaseCreate = Partial<Pick<CaseRecord, "case_number" | "visa_type" | "purpose">>;
 export type CaseUpdate = Partial<CaseCreate>;
 
 export interface Person {
@@ -396,16 +396,22 @@ export interface PreparationStatus {
 }
 
 export interface CaseSummary {
-  case: CaseRecord;
-  applicantName: string;
-  nextAction: NextAction;
-  requirementProgress: string;
+  id: string;
+  case_number: string;
+  display_name: string;
+  visa_type: string;
+  purpose: string;
+  workflow_state: WorkflowState;
+  issue_count: number;
+  next_action: string;
+  queue: "ACTION_REQUIRED" | "WAITING" | "REVIEW" | "READY";
+  updated_at: string;
 }
 
 export interface CanadaApplicationRecord {
   id: string;
   case_id: string;
-  applicant_person_id: string;
+  applicant_person_id: string | null;
   legal_guardian_person_id: string | null;
   official_application_date: string | null;
   application_date_review_state: string;
@@ -472,6 +478,8 @@ export interface CanadaImportChange {
   import_run_id: string;
   domain_section: string;
   employee_label: string;
+  target_label: string;
+  classification: string;
   target_entity_type: string;
   target_entity_id: string | null;
   target_field: string;
@@ -480,6 +488,7 @@ export interface CanadaImportChange {
   source_record_key: string;
   source_classification: string;
   source_reference: string;
+  raw_value_json: unknown;
   proposed_value_json: unknown;
   current_value_json: unknown;
   status: string;

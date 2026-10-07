@@ -240,9 +240,14 @@ def test_auth_migration_upgrades_an_existing_0009_database(tmp_path, monkeypatch
     with engine.begin() as connection:
         connection.execute(text("CREATE TABLE alembic_version (version_num VARCHAR(32) PRIMARY KEY)"))
         connection.execute(text("INSERT INTO alembic_version VALUES ('0009_canada_preparation_runs')"))
+        connection.execute(text(
+            "CREATE TABLE canada_import_candidates "
+            "(id VARCHAR(32) PRIMARY KEY, proposed_value_json JSON NOT NULL)"
+        ))
     monkeypatch.setenv("DATABASE_URL", url)
-    command.upgrade(Config(str(PROJECT_ROOT / "backend/alembic.ini")), "head")
+    config = Config(str(PROJECT_ROOT / "backend/alembic.ini"))
+    command.upgrade(config, "head")
     with engine.connect() as connection:
-        assert connection.scalar(text("SELECT version_num FROM alembic_version")) == "0011_authorization_audit"
+        assert connection.scalar(text("SELECT version_num FROM alembic_version")) == "0012_import_raw_provenance"
     assert {"auth_users", "auth_sessions", "auth_mfa_challenges"} <= set(inspect(engine).get_table_names())
     engine.dispose()

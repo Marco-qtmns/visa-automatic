@@ -2,11 +2,11 @@ import type { NextAction } from "@/lib/api";
 
 function actionTarget(action: NextAction): string {
   if (action.import_run_id) return "#canada-import";
-  if (action.fact_id) return "#facts";
-  if (action.requirement_id) return "#requirements";
-  if (action.task_id) return "#tasks";
+  if (action.fact_id) return "#needs-attention";
+  if (action.requirement_id) return "#documents";
+  if (action.task_id) return "#needs-attention";
   if (action.document_id) return "#documents";
-  if (action.target_state) return "#workflow";
+  if (action.target_state) return "#primary-action";
   if (action.preparation_path) return "#preparation-readiness";
   return "#overview";
 }

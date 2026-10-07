@@ -8,7 +8,7 @@ vi.mock("next/navigation", () => ({ usePathname: () => "/cases", useRouter: () =
 vi.mock("@/lib/api/client", () => ({
   ApiError: class ApiError extends Error { constructor(message: string, public status?: number) { super(message); } },
   api: {
-    me: vi.fn().mockResolvedValue({ user: { id: "1", email: "admin@example.com", display_name: "Admin User", role: "ADMIN", is_active: true, mfa_enabled: true } }),
+    bootstrap: vi.fn().mockResolvedValue({ user: { id: "1", email: "admin@example.com", display_name: "Admin User", role: "ADMIN", is_active: true, mfa_enabled: true }, case_summary: [], timings_ms: { database: 1, total: 2 } }),
     logout: vi.fn().mockResolvedValue(undefined),
   },
 }));

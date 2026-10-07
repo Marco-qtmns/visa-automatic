@@ -569,6 +569,7 @@ class CanadaImportCandidate(Base):
     source_record_key: Mapped[str] = mapped_column(String(255), default="scalar", nullable=False)
     source_classification: Mapped[str] = mapped_column(String(40), nullable=False)
     source_reference: Mapped[str] = mapped_column(Text, nullable=False)
+    raw_value_json: Mapped[Any] = mapped_column(JSON_TYPE, nullable=False)
     proposed_value_json: Mapped[Any] = mapped_column(JSON_TYPE, nullable=False)
     current_value_json: Mapped[Any | None] = mapped_column(JSON_TYPE)
     status: Mapped[str] = mapped_column(String(24), nullable=False)
@@ -578,6 +579,44 @@ class CanadaImportCandidate(Base):
     reviewed_by: Mapped[str | None] = mapped_column(String(255))
     reviewed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, nullable=False)
+
+    @property
+    def classification(self) -> str:
+        if self.status == "new":
+            return "SAFE_NEW" if (
+                self.source_classification == "applicant_direct"
+                and self.review_policy == "safe_direct_batch"
+                and self.conflict_type is None
+                and self.current_value_json in (None, "")
+                and self.target_field != "*"
+            ) else "REVIEW"
+        if self.status == "same":
+            return "SAME"
+        if self.status == "conflict":
+            return "CONFLICT"
+        if self.status == "ambiguous":
+            return "INVALID" if self.conflict_type == "invalid_value" else "AMBIGUOUS"
+        return self.status.upper()
+
+    @property
+    def target_label(self) -> str:
+        path = self.source_path.casefold()
+        record = self.source_record_key.casefold()
+        if "mother" in record:
+            owner = "Mother"
+        elif "father" in record:
+            owner = "Father"
+        elif "parent" in record:
+            owner = "Parent"
+        elif "child" in record:
+            owner = "Child"
+        elif "spouse" in path or "spouse" in record:
+            owner = "Spouse"
+        elif self.target_entity_type.startswith("representative"):
+            owner = "Representative"
+        else:
+            owner = "Applicant"
+        return f"{owner} — {self.employee_label}"
 
 
 class LegacyImportEntityLink(Base):
