@@ -19,6 +19,7 @@ from backend.app.authorization import (
     ENDPOINT_PERMISSIONS,
     Permission,
     RouteAuthorizationClass,
+    WORKFLOW_TRANSITION_PERMISSIONS,
     enforce_workflow_target,
     permissions_for_role,
     route_authorization_class,
@@ -84,6 +85,17 @@ def test_permission_matrix_is_static_and_role_ordered():
     assert admin == frozenset(Permission)
 
 
+def test_every_domain_workflow_transition_has_an_explicit_permission_classification():
+    from backend.app.services.workflow import ALLOWED_TRANSITIONS
+
+    domain_transitions = {
+        (current.value, target.value)
+        for current, targets in ALLOWED_TRANSITIONS.items()
+        for target in targets
+    }
+    assert set(WORKFLOW_TRANSITION_PERMISSIONS) == domain_transitions
+
+
 def test_effective_fastapi_graph_has_exact_business_classification():
     routes = []
     for route in app.routes:
@@ -119,27 +131,41 @@ def test_effective_fastapi_graph_has_exact_business_classification():
     assert sum(value == RouteAuthorizationClass.ADMIN_ONLY for value in classifications.values()) == 6
 
 
-@pytest.mark.parametrize("target", ["READY", "SUBMITTED"])
-def test_case_worker_cannot_cross_final_workflow_boundary(target):
+@pytest.mark.parametrize("current,target", [
+    ("INTAKE", "DOCUMENTS"),
+    ("DOCUMENTS", "PREPARE"),
+    ("PREPARE", "REVIEW"),
+    ("REVIEW", "PREPARE"),
+])
+def test_case_worker_can_perform_work_transitions(current, target):
     user = SimpleNamespace(role="CASE_WORKER", is_active=True)
-    with pytest.raises(HTTPException) as error:
-        enforce_workflow_target(user, target)
-    assert error.value.status_code == 403
+    enforce_workflow_target(user, target, current_state=current)
 
 
-@pytest.mark.parametrize("current,target", [("REVIEW", "PREPARE"), ("READY", "REVIEW")])
-def test_case_worker_cannot_control_review_return_transitions(current, target):
+@pytest.mark.parametrize("current,target", [("REVIEW", "READY"), ("READY", "SUBMITTED")])
+def test_case_worker_cannot_perform_final_review_or_submission(current, target):
     user = SimpleNamespace(role="CASE_WORKER", is_active=True)
     with pytest.raises(HTTPException) as error:
         enforce_workflow_target(user, target, current_state=current)
     assert error.value.status_code == 403
 
 
+def test_case_worker_cannot_take_review_to_documents_shortcut():
+    user = SimpleNamespace(role="CASE_WORKER", is_active=True)
+    with pytest.raises(HTTPException) as error:
+        enforce_workflow_target(user, "DOCUMENTS", current_state="REVIEW")
+    assert error.value.status_code == 403
+
+
 @pytest.mark.parametrize("role", ["REVIEWER", "ADMIN"])
-def test_reviewer_and_admin_can_cross_final_workflow_boundary(role):
+@pytest.mark.parametrize("current,target", [
+    ("REVIEW", "PREPARE"),
+    ("REVIEW", "READY"),
+    ("READY", "SUBMITTED"),
+])
+def test_reviewer_and_admin_can_perform_review_transitions(role, current, target):
     user = SimpleNamespace(role=role, is_active=True)
-    enforce_workflow_target(user, "READY")
-    enforce_workflow_target(user, "SUBMITTED")
+    enforce_workflow_target(user, target, current_state=current)
 
 
 def test_admin_user_management_last_admin_and_audit(client, session):

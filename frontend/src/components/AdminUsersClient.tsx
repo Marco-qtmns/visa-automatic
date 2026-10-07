@@ -21,10 +21,12 @@ export function AdminUsersClient() {
   if (current?.role !== "ADMIN") return <div className="error-panel" role="alert">Administrator permission is required.</div>;
 
   async function create(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault(); const values = new FormData(event.currentTarget);
+    event.preventDefault();
+    const form = event.currentTarget;
+    const values = new FormData(form);
     try {
       await api.createUser({ email: String(values.get("email")), display_name: String(values.get("display_name")), password: String(values.get("password")), role: String(values.get("role")) as AuthUser["role"] });
-      event.currentTarget.reset(); await load();
+      form.reset(); await load();
     } catch (reason) { setError(reason instanceof Error ? reason.message : "User could not be created."); }
   }
   async function act(operation: () => Promise<unknown>, confirmation?: string) {
@@ -36,10 +38,10 @@ export function AdminUsersClient() {
     <div className="page-heading"><div><p className="eyebrow">Administration</p><h1>Users &amp; security audit</h1></div></div>
     {error ? <div className="error-panel" role="alert">{error}</div> : null}
     <section className="section-card"><h2>Create employee</h2><form className="form-grid" onSubmit={create}>
-      <div className="field"><label>Email</label><input name="email" type="email" required /></div>
-      <div className="field"><label>Display name</label><input name="display_name" required /></div>
-      <div className="field"><label>Temporary password</label><input name="password" type="password" required /></div>
-      <div className="field"><label>Role</label><select name="role">{roles.map(role => <option key={role}>{role}</option>)}</select></div>
+      <div className="field"><label htmlFor="admin-user-email">Email</label><input id="admin-user-email" name="email" type="email" required /></div>
+      <div className="field"><label htmlFor="admin-user-display-name">Display name</label><input id="admin-user-display-name" name="display_name" required /></div>
+      <div className="field"><label htmlFor="admin-user-password">Temporary password</label><input id="admin-user-password" name="password" type="password" required /></div>
+      <div className="field"><label htmlFor="admin-user-role">Role</label><select id="admin-user-role" name="role">{roles.map(role => <option key={role}>{role}</option>)}</select></div>
       <div className="button-row field-full"><button className="button">Create user</button></div>
     </form></section>
     <section className="section-card"><h2>Employees</h2><div className="table-wrap"><table><thead><tr><th>User</th><th>Role</th><th>Status</th><th>MFA / sessions</th><th>Actions</th></tr></thead><tbody>{users.map(user => <tr key={user.id}>

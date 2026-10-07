@@ -161,6 +161,7 @@ class CanadaPreparationReadinessService:
         self._trip_ready(trip)
         facts = self._facts(case_id)
         self._fact_conflicts(case_id)
+        self._fact_candidates(case_id)
 
         hosts = list(self.session.scalars(select(cm.HostRecord).where(
             cm.HostRecord.trip_plan_id == trip.id
@@ -311,6 +312,23 @@ class CanadaPreparationReadinessService:
         ).order_by(models.Fact.created_at, models.Fact.id)):
             self._issue("unresolved_fact_conflict", f"facts.{fact.key}", "facts", fact.key,
                         "Resolve the conflicting case fact; readiness never chooses a value automatically.")
+
+    def _fact_candidates(self, case_id):
+        for candidate in self.session.scalars(select(models.FactExtractionCandidate).where(
+            models.FactExtractionCandidate.case_id == case_id,
+            models.FactExtractionCandidate.key.in_(RELEVANT_FACT_KEYS),
+            models.FactExtractionCandidate.status.in_((
+                models.FactCandidateStatus.PROPOSED,
+                models.FactCandidateStatus.CONFLICT,
+            )),
+        ).order_by(models.FactExtractionCandidate.created_at, models.FactExtractionCandidate.id)):
+            self._issue(
+                "unresolved_fact_candidate",
+                f"fact_candidates.{candidate.id}",
+                "facts",
+                candidate.key,
+                "Accept, correct, or reject this preparation-relevant fact candidate before preparing forms.",
+            )
 
     def _host_ready(self, host_exists, hosts):
         primary = [item for item in hosts if item.is_primary]

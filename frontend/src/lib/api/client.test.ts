@@ -50,3 +50,20 @@ it("includes credentials and the CSRF cookie on mutations without storing auth t
   expect(localStorage.length).toBe(0);
   expect(sessionStorage.length).toBe(0);
 });
+
+it("renders structured workflow readiness blockers from a 409 response", async () => {
+  const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify({
+    detail: {
+      code: "prepare_review_readiness_blocked",
+      message: "Case is not ready for review.",
+      blocking_reasons: [{ message: "Enter passport number before preparation." }],
+    },
+  }), { status: 409, headers: { "Content-Type": "application/json" } }));
+  vi.stubGlobal("fetch", fetchMock);
+
+  await expect(api.transition("case-1", "REVIEW", "employee"))
+    .rejects.toMatchObject({
+      status: 409,
+      message: "Case is not ready for review. Enter passport number before preparation.",
+    });
+});

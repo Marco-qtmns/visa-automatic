@@ -15,6 +15,17 @@ import { CaseAuditSection } from "./CaseAuditSection";
 
 const actor = process.env.NEXT_PUBLIC_WORKFLOW_ACTOR ?? "manual-ui";
 
+export function visibleWorkflowTargets(
+  currentState: WorkflowState,
+  targets: WorkflowState[],
+  role?: string,
+): WorkflowState[] {
+  if (role !== "CASE_WORKER") return targets;
+  if (currentState === "READY") return [];
+  if (currentState === "REVIEW") return targets.filter(target => target === "PREPARE");
+  return targets.filter(target => !["READY", "SUBMITTED"].includes(target));
+}
+
 export function CaseDetailClient({ caseId }: { caseId: string }) {
   const currentUser = useCurrentUser();
   const [data, setData] = useState<CaseDetailBundle | null>(null);
@@ -28,7 +39,7 @@ export function CaseDetailClient({ caseId }: { caseId: string }) {
   async function transition(target: WorkflowState, event: FormEvent<HTMLFormElement>) { event.preventDefault(); setBusy(true); setWorkflowError(""); const values = new FormData(event.currentTarget); try { await api.transition(caseId, target, actor, String(values.get("reason") || "") || undefined); await load(); } catch (reason) { setWorkflowError(reason instanceof Error ? reason.message : "Transition was rejected."); } finally { setBusy(false); } }
   const refresh = async () => { await load(); };
   const applicant = data.people.find(person => person.roles.includes("applicant"));
-  const allowedTargets = data.workflow.allowed_targets.filter(target => currentUser?.role !== "CASE_WORKER" || (!["REVIEW", "READY"].includes(data.workflow.current_state) && !["READY", "SUBMITTED"].includes(target)));
+  const allowedTargets = visibleWorkflowTargets(data.workflow.current_state, data.workflow.allowed_targets, currentUser?.role);
 
   return <div className="detail-stack">
     <div className="page-heading"><div><p className="eyebrow">Case {data.case.case_number}</p><h1>{applicant ? `${applicant.first_name} ${applicant.last_name}` : "Applicant not assigned"}</h1><p className="subtitle">{data.case.visa_type} — {data.case.purpose}</p></div><Link className="button button-secondary" href="/cases">Back to cases</Link></div>

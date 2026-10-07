@@ -254,6 +254,102 @@ def test_missing_stored_file_is_integrity_error_and_review_gate_uses_current_run
     assert workflow.get_state(case.id) is models.WorkflowState.PREPARE
 
 
+def test_prepare_to_review_rejects_incomplete_required_data_with_structured_reasons(session):
+    case, _applicant, _application, passport, _trip = ready_case(session)
+    storage = MemoryStorage()
+    CanadaPreparationService(session, storage, FakeAdapter()).prepare(case.id, initiated_by="employee")
+    passport.number = ""
+    session.commit()
+
+    with pytest.raises(WorkflowTransitionError) as caught:
+        WorkflowService(session, storage).transition(case.id, models.WorkflowState.REVIEW, actor="employee")
+
+    detail = caught.value.api_detail
+    assert detail["code"] == "prepare_review_readiness_blocked"
+    assert any(reason["path"] == "applicant.passport.number" for reason in detail["blocking_reasons"])
+    assert WorkflowService(session, storage).get_state(case.id) is models.WorkflowState.PREPARE
+
+
+def test_prepare_to_review_rejects_pending_blocking_document_requirement(session):
+    case, applicant, *_ = ready_case(session)
+    storage = MemoryStorage()
+    CanadaPreparationService(session, storage, FakeAdapter()).prepare(case.id, initiated_by="employee")
+    session.add(models.Requirement(
+        case_id=case.id,
+        document_type="passport_bio_page",
+        owner_role="applicant",
+        owner_person_id=applicant.id,
+        requirement_level="required",
+        reason="Required identity evidence",
+        is_blocking=True,
+        active=True,
+        fulfillment_status=models.RequirementFulfillmentStatus.PENDING,
+    ))
+    session.commit()
+
+    with pytest.raises(WorkflowTransitionError) as caught:
+        WorkflowService(session, storage).transition(case.id, models.WorkflowState.REVIEW, actor="employee")
+
+    assert any(reason["code"] == "blocking_requirement" for reason in caught.value.api_detail["blocking_reasons"])
+
+
+def test_prepare_to_review_rejects_stale_preparation_run(session):
+    case, applicant, *_ = ready_case(session)
+    storage = MemoryStorage()
+    CanadaPreparationService(session, storage, FakeAdapter()).prepare(case.id, initiated_by="employee")
+    applicant.last_name = "Current"
+    session.commit()
+
+    with pytest.raises(WorkflowTransitionError) as caught:
+        WorkflowService(session, storage).transition(case.id, models.WorkflowState.REVIEW, actor="employee")
+
+    reasons = caught.value.api_detail["blocking_reasons"]
+    assert len(reasons) == 1
+    assert reasons[0]["code"] == "current_preparation_run_required"
+
+
+def test_prepare_to_review_allows_current_package_with_optional_values_missing(session):
+    case, _applicant, application, *_ = ready_case(session)
+    application.native_language_code = None
+    application.service_language_code = None
+    session.commit()
+    storage = MemoryStorage()
+    service = CanadaPreparationService(session, storage, FakeAdapter())
+    service.prepare(case.id, initiated_by="employee")
+    readiness, current_run, integrity = service.current_package(case.id)
+    assert readiness.ready
+    assert readiness.blocking_count == 0
+    assert current_run is not None and integrity is None
+
+    WorkflowService(session, storage).transition(case.id, models.WorkflowState.REVIEW, actor="employee")
+    assert WorkflowService(session, storage).get_state(case.id) is models.WorkflowState.REVIEW
+
+
+def test_prepare_to_review_api_returns_structured_409(session):
+    case, _applicant, _application, passport, _trip = ready_case(session)
+    storage = MemoryStorage()
+    CanadaPreparationService(session, storage, FakeAdapter()).prepare(case.id, initiated_by="employee")
+    passport.number = ""
+    session.commit()
+
+    def override_session():
+        yield session
+
+    app.dependency_overrides[get_session] = override_session
+    app.dependency_overrides[generated_storage_provider] = lambda: storage
+    client = TestClient(app)
+    try:
+        response = client.post(f"/cases/{case.id}/transition", json={
+            "target_state": "REVIEW",
+            "actor": "employee",
+        })
+        assert response.status_code == 409
+        assert response.json()["detail"]["code"] == "prepare_review_readiness_blocked"
+        assert response.json()["detail"]["blocking_reasons"][0]["blocking"] is True
+    finally:
+        app.dependency_overrides.clear()
+
+
 def test_stale_review_ready_regress_but_submitted_is_terminal(session):
     for start_state in (models.WorkflowState.REVIEW, models.WorkflowState.READY):
         case, applicant, *_ = ready_case(session)

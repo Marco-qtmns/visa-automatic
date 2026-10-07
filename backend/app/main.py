@@ -51,7 +51,8 @@ async def not_found_handler(_request: Request, error: DomainNotFound):
 
 @app.exception_handler(DomainValidationError)
 async def validation_handler(_request: Request, error: DomainValidationError):
-    return JSONResponse(status_code=status.HTTP_409_CONFLICT, content={"detail": str(error)})
+    detail = getattr(error, "api_detail", None) or str(error)
+    return JSONResponse(status_code=status.HTTP_409_CONFLICT, content={"detail": detail})
 
 
 @app.exception_handler(DocumentUploadTooLarge)

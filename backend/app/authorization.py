@@ -69,6 +69,21 @@ ROLE_PERMISSIONS: dict[UserRole, frozenset[Permission]] = {
     UserRole.ADMIN: frozenset(Permission),
 }
 
+WORKFLOW_TRANSITION_PERMISSIONS: dict[tuple[str, str], Permission] = {
+    ("INTAKE", "DOCUMENTS"): Permission.WORKFLOW_WORK,
+    ("DOCUMENTS", "INTAKE"): Permission.WORKFLOW_WORK,
+    ("DOCUMENTS", "PREPARE"): Permission.WORKFLOW_WORK,
+    ("PREPARE", "DOCUMENTS"): Permission.WORKFLOW_WORK,
+    ("PREPARE", "REVIEW"): Permission.WORKFLOW_WORK,
+    ("REVIEW", "DOCUMENTS"): Permission.WORKFLOW_REVIEW,
+    ("REVIEW", "PREPARE"): Permission.WORKFLOW_WORK,
+    ("REVIEW", "READY"): Permission.WORKFLOW_REVIEW,
+    ("READY", "DOCUMENTS"): Permission.WORKFLOW_REVIEW,
+    ("READY", "PREPARE"): Permission.WORKFLOW_REVIEW,
+    ("READY", "REVIEW"): Permission.WORKFLOW_REVIEW,
+    ("READY", "SUBMITTED"): Permission.WORKFLOW_SUBMIT,
+}
+
 
 def permissions_for_role(role: str) -> frozenset[Permission]:
     try:
@@ -264,9 +279,14 @@ def authorize_business_request(
 def enforce_workflow_target(
     user: User, target_state: str, *, current_state: str | None = None
 ) -> None:
-    if target_state == "SUBMITTED":
-        enforce_permission(user, Permission.WORKFLOW_SUBMIT)
-    elif target_state == "READY" or current_state in {"REVIEW", "READY"}:
-        enforce_permission(user, Permission.WORKFLOW_REVIEW)
-    else:
-        enforce_permission(user, Permission.WORKFLOW_WORK)
+    permission = WORKFLOW_TRANSITION_PERMISSIONS.get((current_state or "", target_state))
+    if permission is None:
+        # Invalid domain transitions are still decided by WorkflowService (409),
+        # while attempts to cross a final-review boundary remain role-protected.
+        if target_state == "SUBMITTED":
+            permission = Permission.WORKFLOW_SUBMIT
+        elif target_state == "READY" or current_state in {"REVIEW", "READY"}:
+            permission = Permission.WORKFLOW_REVIEW
+        else:
+            permission = Permission.WORKFLOW_WORK
+    enforce_permission(user, permission)

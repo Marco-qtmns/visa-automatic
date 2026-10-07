@@ -15,7 +15,9 @@ from .core import DomainNotFound, DomainValidationError
 
 
 class WorkflowTransitionError(DomainValidationError):
-    pass
+    def __init__(self, message: str, *, api_detail: dict | None = None):
+        super().__init__(message)
+        self.api_detail = api_detail
 
 
 ALLOWED_TRANSITIONS: dict[models.WorkflowState, frozenset[models.WorkflowState]] = {
@@ -202,12 +204,56 @@ class WorkflowService:
         if current == models.WorkflowState.PREPARE and target_state == models.WorkflowState.REVIEW:
             from .preparation_runs import CanadaPreparationService
 
-            _readiness, current_run, _integrity = CanadaPreparationService(
+            readiness, current_run, integrity = CanadaPreparationService(
                 self.session, self.storage
             ).current_package(case.id)
             if current_run is None:
+                if not readiness.ready:
+                    reasons = [item.model_dump(mode="json") for item in readiness.issues]
+                else:
+                    code, message, action = {
+                        "no_matching_success": (
+                            "current_preparation_run_required",
+                            "Generate a new application package from the current canonical data.",
+                            "Open preparation and generate the package again",
+                        ),
+                        "artifact_manifest_missing": (
+                            "preparation_artifact_manifest_invalid",
+                            "The generated package does not contain the complete required artifact set.",
+                            "Regenerate the application package",
+                        ),
+                        "artifact_missing": (
+                            "preparation_artifact_missing",
+                            "A generated package artifact is missing from storage.",
+                            "Regenerate the application package",
+                        ),
+                        "artifact_hash_mismatch": (
+                            "preparation_artifact_integrity_failed",
+                            "A generated package artifact failed its integrity check.",
+                            "Regenerate the application package",
+                        ),
+                    }.get(integrity, (
+                        "current_preparation_run_required",
+                        "A current complete generated application package is required.",
+                        "Open preparation and generate the package",
+                    ))
+                    reasons = [{
+                        "code": code,
+                        "path": "preparation.current_run",
+                        "section": "preparation",
+                        "label": "Current generated application package",
+                        "severity": "blocking",
+                        "blocking": True,
+                        "message": message,
+                        "action": action,
+                    }]
                 raise WorkflowTransitionError(
-                    "a current complete generated application package is required before REVIEW"
+                    "a current complete generated application package is required before REVIEW",
+                    api_detail={
+                        "code": "prepare_review_readiness_blocked",
+                        "message": "Case is not ready for review.",
+                        "blocking_reasons": reasons,
+                    },
                 )
 
         if current == models.WorkflowState.REVIEW and target_state == models.WorkflowState.READY:

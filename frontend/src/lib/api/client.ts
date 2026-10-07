@@ -52,6 +52,15 @@ export class ApiError extends Error {
 
 function errorMessage(detail: unknown, fallback: string): string {
   if (typeof detail === "string") return detail;
+  if (typeof detail === "object" && detail !== null && "message" in detail) {
+    const message = String(detail.message);
+    const reasons = "blocking_reasons" in detail && Array.isArray(detail.blocking_reasons)
+      ? detail.blocking_reasons
+          .map((item) => typeof item === "object" && item !== null && "message" in item ? String(item.message) : null)
+          .filter(Boolean)
+      : [];
+    return reasons.length ? `${message} ${reasons.join("; ")}` : message;
+  }
   if (Array.isArray(detail)) {
     const messages = detail
       .map((item) =>
