@@ -75,39 +75,25 @@ report_update continuation_smoke_result PASS
 app_port=$(sed -n 's/^APP_PORT=//p' "$env_file" | tail -1)
 app_port=${app_port:-8080}
 base_url="http://127.0.0.1:$app_port/api"
-temporary=$(mktemp -d)
-cleanup() {
-    case "$temporary" in
-        /tmp/*|/private/tmp/*) rm -rf -- "$temporary" ;;
-        *) echo "Temporary directory cleanup refused." >&2 ;;
-    esac
+assert_unauthenticated() {
+    endpoint=$1
+    status=$(curl --silent --output /dev/null --write-out '%{http_code}' "$base_url$endpoint")
+    [ "$status" = 401 ]
 }
-trap 'cleanup; failed' EXIT HUP INT TERM
+trap failed EXIT HUP INT TERM
 
 curl --fail --silent --show-error "$base_url/health/ready" >/dev/null
-artifact_json=$(curl --fail --silent --show-error \
-    "$base_url/preparation-runs/$run_id/artifacts")
-artifact_id=$(printf '%s' "$artifact_json" | python3 -c \
-    'import json,sys; values=json.load(sys.stdin); assert len(values)==4; print(values[0]["id"])')
-curl --fail --silent --show-error "$base_url/documents/$document_id/content" \
-    -o "$temporary/document.pdf"
-curl --fail --silent --show-error "$base_url/preparation-artifacts/$artifact_id/content" \
-    -o "$temporary/artifact.pdf"
-head -c 5 "$temporary/artifact.pdf" | grep '%PDF-' >/dev/null
+assert_unauthenticated "/documents/$document_id/content"
+assert_unauthenticated "/preparation-runs/$run_id/artifacts"
+printf 'PASS  Protected document and artifact APIs reject unauthenticated access.\n'
 
 before_state=$(verify_state)
-printf 'PASS  Synthetic case, canonical application, run, document, artifacts, and hashes verified before restart.\n'
+printf 'PASS  Synthetic case, canonical application, run, document, artifacts, and content hashes verified before restart.\n'
 compose restart postgres backend frontend proxy
 wait_ready
 after_restart=$(verify_state)
 [ "$before_state" = "$after_restart" ]
-curl --fail --silent --show-error "$base_url/documents/$document_id/content" \
-    -o "$temporary/document-after-restart.pdf"
-curl --fail --silent --show-error "$base_url/preparation-artifacts/$artifact_id/content" \
-    -o "$temporary/artifact-after-restart.pdf"
-cmp "$temporary/document.pdf" "$temporary/document-after-restart.pdf"
-cmp "$temporary/artifact.pdf" "$temporary/artifact-after-restart.pdf"
-printf 'PASS  State and API downloads survived container restart.\n'
+printf 'PASS  State and byte-identical stored content survived container restart.\n'
 
 if [ "$force_recreate" = true ]; then
     compose up -d --force-recreate
@@ -121,5 +107,4 @@ fi
 
 report_update persistence_result PASS
 trap - EXIT HUP INT TERM
-cleanup
 printf 'PASS  ARM64 synthetic generation and persistence smoke test completed.\n'

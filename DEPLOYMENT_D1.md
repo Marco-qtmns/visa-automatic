@@ -212,9 +212,10 @@ Run the supported complete smoke/persistence sequence:
 ```
 
 It verifies IMM5257, IMM5707, IMM5476 and forced continuation; PDF presence and
-SHA-256; `current` status; controlled API downloads; case, canonical
+SHA-256; `current` status; authentication enforcement on protected document and
+artifact APIs; case, canonical
 application, requirements, document, run, artifacts, and hashes before restart;
-then the same state and byte-identical downloads after restart and explicit
+then the same state and byte-identical stored content after restart and explicit
 container recreation. It never removes volumes or persistent data.
 
 Also load the employee UI and download the synthetic artifacts from a second

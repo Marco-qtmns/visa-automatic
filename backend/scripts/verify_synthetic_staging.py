@@ -39,18 +39,23 @@ def verify(case_id: uuid.UUID, run_id: uuid.UUID, document_id: uuid.UUID) -> dic
             raise RuntimeError("synthetic canonical state missing")
         if document.case_id != case_id or not document_storage.exists(document.storage_path):
             raise RuntimeError("synthetic document missing")
+        with document_storage.open(document.storage_path) as source:
+            document_hash = hashlib.sha256(source.read()).hexdigest()
 
         service = CanadaPreparationService(session, generated_storage)
         run = service.get_run(run_id)
         if run.case_id != case_id or run.status != "succeeded":
             raise RuntimeError("synthetic preparation run missing")
         artifacts = service.artifacts(run_id)
+        artifact_hashes = {}
         for artifact in artifacts:
             if not generated_storage.exists(artifact.storage_key):
                 raise RuntimeError("synthetic artifact missing")
             with generated_storage.open(artifact.storage_key) as source:
-                if hashlib.sha256(source.read()).hexdigest() != artifact.file_hash:
+                actual_hash = hashlib.sha256(source.read()).hexdigest()
+                if actual_hash != artifact.file_hash:
                     raise RuntimeError("synthetic artifact hash mismatch")
+                artifact_hashes[artifact.artifact_type] = actual_hash
         _readiness, current_run, reason = service.current_package(case_id)
         if current_run is None or current_run.id != run_id or reason is not None:
             raise RuntimeError("synthetic package is not current")
@@ -62,7 +67,9 @@ def verify(case_id: uuid.UUID, run_id: uuid.UUID, document_id: uuid.UUID) -> dic
             "canonical_application_count": application_count,
             "requirement_count": requirement_count,
             "document_count": 1,
+            "document_hash": document_hash,
             "artifact_types": sorted(item.artifact_type for item in artifacts),
+            "artifact_hashes": artifact_hashes,
         }
 
 

@@ -476,8 +476,9 @@ def test_deployment_scripts_guard_destructive_operations():
         value for name, value in scripts.items() if name != "raspberry-smoke.sh"
     )
     smoke = scripts["raspberry-smoke.sh"]
-    assert 'case "$temporary" in' in smoke
-    assert '/tmp/*|/private/tmp/*) rm -rf -- "$temporary"' in smoke
+    assert 'assert_unauthenticated "/documents/$document_id/content"' in smoke
+    assert 'assert_unauthenticated "/preparation-runs/$run_id/artifacts"' in smoke
+    assert '[ "$status" = 401 ]' in smoke
     restore = scripts["restore-test.sh"]
     assert "--confirm-empty-target" in restore
     assert '"$destination_database" = "$current_database"' in restore
