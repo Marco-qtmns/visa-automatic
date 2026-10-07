@@ -17,6 +17,7 @@ it("gates application rendering on the backend identity and supports logout", as
   render(<AuthShell><div>Protected cases</div></AuthShell>);
   await waitFor(() => expect(screen.getByText("Protected cases")).toBeInTheDocument());
   expect(screen.getByText("Admin User · ADMIN")).toBeInTheDocument();
+  expect(screen.getByRole("link", { name: "Users & audit" })).toHaveAttribute("href", "/admin/users");
   fireEvent.click(screen.getByRole("button", { name: "Log out" }));
   await waitFor(() => expect(replace).toHaveBeenCalledWith("/login"));
 });

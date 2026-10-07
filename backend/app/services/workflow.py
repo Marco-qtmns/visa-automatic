@@ -7,6 +7,8 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from .. import models
+from ..models.auth import User
+from .audit import record_audit
 from ..models import canada as cm
 from ..storage import LocalStorageProvider, StorageProvider
 from .core import DomainNotFound, DomainValidationError
@@ -228,6 +230,7 @@ class WorkflowService:
         target_state: models.WorkflowState,
         actor: str | None = None,
         reason: str | None = None,
+        audit_actor: User | None = None,
     ) -> tuple[models.WorkflowState, models.Case, models.WorkflowTransition]:
         case = self._case(case_id, for_update=True)
         self._validate_transition(case, target_state, actor=actor)
@@ -241,6 +244,25 @@ class WorkflowService:
             reason=reason,
         )
         self.session.add(transition)
+        record_audit(
+            self.session,
+            actor=audit_actor,
+            action="WORKFLOW_TRANSITION",
+            target_entity_type="CASE",
+            target_entity_id=case.id,
+            case_id=case.id,
+            metadata={"from_state": previous_state.value, "to_state": target_state.value},
+        )
+        if target_state == models.WorkflowState.READY:
+            record_audit(
+                self.session, actor=audit_actor, action="FINAL_REVIEW_APPROVED",
+                target_entity_type="CASE", target_entity_id=case.id, case_id=case.id,
+            )
+        elif target_state == models.WorkflowState.SUBMITTED:
+            record_audit(
+                self.session, actor=audit_actor, action="CASE_SUBMITTED",
+                target_entity_type="CASE", target_entity_id=case.id, case_id=case.id,
+            )
         self.session.commit()
         self.session.refresh(case)
         self.session.refresh(transition)

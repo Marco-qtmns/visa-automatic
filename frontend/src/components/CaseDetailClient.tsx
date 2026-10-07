@@ -10,10 +10,13 @@ import { WorkflowStepper } from "./WorkflowStepper";
 import { CommunicationsSection } from "./CommunicationsSection";
 import { CanadaApplicationSection } from "./CanadaApplicationSection";
 import { PreparationSection } from "./PreparationReadinessSection";
+import { useCurrentUser } from "./AuthShell";
+import { CaseAuditSection } from "./CaseAuditSection";
 
 const actor = process.env.NEXT_PUBLIC_WORKFLOW_ACTOR ?? "manual-ui";
 
 export function CaseDetailClient({ caseId }: { caseId: string }) {
+  const currentUser = useCurrentUser();
   const [data, setData] = useState<CaseDetailBundle | null>(null);
   const [error, setError] = useState(""); const [editing, setEditing] = useState(false); const [workflowError, setWorkflowError] = useState(""); const [busy, setBusy] = useState(false);
   const load = useCallback(async () => { setError(""); try { setData(await loadCaseDetail(caseId)); } catch (reason) { setError(reason instanceof Error ? reason.message : "Case could not be loaded."); } }, [caseId]);
@@ -25,6 +28,7 @@ export function CaseDetailClient({ caseId }: { caseId: string }) {
   async function transition(target: WorkflowState, event: FormEvent<HTMLFormElement>) { event.preventDefault(); setBusy(true); setWorkflowError(""); const values = new FormData(event.currentTarget); try { await api.transition(caseId, target, actor, String(values.get("reason") || "") || undefined); await load(); } catch (reason) { setWorkflowError(reason instanceof Error ? reason.message : "Transition was rejected."); } finally { setBusy(false); } }
   const refresh = async () => { await load(); };
   const applicant = data.people.find(person => person.roles.includes("applicant"));
+  const allowedTargets = data.workflow.allowed_targets.filter(target => currentUser?.role !== "CASE_WORKER" || (!["REVIEW", "READY"].includes(data.workflow.current_state) && !["READY", "SUBMITTED"].includes(target)));
 
   return <div className="detail-stack">
     <div className="page-heading"><div><p className="eyebrow">Case {data.case.case_number}</p><h1>{applicant ? `${applicant.first_name} ${applicant.last_name}` : "Applicant not assigned"}</h1><p className="subtitle">{data.case.visa_type} — {data.case.purpose}</p></div><Link className="button button-secondary" href="/cases">Back to cases</Link></div>
@@ -42,9 +46,10 @@ export function CaseDetailClient({ caseId }: { caseId: string }) {
     <DocumentsSection caseId={caseId} items={data.documents} people={data.people} requirements={data.requirements} documentTypes={data.documentTypes} matches={data.documentMatches} classifications={data.documentClassifications} qualityChecks={data.documentQualityChecks} onChanged={refresh} />
     <TasksSection caseId={caseId} items={data.tasks} requirements={data.requirements} documents={data.documents} onChanged={refresh} />
     <section className="section-card" id="workflow"><div className="section-heading"><div><h2>Workflow</h2><span className="muted">Transitions are validated and recorded by the backend. Actor: {actor}</span></div><StatusBadge value={data.workflow.current_state} /></div><WorkflowStepper current={data.workflow.current_state} />
-      <h3>Allowed transitions</h3>{!data.workflow.allowed_targets.length ? <EmptyWorkflow /> : <div className="transition-forms">{data.workflow.allowed_targets.map(target => <form className="transition-form" key={target} onSubmit={event => void transition(target, event)}><strong>{data.workflow.current_state} → {target}</strong><input name="reason" aria-label={`Reason for ${target}`} placeholder="Reason (optional)" /><button className="button button-small" disabled={busy}>Move to {target}</button></form>)}</div>}{workflowError && <div className="form-error" role="alert">{workflowError}</div>}
+      <h3>Allowed transitions</h3>{!allowedTargets.length ? <EmptyWorkflow /> : <div className="transition-forms">{allowedTargets.map(target => <form className="transition-form" key={target} onSubmit={event => void transition(target, event)}><strong>{data.workflow.current_state} → {target}</strong><input name="reason" aria-label={`Reason for ${target}`} placeholder="Reason (optional)" /><button className="button button-small" disabled={busy}>Move to {target}</button></form>)}</div>}{workflowError && <div className="form-error" role="alert">{workflowError}</div>}
       <h3 className="history-title">Transition history</h3>{!data.workflow.history.length ? <div className="empty-state">No transitions recorded.</div> : <div>{data.workflow.history.map(entry => <div className="transition-entry" key={entry.id}><div><strong>{new Date(entry.created_at).toLocaleString()}</strong><div className="muted">{entry.actor || "Unknown actor"}</div></div><div><div className="transition-arrow">{entry.from_state} → {entry.to_state}</div>{entry.reason && <p>{entry.reason}</p>}</div></div>)}</div>}
     </section>
+    {currentUser && currentUser.role !== "CASE_WORKER" ? <CaseAuditSection caseId={caseId} /> : null}
   </div>;
 }
 

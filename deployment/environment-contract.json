@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "expected_alembic_head": "0010_auth_foundation",
+  "expected_alembic_head": "0011_authorization_audit",
   "variables": [
     {"name": "DATA_ROOT", "service": "compose/host", "required": true, "env_file": true, "safe_example": "/srv/visa-automatic/data", "default": null, "secret": false, "validation": "absolute safe path on SSD/NVMe; not /, /home, or /srv", "missing_behavior": "Compose interpolation fails before startup"},
     {"name": "BIND_ADDRESS", "service": "proxy", "required": false, "env_file": true, "safe_example": "127.0.0.1", "default": "127.0.0.1", "secret": false, "validation": "IP address or resolvable host bind value", "missing_behavior": "loopback-only default is used"},

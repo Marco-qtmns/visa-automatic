@@ -243,6 +243,6 @@ def test_auth_migration_upgrades_an_existing_0009_database(tmp_path, monkeypatch
     monkeypatch.setenv("DATABASE_URL", url)
     command.upgrade(Config(str(PROJECT_ROOT / "backend/alembic.ini")), "head")
     with engine.connect() as connection:
-        assert connection.scalar(text("SELECT version_num FROM alembic_version")) == "0010_auth_foundation"
+        assert connection.scalar(text("SELECT version_num FROM alembic_version")) == "0011_authorization_audit"
     assert {"auth_users", "auth_sessions", "auth_mfa_challenges"} <= set(inspect(engine).get_table_names())
     engine.dispose()

@@ -52,7 +52,7 @@ def _environment_names(path: Path) -> set[str]:
 
 def test_environment_contract_matches_example_and_preflight():
     contract = json.loads((PROJECT_ROOT / "deployment/environment-contract.json").read_text())
-    assert contract["expected_alembic_head"] == "0010_auth_foundation"
+    assert contract["expected_alembic_head"] == "0011_authorization_audit"
     variables = contract["variables"]
     assert len({item["name"] for item in variables}) == len(variables)
     for item in variables:
@@ -289,9 +289,10 @@ def test_backend_image_is_resolved_from_compose_after_build():
 
 def test_accepted_migration_chain_has_one_expected_head():
     script = ScriptDirectory.from_config(Config(str(PROJECT_ROOT / "backend/alembic.ini")))
-    assert script.get_heads() == ["0010_auth_foundation"]
+    assert script.get_heads() == ["0011_authorization_audit"]
     revisions = list(script.walk_revisions(base="base", head="heads"))
     assert [item.revision for item in revisions] == [
+        "0011_authorization_audit",
         "0010_auth_foundation",
         "0009_canada_preparation_runs",
         "0008_canada_legacy_import",
@@ -338,7 +339,7 @@ def test_migration_revision_graph_fits_alembic_version_column():
             children[parent].append(revision)
     assert all(len(items) <= 1 for items in children.values()), "migration graph branches"
     heads = [revision for revision, items in children.items() if not items]
-    assert heads == ["0010_auth_foundation"]
+    assert heads == ["0011_authorization_audit"]
 
     visited: set[str] = set()
     current: str | None = roots[0]
@@ -632,11 +633,11 @@ def test_synthetic_deployment_fixture_generates_and_verifies(
         ))
         session.execute(
             text("INSERT INTO alembic_version (version_num) VALUES (:revision)"),
-            {"revision": "0010_auth_foundation"},
+            {"revision": "0011_authorization_audit"},
         )
     restored = verify_restored_staging.verify()
     assert restored["status"] == "PASS"
-    assert restored["alembic_revision"] == "0010_auth_foundation"
+    assert restored["alembic_revision"] == "0011_authorization_audit"
     assert restored["current_package_count"] == 1
     assert set(restored["artifact_types"]) == expected
     engine.dispose()

@@ -8,6 +8,7 @@ from datetime import date
 
 import pytest
 from fastapi.testclient import TestClient
+from sqlalchemy import select
 
 from backend.app import models
 from backend.app.api.canada_preparation import canada_form_generator_provider
@@ -307,6 +308,8 @@ def test_api_status_prepare_history_content_and_no_storage_path(session):
         content = client.get(f"/preparation-artifacts/{artifact_body['id']}/content")
         assert content.status_code == 200 and content.content.startswith(b"%PDF-")
         assert content.headers["content-disposition"].startswith("inline")
+        actions = set(session.scalars(select(models.ApplicationAuditEvent.action)))
+        assert {"PREPARATION_RUN_CREATED", "PREPARATION_GENERATION_COMPLETED", "PREPARATION_ARTIFACT_GENERATED"} <= actions
     finally:
         app.dependency_overrides.clear()
 

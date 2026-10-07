@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import uuid
+from datetime import datetime
 from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, EmailStr, Field
@@ -49,3 +50,37 @@ class UserCreate(BaseModel):
     display_name: str = Field(min_length=1, max_length=200)
     password: str
     role: Literal["ADMIN", "CASE_WORKER", "REVIEWER"]
+
+
+class UserAdminRead(UserRead):
+    created_at: datetime
+    last_successful_login_at: datetime | None
+    active_session_count: int = 0
+
+
+class UserUpdate(BaseModel):
+    display_name: str | None = Field(default=None, min_length=1, max_length=200)
+    role: Literal["ADMIN", "CASE_WORKER", "REVIEWER"] | None = None
+    is_active: bool | None = None
+
+
+class AdminActionRead(BaseModel):
+    status: Literal["ok"] = "ok"
+    user_id: uuid.UUID
+    revoked_sessions: int = 0
+
+
+class AuditEventRead(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    id: uuid.UUID
+    created_at: datetime
+    actor_user_id: uuid.UUID | None
+    actor_role: str | None
+    actor_display_name: str | None = None
+    actor_email: str | None = None
+    action: str
+    target_entity_type: str
+    target_entity_id: str | None
+    case_id: uuid.UUID | None
+    outcome: str
+    metadata_json: dict

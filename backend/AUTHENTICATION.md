@@ -5,7 +5,7 @@ entered. Network or Tailscale reachability is not treated as identity.
 
 ## Bootstrap
 
-After applying migration `0010_auth_foundation`, create the first administrator
+After applying migrations through `0011_authorization_audit`, create the first administrator
 inside the backend container. The password is read interactively and is never a
 command-line argument:
 

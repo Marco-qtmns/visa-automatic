@@ -8,7 +8,7 @@ from fastapi import APIRouter, Depends
 from fastapi.responses import StreamingResponse
 from starlette.background import BackgroundTask
 from sqlalchemy.orm import Session
-
+from ..authorization import CurrentUser
 from ..config.canada_form_adapter_mapping import (
     ADAPTER_MAPPING_SPEC_JSON,
     ADAPTER_MAPPING_VERSION,
@@ -93,9 +93,10 @@ def prepare_case(
     session: SessionDep,
     storage: GeneratedStorageDep,
     generator: GeneratorDep,
+    user: CurrentUser,
 ):
     service = CanadaPreparationService(session, storage, generator)
-    run = service.prepare(case_id, initiated_by=payload.initiated_by)
+    run = service.prepare(case_id, initiated_by=payload.initiated_by, audit_actor=user)
     return service.detail(run)
 
 

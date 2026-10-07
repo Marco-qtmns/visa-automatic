@@ -2,10 +2,11 @@ from __future__ import annotations
 
 from fastapi.testclient import TestClient
 import pytest
+from sqlalchemy import select
 
 from backend.app.database import get_session
 from backend.app.main import app
-from backend.app.models import RequirementFulfillmentStatus, WorkflowState
+from backend.app.models import ApplicationAuditEvent, RequirementFulfillmentStatus, WorkflowState
 from backend.app.schemas.core import (
     CaseCreate,
     DocumentCreate,
@@ -320,6 +321,11 @@ def test_workflow_api_and_direct_patch_prevention(session):
         assert transition.status_code == 200
         assert transition.json()["previous_state"] == "INTAKE"
         assert transition.json()["current_state"] == "DOCUMENTS"
+        audit = session.scalar(select(ApplicationAuditEvent).where(
+            ApplicationAuditEvent.action == "WORKFLOW_TRANSITION"
+        ))
+        assert audit is not None and audit.case_id.hex == case_id.replace("-", "")
+        assert audit.metadata_json == {"from_state": "INTAKE", "to_state": "DOCUMENTS"}
         invalid = client.post(f"/cases/{case_id}/transition", json={
             "target_state": "REVIEW"
         })

@@ -11,8 +11,10 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from .. import models
+from ..models.auth import User
 from ..schemas import core as schemas
 from .core import CoreDataService, DomainNotFound, DomainValidationError
+from .audit import record_audit
 
 
 PersonRole = Literal[
@@ -319,8 +321,16 @@ class CaseApplicationService:
         self.core = CoreDataService(session)
         self.engine = RequirementEngine(session)
 
-    def create_case(self, payload: schemas.CaseCreate) -> models.Case:
-        case = self.core.create_case(payload)
+    def create_case(
+        self, payload: schemas.CaseCreate, *, audit_actor: User | None = None
+    ) -> models.Case:
+        def audit(case: models.Case) -> None:
+            record_audit(
+                self.core.session, actor=audit_actor, action="CASE_CREATED",
+                target_entity_type="CASE", target_entity_id=case.id, case_id=case.id,
+            )
+
+        case = self.core.create_case(payload, before_commit=audit)
         self.engine.evaluate(case.id)
         return case
 

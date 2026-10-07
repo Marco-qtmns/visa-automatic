@@ -209,8 +209,8 @@ pass "Backend healthy"
 report_update service_health.backend PASS
 revision_output=$(compose exec -T backend alembic -c backend/alembic.ini current)
 revision=$(printf '%s\n' "$revision_output" | awk 'NR == 1 {print $1}')
-[ "$revision" = 0010_auth_foundation ] || critical "Alembic did not reach expected head"
-pass "Alembic reached 0010_auth_foundation"
+[ "$revision" = 0011_authorization_audit ] || critical "Alembic did not reach expected head"
+pass "Alembic reached 0011_authorization_audit"
 report_update alembic_revision "$revision"
 
 compose up -d frontend || critical "Frontend start failed"

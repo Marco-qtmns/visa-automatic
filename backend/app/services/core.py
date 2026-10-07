@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import uuid
 from datetime import datetime, timezone
-from typing import TypeVar
+from typing import Callable, TypeVar
 
 from pydantic import BaseModel
 from sqlalchemy import select
@@ -47,9 +47,14 @@ class CoreDataService:
             raise DomainValidationError(f"{label} belongs to a different case")
         return value
 
-    def _save(self, value: ModelT) -> ModelT:
+    def _save(
+        self, value: ModelT, *, before_commit: Callable[[ModelT], None] | None = None
+    ) -> ModelT:
         self.session.add(value)
         try:
+            if before_commit is not None:
+                self.session.flush()
+                before_commit(value)
             self.session.commit()
         except IntegrityError as error:
             self.session.rollback()
@@ -62,8 +67,17 @@ class CoreDataService:
             setattr(value, key, item)
         return self._save(value)
 
-    def create_case(self, payload: schemas.CaseCreate) -> models.Case:
-        return self._save(models.Case(**payload.model_dump()))
+    def create_case(
+        self,
+        payload: schemas.CaseCreate,
+        *,
+        case_id: uuid.UUID | None = None,
+        before_commit: Callable[[models.Case], None] | None = None,
+    ) -> models.Case:
+        values = payload.model_dump()
+        if case_id is not None:
+            values["id"] = case_id
+        return self._save(models.Case(**values), before_commit=before_commit)
 
     def list_cases(self) -> list[models.Case]:
         return list(self.session.scalars(select(models.Case).order_by(models.Case.created_at)))

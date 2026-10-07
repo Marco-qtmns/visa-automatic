@@ -120,7 +120,7 @@ def record_event(session: Session, event_type: str, *, user_id=None, subject: st
     session.add(SecurityEvent(event_type=event_type, user_id=user_id, subject_hash=token_hash(subject) if subject else None))
 
 
-def create_user(session: Session, *, email: str, display_name: str, password: str, role: str) -> User:
+def create_user(session: Session, *, email: str, display_name: str, password: str, role: str, commit: bool = True) -> User:
     normalized = normalized_email(email)
     if session.scalar(select(User).where(User.email == normalized)):
         raise ValueError("A user with this email already exists.")
@@ -130,8 +130,11 @@ def create_user(session: Session, *, email: str, display_name: str, password: st
     if not user.display_name:
         raise ValueError("Display name is required.")
     session.add(user)
-    session.commit()
-    session.refresh(user)
+    if commit:
+        session.commit()
+        session.refresh(user)
+    else:
+        session.flush()
     return user
 
 

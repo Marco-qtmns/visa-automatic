@@ -10,6 +10,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from .. import models
+from ..models.auth import User
 from ..models.core import utcnow
 from ..config.canada_preparation_policy import PAYLOAD_SCHEMA_VERSION, POLICY_VERSION
 from ..integrations.canada_forms import (
@@ -28,6 +29,7 @@ from .canada_preparation import (
     canonical_payload_hash,
 )
 from .core import DomainNotFound, DomainValidationError
+from .audit import record_audit
 
 
 ARTIFACT_FILENAMES = {
@@ -69,7 +71,9 @@ class CanadaPreparationService:
         self.storage = storage or LocalStorageProvider.generated_from_environment()
         self.adapter = adapter
 
-    def prepare(self, case_id: uuid.UUID, *, initiated_by: str) -> models.PreparationRun:
+    def prepare(
+        self, case_id: uuid.UUID, *, initiated_by: str, audit_actor: User | None = None
+    ) -> models.PreparationRun:
         case = self.session.get(models.Case, case_id)
         if case is None:
             raise DomainNotFound("Case not found")
@@ -94,6 +98,12 @@ class CanadaPreparationService:
         )
         self.session.add(run)
         try:
+            self.session.flush()
+            record_audit(
+                self.session, actor=audit_actor, action="PREPARATION_RUN_CREATED",
+                target_entity_type="PREPARATION_RUN", target_entity_id=run.id,
+                case_id=case_id,
+            )
             self.session.commit()
         except IntegrityError as error:
             self.session.rollback()
@@ -126,18 +136,34 @@ class CanadaPreparationService:
                 raise PreparationExecutionError("payload_changed", "Application data changed during generation.")
             run.status = "succeeded"
             run.completed_at = utcnow()
+            self.session.flush()
+            record_audit(
+                self.session, actor=audit_actor, action="PREPARATION_GENERATION_COMPLETED",
+                target_entity_type="PREPARATION_RUN", target_entity_id=run.id,
+                case_id=case_id,
+            )
+            for artifact in run.artifacts:
+                record_audit(
+                    self.session, actor=audit_actor,
+                    action="PREPARATION_ARTIFACT_GENERATED",
+                    target_entity_type="PREPARATION_ARTIFACT", target_entity_id=artifact.id,
+                    case_id=case_id, metadata={"artifact_type": artifact.artifact_type},
+                )
             self.session.commit()
             self.session.refresh(run)
             return run
         except PreparationExecutionError as error:
             self.session.rollback()
             self._cleanup(stored_keys)
-            self._fail(run.id, error.code, error.safe_summary)
+            self._fail(run.id, error.code, error.safe_summary, audit_actor=audit_actor)
             raise DomainValidationError(error.safe_summary) from error
         except Exception as error:
             self.session.rollback()
             self._cleanup(stored_keys)
-            self._fail(run.id, "generator_failed", "Application package generation failed.")
+            self._fail(
+                run.id, "generator_failed", "Application package generation failed.",
+                audit_actor=audit_actor,
+            )
             raise DomainValidationError("Application package generation failed.") from error
 
     def _validate_manifest(self, generated, needs_continuation: bool) -> None:
@@ -158,7 +184,9 @@ class CanadaPreparationService:
             if not item.template_hash or len(item.template_hash) != 64:
                 raise PreparationExecutionError("artifact_manifest_invalid", "Generator template provenance is incomplete.")
 
-    def _fail(self, run_id: uuid.UUID, code: str, summary: str) -> None:
+    def _fail(
+        self, run_id: uuid.UUID, code: str, summary: str, *, audit_actor: User | None = None
+    ) -> None:
         run = self.session.get(models.PreparationRun, run_id)
         if run is None:
             return
@@ -166,6 +194,11 @@ class CanadaPreparationService:
         run.error_code = code
         run.error_summary = summary[:255]
         run.completed_at = utcnow()
+        record_audit(
+            self.session, actor=audit_actor, action="PREPARATION_GENERATION_FAILED",
+            target_entity_type="PREPARATION_RUN", target_entity_id=run.id,
+            case_id=run.case_id, outcome="FAILURE", metadata={"error_code": code},
+        )
         self.session.commit()
 
     def list_runs(self, case_id: uuid.UUID) -> list[models.PreparationRun]:

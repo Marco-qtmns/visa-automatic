@@ -19,7 +19,9 @@ from ..quality_evaluators import (
     quality_evaluator_from_environment,
 )
 from ..database import get_session
+from ..authorization import CurrentUser, enforce_workflow_target
 from ..schemas import core as schemas
+from ..schemas.auth import AuditEventRead
 from ..services import (
     CaseApplicationService,
     CoreDataService,
@@ -37,6 +39,7 @@ from ..services import (
 )
 from ..services.requirements import DEFAULT_RULE_CATALOG
 from ..storage import LocalStorageProvider, StorageProvider
+from ..services.audit import case_audit_events
 
 
 router = APIRouter()
@@ -94,8 +97,8 @@ def service(session: Session) -> CoreDataService:
 
 
 @router.post("/cases", response_model=schemas.CaseRead, status_code=status.HTTP_201_CREATED)
-def create_case(payload: schemas.CaseCreate, session: SessionDep):
-    return CaseApplicationService(session).create_case(payload)
+def create_case(payload: schemas.CaseCreate, session: SessionDep, user: CurrentUser):
+    return CaseApplicationService(session).create_case(payload, audit_actor=user)
 
 
 @router.get("/cases", response_model=list[schemas.CaseRead])
@@ -656,12 +659,18 @@ def transition_case(
     payload: schemas.WorkflowTransitionRequest,
     session: SessionDep,
     storage: GeneratedStorageDep,
+    user: CurrentUser,
 ):
-    previous, case, transition = WorkflowService(session, storage).transition(
+    workflow = WorkflowService(session, storage)
+    enforce_workflow_target(
+        user, payload.target_state.value, current_state=workflow.get_state(case_id).value
+    )
+    previous, case, transition = workflow.transition(
         case_id,
         payload.target_state,
         actor=payload.actor,
         reason=payload.reason,
+        audit_actor=user,
     )
     return {
         "case_id": case.id,
@@ -669,3 +678,17 @@ def transition_case(
         "current_state": case.workflow_state,
         "transition": transition,
     }
+
+
+@router.get("/cases/{case_id}/audit-events", response_model=list[AuditEventRead])
+def list_case_audit_events(case_id: uuid.UUID, session: SessionDep):
+    service(session).get_case(case_id)
+    events = case_audit_events(session, case_id)
+    users = {
+        event.actor_user_id: session.get(models.User, event.actor_user_id)
+        for event in events if event.actor_user_id is not None
+    }
+    return [AuditEventRead.model_validate(event).model_copy(update={
+        "actor_display_name": users[event.actor_user_id].display_name if users.get(event.actor_user_id) else None,
+        "actor_email": users[event.actor_user_id].email if users.get(event.actor_user_id) else None,
+    }) for event in events]

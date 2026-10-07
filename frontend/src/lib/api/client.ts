@@ -122,6 +122,15 @@ export type LoginChallenge = {
   enrollment_secret: string | null; provisioning_uri: string | null;
 };
 export type Authenticated = { status: "authenticated"; user: AuthUser; csrf_token: string };
+export type AdminUser = AuthUser & {
+  created_at: string; last_successful_login_at: string | null; active_session_count: number;
+};
+export type AuditEvent = {
+  id: string; created_at: string; actor_user_id: string | null; actor_role: string | null;
+  actor_display_name: string | null; actor_email: string | null;
+  action: string; target_entity_type: string; target_entity_id: string | null;
+  case_id: string | null; outcome: string; metadata_json: Record<string, unknown>;
+};
 
 const json = (method: "POST" | "PATCH" | "PUT", body: unknown): RequestInit => ({
   method,
@@ -135,6 +144,17 @@ export const api = {
     request<Authenticated>("/auth/mfa/verify", json("POST", { challenge_token: challengeToken, code })),
   me: () => request<{ user: AuthUser }>("/auth/me"),
   logout: () => request<void>("/auth/logout", { method: "POST" }),
+  listUsers: () => request<AdminUser[]>("/auth/users"),
+  createUser: (payload: { email: string; display_name: string; password: string; role: AuthUser["role"] }) =>
+    request<AuthUser>("/auth/users", json("POST", payload)),
+  updateUser: (userId: string, payload: { display_name?: string; role?: AuthUser["role"]; is_active?: boolean }) =>
+    request<AdminUser>(`/auth/users/${userId}`, json("PATCH", payload)),
+  revokeUserSessions: (userId: string) =>
+    request<{ status: "ok"; user_id: string; revoked_sessions: number }>(`/auth/users/${userId}/sessions/revoke`, json("POST", {})),
+  resetUserMfa: (userId: string) =>
+    request<{ status: "ok"; user_id: string; revoked_sessions: number }>(`/auth/users/${userId}/mfa/reset`, json("POST", {})),
+  listSecurityAudit: () => request<AuditEvent[]>("/auth/audit-events"),
+  listCaseAudit: (caseId: string) => request<AuditEvent[]>(`/cases/${caseId}/audit-events`),
   listCases: () => request<CaseRecord[]>("/cases"),
   createCase: (payload: CaseCreate) =>
     request<CaseRecord>("/cases", json("POST", payload)),

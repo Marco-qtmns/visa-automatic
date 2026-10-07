@@ -58,7 +58,7 @@ compose up -d
 compose exec -T backend python -c \
     "import pymupdf, reportlab; print('generator dependencies: PASS')"
 compose exec -T backend alembic -c backend/alembic.ini current \
-    | grep 0010_auth_foundation >/dev/null
+    | grep 0011_authorization_audit >/dev/null
 
 smoke_json=$(compose exec -T backend \
     python -m backend.scripts.synthetic_staging_case --continuation)
