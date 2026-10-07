@@ -8,10 +8,13 @@ from pathlib import Path
 import pytest
 from sqlalchemy import func, select
 
-from canada.models import Activity, CanadaCase
+from canada.models import Activity, CanadaCase, FamilyMember, HistoryRecord
 from canada.case_store import save_case
 from backend.app import models
-from backend.app.config.canada_import_mapping import AUDITED_GENERATOR_MAPPINGS
+from backend.app.config.canada_import_mapping import (
+    AUDITED_GENERATOR_MAPPINGS,
+    COUNTRY_CODE_MAPPING_PATHS,
+)
 from backend.app.models import canada as cm
 from backend.app.schemas.canada import CanadaApplicationCreate
 from backend.app.services.canada import CanadaApplicationService
@@ -192,7 +195,7 @@ def test_failed_apply_rolls_back_the_complete_batch(session):
     ("Canada", "CAN"), ("BRA", "BRA"),
 ])
 def test_country_names_normalize_to_iso_alpha3_without_truncation(session, source, expected):
-    case, _applicant, _app = setup_application(session)
+    case, applicant, _app = setup_application(session)
     legacy = CanadaCase()
     legacy.identity.birth_country = source
     run = preview(session, case, legacy, hashlib.sha256(source.encode()).hexdigest())
@@ -200,15 +203,89 @@ def test_country_names_normalize_to_iso_alpha3_without_truncation(session, sourc
     assert change.proposed_value_json == expected
     assert change.raw_value_json == source
     assert change.classification == "SAFE_NEW"
+    CanadaLegacyImportService(session).apply(run.id, mode="safe")
+    assert session.get(cm.PersonBiography, applicant.id).birth_country_code == expected
+
+
+def test_every_mapped_country_route_uses_one_normalization_boundary_and_applies(session):
+    case, applicant, app = setup_application(session)
+    legacy = CanadaCase()
+    legacy.identity.birth_country = "Brasil"
+    legacy.identity.nationality = "Brazil"
+    legacy.identity.other_citizenship = "Canada"
+    legacy.identity.residence_country = "Switzerland"
+    legacy.passport.issuing_country = "Schweiz"
+    legacy.passport.identity_country = "Canada"
+    legacy.contact.country = "Brasil"
+    legacy.education.country = "Brazil"
+    legacy.activities = [Activity(country="Brésil", source_role="csv", source_block_index=1)]
+    legacy.relationships.spouse_birth_country = "Brasilien"
+    legacy.family.parents = [FamilyMember(
+        birth_country="Brasil", source_role="mother", source_block_index=1
+    )]
+    legacy.residence_records = [HistoryRecord(
+        country="Canada", source_role="legacy", source_block_index=1
+    )]
+    legacy.travel_records = [HistoryRecord(
+        country="Schweiz", source_role="legacy", source_block_index=1
+    )]
+    legacy.representative.country = "Brazil"
+
+    importer = CanadaLegacyImportService(session)
+    run = preview(session, case, legacy, "e" * 64)
+    country_changes = [
+        item for item in importer.changes(run.id)
+        if (item.target_entity_type, item.target_field) in {
+            ("person_biography", "birth_country_code"),
+            ("family_biography", "birth_country_code"),
+            ("citizenship", "country_code"),
+            ("residence", "country_code"),
+            ("person_identifier", "country_code"),
+            ("travel_document", "issuing_country_code"),
+            ("address", "country_code"),
+            ("education", "country_code"),
+            ("activity", "country_code"),
+            ("residence_history", "country_code"),
+            ("travel_history", "country_code"),
+            ("representative_profile", "country"),
+        }
+    ]
+    assert len(country_changes) == 14
+    assert {item.source_path for item in country_changes} == COUNTRY_CODE_MAPPING_PATHS
+    assert {item.raw_value_json for item in country_changes} >= {
+        "Brasil", "Brazil", "Brésil", "Brasilien", "Switzerland", "Schweiz", "Canada",
+    }
+    assert {item.proposed_value_json for item in country_changes} == {"BRA", "CHE", "CAN"}
+
+    for item in country_changes:
+        importer.review(item.id, "accept", "worker@example.invalid")
+    importer.apply(run.id, reviewed_by="worker@example.invalid")
+
+    assert session.get(cm.PersonBiography, applicant.id).birth_country_code == "BRA"
+    assert {row.country_code for row in session.scalars(select(cm.PersonCitizenship))} == {"BRA", "CAN"}
+    assert session.scalar(select(cm.ApplicantResidence)).country_code == "CHE"
+    assert session.scalar(select(cm.PersonIdentifier)).country_code == "CAN"
+    assert session.scalar(select(cm.TravelDocument)).issuing_country_code == "CHE"
+    assert session.scalar(select(cm.Address).where(cm.Address.application_id == app.id)).country_code == "BRA"
+    assert session.scalar(select(cm.EducationRecord)).country_code == "BRA"
+    assert session.scalar(select(cm.ActivityRecord)).country_code == "BRA"
+    assert session.scalar(select(cm.ResidenceHistoryRecord)).country_code == "CAN"
+    assert session.scalar(select(cm.TravelHistoryRecord)).country_code == "CHE"
+    family_codes = {
+        row.birth_country_code for row in session.scalars(select(cm.PersonBiography))
+        if row.person_id != applicant.id
+    }
+    assert family_codes == {"BRA"}
+    assert session.scalar(select(cm.RepresentativeProfileRevision)).country_code == "BRA"
 
 
 def test_unknown_country_is_preserved_for_review_and_identifies_target(session):
     case, _applicant, _app = setup_application(session)
     legacy = CanadaCase()
-    legacy.identity.birth_country = "Atlantis"
+    legacy.identity.birth_country = "Unknownland"
     run = preview(session, case, legacy, "6" * 64)
     change = CanadaLegacyImportService(session).changes(run.id)[0]
-    assert change.proposed_value_json == "Atlantis"
+    assert change.proposed_value_json == "Unknownland"
     assert change.status == "ambiguous"
     assert change.classification == "INVALID"
     assert change.target_label == "Applicant — Birth Country"
@@ -242,6 +319,12 @@ def test_unknown_alpha3_country_is_not_written_to_canonical_field(session):
     assert change.raw_value_json == "XYZ"
     assert change.status == "ambiguous"
     importer.apply(run.id, mode="safe")
+    assert session.get(cm.PersonBiography, applicant.id) is None
+
+    change.status = "accepted"
+    session.commit()
+    with pytest.raises(DomainValidationError, match="ISO alpha-3"):
+        importer.apply(run.id)
     assert session.get(cm.PersonBiography, applicant.id) is None
 
 

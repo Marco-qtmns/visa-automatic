@@ -21,7 +21,7 @@ const failed: IntakeSubmission = {
   received_at: "2026-10-07T10:00:00Z", mapping_version: "m9b-1",
   processing_status: "FAILED", case_id: null, import_run_id: null,
   processing_started_at: "2026-10-07T10:00:01Z", processing_completed_at: "2026-10-07T10:00:02Z",
-  failure_code: "INVALID_SOURCE", failure_message: "The source could not be validated.",
+  failure_code: "SOURCE_VALIDATION_FAILED", failure_message: "The source could not be parsed or validated.",
   issue_count: 1, duplicate_receive_count: 0, retry_count: 0,
   applicant_display_name: null, case_number: null,
 };
@@ -39,7 +39,7 @@ beforeEach(() => {
 it("shows the exception queue and operational counters without raw internals", async () => {
   render(<IntakeQueueClient />);
   expect(await screen.findByRole("heading", { name: "Applicant not identified yet" })).toBeInTheDocument();
-  expect(screen.getByText("The source could not be validated.")).toBeInTheDocument();
+  expect(screen.getByText("The source could not be parsed or validated.")).toBeInTheDocument();
   expect(screen.getByText("Duplicates ignored")).toBeInTheDocument();
   expect(screen.queryByText("a".repeat(64))).not.toBeInTheDocument();
 });

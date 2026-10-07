@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from dataclasses import asdict, dataclass
 
-MAPPING_VERSION = "m9b-1"
+MAPPING_VERSION = "m9b-2"
 
 @dataclass(frozen=True)
 class MappingEntry:
@@ -30,6 +30,23 @@ GROUPS = {
     "representative": ["family_name", "given_names", "organization", "unit", "street_number", "street_name", "city", "province", "country", "postcode", "phone_country_code", "phone_number", "email", "action", "category", "membership_number", "membership_province", "other_category_details", "supervising_lawyer", "supervising_lawyer_membership", "cancelled_family_name", "cancelled_organization"],
     "staff_review": ["application_date"],
 }
+
+COUNTRY_CODE_MAPPING_PATHS = frozenset({
+    "identity.birth_country",
+    "identity.nationality",
+    "identity.other_citizenship",
+    "identity.residence_country",
+    "passport.issuing_country",
+    "passport.identity_country",
+    "contact.country",
+    "education.country",
+    "activities[*].country",
+    "relationships.spouse_birth_country",
+    "family.members[*].birth_country",
+    "residence_records[*].country",
+    "travel_records[*].country",
+    "representative.country",
+})
 
 
 def _target(path: str) -> str:
@@ -83,7 +100,13 @@ AUDITED_GENERATOR_MAPPINGS = tuple(
         legacy_path=f"{group}.{field}", canonical_target=_target(f"{group}.{field}"),
         source_classification=_classification(f"{group}.{field}"),
         review_policy=_review_policy(group, field),
-        transform="date" if field.endswith("date") or field in {"start_date", "end_date", "date_of_birth", "application_date"} else "verbatim",
+        transform=(
+            "country_iso_alpha3" if f"{group}.{field}" in COUNTRY_CODE_MAPPING_PATHS
+            else "date" if field.endswith("date") or field in {
+                "start_date", "end_date", "date_of_birth", "application_date",
+            }
+            else "verbatim"
+        ),
         conflict_policy="never_overwrite_reviewed",
     )
     for group, fields in GROUPS.items() for field in fields

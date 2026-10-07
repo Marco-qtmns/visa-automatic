@@ -26,6 +26,7 @@ from backend.app.models.intake import IntakeProcessingAttempt, IntakeSubmission
 from backend.app.schemas.canada import CanadaApplicationCreate
 from backend.app.schemas.core import CaseCreate
 from backend.app.services.canada import CanadaApplicationService
+from backend.app.services.canada_imports import CanadaLegacyImportService
 from backend.app.services.intake import ADAPTERS, GOOGLE_FORMS_CSV, IntakeService
 from backend.app.services.requirements import CaseApplicationService
 from backend.app.storage import LocalStorageProvider
@@ -156,6 +157,8 @@ def test_submission_can_feed_an_unidentified_existing_case(session, intake):
     assert session.scalar(select(func.count(models.Case.id))) == 1
     attempt = service.attempts(result.id)[0]
     assert attempt.matched_existing_case == 1 and attempt.created_case == 0
+    assert service.metrics()["new_cases_created"] == 0
+    assert service.metrics()["existing_cases_matched"] == 1
 
 
 def test_external_identity_matches_one_prior_case_without_name_guessing(session, intake):
@@ -240,7 +243,7 @@ def test_invalid_source_fails_safely_and_retry_after_parser_fix_is_idempotent(se
         source_type=GOOGLE_FORMS_CSV, content=raw, filename="invalid.csv", actor=actor,
     )
     assert failed.processing_status == "FAILED"
-    assert failed.failure_code == "INVALID_SOURCE"
+    assert failed.failure_code == "SOURCE_VALIDATION_FAILED"
     assert "schema" not in failed.failure_message.casefold()
     with storage.open(failed.raw_source_reference) as source:
         assert source.read() == raw
@@ -257,6 +260,85 @@ def test_invalid_source_fails_safely_and_retry_after_parser_fix_is_idempotent(se
     assert len(service.attempts(failed.id)) == 2
     with storage.open(retried.raw_source_reference) as source:
         assert source.read() == raw
+
+
+def test_downstream_apply_failure_is_classified_and_retry_reuses_created_case(
+    session, intake, monkeypatch
+):
+    service, storage, actor = intake
+    original_apply = CanadaLegacyImportService.apply
+    calls = 0
+
+    def fail_once(importer, *args, **kwargs):
+        nonlocal calls
+        calls += 1
+        if calls == 1:
+            raise RuntimeError("synthetic database detail that must not reach the employee")
+        return original_apply(importer, *args, **kwargs)
+
+    monkeypatch.setattr(CanadaLegacyImportService, "apply", fail_once)
+    failed = service.receive_and_process(
+        source_type=GOOGLE_FORMS_CSV, content=minimal_csv(),
+        filename="apply-failure.csv", actor=actor,
+    )
+    assert failed.processing_status == "FAILED"
+    assert failed.failure_code == "IMPORT_APPLY_FAILED"
+    assert "database" not in failed.failure_message.casefold()
+    retained_case_id = failed.case_id
+    retained_reference = failed.raw_source_reference
+    assert retained_case_id is not None
+
+    retried = service.retry(failed.id, actor=actor)
+    assert retried.processing_status == "PROCESSED"
+    assert retried.case_id == retained_case_id
+    assert retried.raw_source_reference == retained_reference
+    assert retried.retry_count == 1
+    assert retried.duplicate_receive_count == 0
+    attempts = service.attempts(failed.id)
+    assert [attempt.attempt_number for attempt in attempts] == [2, 1]
+    assert all(not (attempt.created_case and attempt.matched_existing_case) for attempt in attempts)
+    assert session.scalar(select(func.count(models.Case.id))) == 1
+    assert session.scalar(select(func.count(models.Person.id))) == 1
+    assert service.metrics()["new_cases_created"] == 1
+    assert service.metrics()["existing_cases_matched"] == 0
+    with storage.open(retained_reference) as source:
+        assert source.read() == minimal_csv()
+
+
+def test_verified_google_family_country_end_to_end_preserves_raw_and_applies_iso(session, intake):
+    service, _storage, actor = intake
+    with FIXTURE.open(encoding="utf-8-sig", newline="") as source:
+        rows = list(csv.reader(source))
+    values = [""] * len(rows[0])
+    values[0] = "2026-10-07 10:00:00"
+    values[1] = "Diallo"
+    values[2] = "Amina"
+    values[19] = "Brasil"
+    output = io.StringIO(newline="")
+    csv.writer(output).writerows([rows[0], values])
+    content = output.getvalue().encode("utf-8-sig")
+
+    result = service.receive_and_process(
+        source_type=GOOGLE_FORMS_CSV, content=content,
+        filename="google-family-country.csv", actor=actor,
+    )
+    assert result.processing_status == "PROCESSED"
+    change = session.scalar(select(cm.CanadaImportCandidate).where(
+        cm.CanadaImportCandidate.import_run_id == result.import_run_id,
+        cm.CanadaImportCandidate.source_path == "relationships.spouse_birth_country",
+    ))
+    assert change.raw_value_json == "Brasil"
+    assert change.proposed_value_json == "BRA"
+    applicant = next(
+        person for person in session.scalars(select(models.Person).where(
+            models.Person.case_id == result.case_id,
+        )) if "applicant" in person.roles
+    )
+    family_biographies = [
+        row for row in session.scalars(select(cm.PersonBiography))
+        if row.person_id != applicant.id
+    ]
+    assert [row.birth_country_code for row in family_biographies] == ["BRA"]
 
 
 def test_intake_metrics_track_operational_outcomes(session, intake):

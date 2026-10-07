@@ -26,7 +26,11 @@ Applicant display names continue to derive from the Case's canonical applicant P
 
 Each processing run has an immutable attempt-history row. The orchestrator validates and parses before creating a new Case, invokes the existing preview/apply pipeline, auto-applies only `SAFE_NEW`, suppresses `SAME`, and counts unresolved new, conflict, ambiguous, or invalid candidates as work. Outcomes are `PROCESSED`, `NEEDS_REVIEW`, or `FAILED`, with safe employee-facing failure text.
 
+Country values are normalized once while import candidates are built, based on the canonical target rather than the source field name. Raw provenance remains unchanged, while candidate values for canonical country fields use known ISO-3166 alpha-3 codes. The apply boundary independently rejects any non-canonical or unknown country value before an entity is created or flushed.
+
 Receipt, attempt start, case resolution/import execution, and final outcome use separate durable transaction boundaries. This preserves a received source and attempt diagnostics if later processing fails. The existing import service retains its own transactional invariants for canonical mutations. Canonical confirmed information is never overwritten by safe mode.
+
+Source parsing completes before automatic Case creation. Once a Case and import preview have been durably linked, a downstream apply failure intentionally retains that recovery Case and its review diagnostics. The failed queue item links to it, and retry reuses exactly that Case. Apply itself rolls back atomically, so no partial applicant/application batch remains and repeated failures do not create further Cases.
 
 Only failed or review-required submissions can be retried. A retry rereads the same immutable raw-source reference, adds a processing attempt, and reuses the linked or employee-selected Case. It does not create another submission or silently change the raw bytes.
 
@@ -35,5 +39,7 @@ Only failed or review-required submissions can be retried. A retry rereads the s
 `INTAKE_STORAGE_ROOT` points to private storage for raw intake sources. In Compose it is a third bind-mounted persistent directory at `/srv/visa-automatic/intake-storage`, separate from document and generated-artifact storage. Host preparation, preflight, backup, restore, ownership normalization, and repository ignore rules include it.
 
 The Intake page shows operational counters and prioritizes `FAILED` and `NEEDS_REVIEW`. It exposes human-readable source, applicant, Case, status, issue count, retry, and Case navigation—not hashes, storage keys, canonical paths, or database diagnostics.
+
+Counters are submission-oriented: Received counts durable submissions; Processed, Need review, and Failed reflect current submission status; Duplicates ignored sums duplicate receipts; New applications counts submissions that created a Case; Matched applications counts submissions resolved to a pre-existing Case and excludes any submission that created one. Reusing a submission's Case during retry increments neither resolution counter. Retry count and duplicate receipt count remain independent.
 
 All endpoints use the M10 session, MFA, CSRF, and centralized authorization controls. Read and process permissions are granted only to `ADMIN` and `CASE_WORKER`; `REVIEWER` has neither. Receipt, duplicate suppression, successful processing, review-required outcomes, and failures write explicit audit events without raw content or secrets.

@@ -187,6 +187,7 @@ class IntakeService:
         self.session.add(attempt)
         self.session.commit()
 
+        phase = "source_validation"
         try:
             with self.storage.open(submission.raw_source_reference) as source:
                 content = source.read(adapter.max_bytes + 1)
@@ -195,6 +196,7 @@ class IntakeService:
             parsed = adapter.parse_source(content, submission.source_filename or "google-forms.csv")
             normalized = adapter.normalize(parsed)
             adapter.validate_source(normalized)
+            phase = "case_resolution"
             case, created_case, matched_case = self._resolve_case(submission, actor=actor)
             submission.case_id = case.id
             attempt.case_id = case.id
@@ -202,10 +204,12 @@ class IntakeService:
             attempt.matched_existing_case = int(matched_case)
             self.session.commit()
 
+            phase = "import_mapping"
             run = adapter.create_import(
                 self.session, submission, normalized, getattr(actor, "email", None)
             )
             submission.import_run_id = run.id
+            phase = "import_apply"
             processed_run = CanadaLegacyImportService(self.session).apply(
                 run.id, mode="safe", reviewed_by=getattr(actor, "email", None)
             )
@@ -259,13 +263,25 @@ class IntakeService:
             )
         except (DomainValidationError, DomainNotFound, ValueError, UnicodeError) as error:
             LOGGER.info(
-                "intake_validation_failed",
-                extra={"intake_submission_id": str(submission.id), "error_type": type(error).__name__},
+                "intake_processing_rejected",
+                extra={
+                    "intake_submission_id": str(submission.id),
+                    "error_type": type(error).__name__,
+                    "processing_phase": phase,
+                },
             )
+            if phase == "source_validation":
+                code = "SOURCE_VALIDATION_FAILED"
+                message = "The source could not be parsed or validated. Correct the source and retry."
+            elif phase == "import_apply":
+                code = "IMPORT_APPLY_FAILED"
+                message = "The validated source could not be applied. Review the intake and retry."
+            else:
+                code = "INTAKE_PROCESSING_FAILED"
+                message = "The validated source could not be processed. Review the intake and retry."
             self._complete_failure(
                 submission, attempt, actor=actor, status="FAILED",
-                code="INVALID_SOURCE",
-                message="The source could not be validated. Correct the source or configuration and retry.",
+                code=code, message=message,
             )
         except StorageObjectNotFound:
             self._complete_failure(
@@ -283,8 +299,12 @@ class IntakeService:
             attempt = self.session.get(IntakeProcessingAttempt, attempt.id) or attempt
             self._complete_failure(
                 submission, attempt, actor=actor, status="FAILED",
-                code="INTAKE_PROCESSING_FAILED",
-                message="The intake could not be processed. Retry after checking the source and system status.",
+                code="IMPORT_APPLY_FAILED" if phase == "import_apply" else "INTAKE_PROCESSING_FAILED",
+                message=(
+                    "The validated source could not be applied. Review the intake and retry."
+                    if phase == "import_apply"
+                    else "The intake could not be processed. Retry after checking the system status."
+                ),
             )
         return self._decorate(submission)
 
@@ -331,11 +351,18 @@ class IntakeService:
             select(IntakeSubmission.processing_status, func.count(IntakeSubmission.id))
             .group_by(IntakeSubmission.processing_status)
         ).all())
-        attempt_totals = self.session.execute(select(
-            func.coalesce(func.sum(IntakeProcessingAttempt.created_case), 0),
-            func.coalesce(func.sum(IntakeProcessingAttempt.matched_existing_case), 0),
-        )).one()
-        created, matched = attempt_totals[0], attempt_totals[1]
+        resolutions = self.session.execute(
+            select(
+                IntakeProcessingAttempt.submission_id,
+                func.max(IntakeProcessingAttempt.created_case),
+                func.max(IntakeProcessingAttempt.matched_existing_case),
+            ).group_by(IntakeProcessingAttempt.submission_id)
+        ).all()
+        created = sum(bool(created_case) for _submission_id, created_case, _matched in resolutions)
+        matched = sum(
+            bool(matched_case) and not bool(created_case)
+            for _submission_id, created_case, matched_case in resolutions
+        )
         return {
             "submissions_received": int(self.session.scalar(select(func.count(IntakeSubmission.id))) or 0),
             "successfully_processed": int(status_counts.get("PROCESSED", 0)),
@@ -351,7 +378,9 @@ class IntakeService:
             case = self.session.get(models.Case, submission.case_id)
             if case is None:
                 raise DomainNotFound("linked application no longer exists")
-            return case, False, True
+            # A retry reuses its prior resolution; it is neither a newly
+            # created nor a newly matched application for metrics purposes.
+            return case, False, False
 
         if submission.requested_case_id is not None:
             case = self.session.get(models.Case, submission.requested_case_id)

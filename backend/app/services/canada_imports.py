@@ -62,6 +62,23 @@ COUNTRY_CODES = {
 ISO_ALPHA3_CODES = frozenset("""
 ABW AFG AGO AIA ALA ALB AND ARE ARG ARM ASM ATA ATF ATG AUS AUT AZE BDI BEL BEN BES BFA BGD BGR BHR BHS BIH BLM BLR BLZ BMU BOL BRA BRB BRN BTN BVT BWA CAF CAN CCK CHE CHL CHN CIV CMR COD COG COK COL COM CPV CRI CUB CUW CXR CYM CYP CZE DEU DJI DMA DNK DOM DZA ECU EGY ERI ESH ESP EST ETH FIN FJI FLK FRA FRO FSM GAB GBR GEO GGY GHA GIB GIN GLP GMB GNB GNQ GRC GRD GRL GTM GUF GUM GUY HKG HMD HND HRV HTI HUN IDN IMN IND IOT IRL IRN IRQ ISL ISR ITA JAM JEY JOR JPN KAZ KEN KGZ KHM KIR KNA KOR KWT LAO LBN LBR LBY LCA LIE LKA LSO LTU LUX LVA MAC MAF MAR MCO MDA MDG MDV MEX MHL MKD MLI MLT MMR MNE MNG MNP MOZ MRT MSR MTQ MUS MWI MYS MYT NAM NCL NER NFK NGA NIC NIU NLD NOR NPL NRU NZL OMN PAK PAN PCN PER PHL PLW PNG POL PRI PRK PRT PRY PSE PYF QAT REU ROU RUS RWA SAU SDN SEN SGP SGS SHN SJM SLB SLE SLV SMR SOM SPM SRB SSD STP SUR SVK SVN SWE SWZ SXM SYC SYR TCA TCD TGO THA TJK TKL TKM TLS TON TTO TUN TUR TUV TWN TZA UGA UKR UMI URY USA UZB VAT VCT VEN VGB VIR VNM VUT WLF WSM YEM ZAF ZMB ZWE
 """.split())
+
+# These are the audited import targets whose canonical storage contract is an
+# ISO-3166 alpha-3 code. Phone prefixes and free-text addresses are excluded.
+COUNTRY_CODE_TARGETS = frozenset({
+    ("person_biography", "birth_country_code"),
+    ("family_biography", "birth_country_code"),
+    ("citizenship", "country_code"),
+    ("residence", "country_code"),
+    ("person_identifier", "country_code"),
+    ("travel_document", "issuing_country_code"),
+    ("address", "country_code"),
+    ("education", "country_code"),
+    ("activity", "country_code"),
+    ("residence_history", "country_code"),
+    ("travel_history", "country_code"),
+    ("representative_profile", "country"),
+})
 LOGGER = logging.getLogger(__name__)
 
 
@@ -298,7 +315,10 @@ class CanadaLegacyImportService:
         group, field = mapping.legacy_path.rsplit(".", 1)
         entity_type, entity, target_field = self._target(app, group, field, record_key)
         warning_count = len(warnings)
-        proposed = self._transform(group, field, raw, warnings, record_key)
+        proposed = self._transform(
+            group, field, raw, warnings, record_key,
+            target_entity_type=entity_type, target_field=target_field,
+        )
         transform_invalid = len(warnings) > warning_count
         if proposed is None and field not in {"post_secondary_education"}:
             return None
@@ -443,14 +463,17 @@ class CanadaLegacyImportService:
         if linked or not fallback: return linked
         return self.session.scalar(select(model).where(model.application_id == app.id).order_by(model.sort_order))
 
-    def _transform(self, group, field, value, warnings, record_key="scalar"):
+    def _transform(
+        self, group, field, value, warnings, record_key="scalar", *,
+        target_entity_type=None, target_field=None,
+    ):
         value = value.strip() if isinstance(value, str) else value
         if field.endswith("date") or field in {"start_date", "end_date", "date_of_birth", "residence_since", "arrival_date", "departure_date", "application_date"}:
             try: return _date(value)
             except DomainValidationError:
                 warnings.append(f"{group}.{field}: date needs manual review")
                 return value
-        if field in {"birth_country", "nationality", "other_citizenship", "residence_country", "issuing_country", "country"}:
+        if (target_entity_type, target_field) in COUNTRY_CODE_TARGETS:
             code = _country(value)
             if code is None:
                 warnings.append(f"{group}.{field}: country needs ISO-code review")
@@ -600,11 +623,13 @@ class CanadaLegacyImportService:
         )
 
     def _apply_candidate(self, run, app, item):
+        value = self._coerce_for_field(
+            item.target_entity_type, item.target_field, item.proposed_value_json
+        )
         entity = self.session.get(self._model(item.target_entity_type), item.target_entity_id) if item.target_entity_id and self._model(item.target_entity_type) else None
         if entity is None:
-            entity = self._create_target(run, app, item)
+            entity = self._create_target(run, app, item, value)
             item.target_entity_id = getattr(entity, "id", getattr(entity, "person_id", None))
-        value = self._coerce_for_field(entity, item.target_field, item.proposed_value_json)
         if item.target_field != "*": setattr(entity, item.target_field, value)
         self.session.add(entity); self.session.flush()
         self._provenance(run, item, entity)
@@ -655,24 +680,24 @@ class CanadaLegacyImportService:
                 "representative_authorization":cm.RepresentativeAuthorization,
                 "application":cm.CanadaApplication}.get(entity_type)
 
-    def _create_target(self, run, app, item):
+    def _create_target(self, run, app, item, value):
         et, key = item.target_entity_type, item.source_record_key
         applicant_id = app.applicant_person_id
         if et == "person":
             return self.session.get(models.Person, applicant_id)
         if et == "person_biography": return self.session.get(cm.PersonBiography, applicant_id) or cm.PersonBiography(person_id=applicant_id)
-        if et == "citizenship": return cm.PersonCitizenship(person_id=applicant_id, country_code=str(item.proposed_value_json), is_primary=item.source_path.endswith("nationality"), sort_order=0 if item.source_path.endswith("nationality") else 1)
-        if et == "person_identifier": return self.session.scalar(select(cm.PersonIdentifier).where(cm.PersonIdentifier.person_id == applicant_id, cm.PersonIdentifier.identifier_type == "national_identity")) or cm.PersonIdentifier(person_id=applicant_id, identifier_type="national_identity", value=str(item.proposed_value_json) if item.target_field == "value" else "PENDING-REVIEW", country_code=str(item.proposed_value_json) if item.target_field == "country_code" else "UNK")
+        if et == "citizenship": return cm.PersonCitizenship(person_id=applicant_id, country_code=str(value), is_primary=item.source_path.endswith("nationality"), sort_order=0 if item.source_path.endswith("nationality") else 1)
+        if et == "person_identifier": return self.session.scalar(select(cm.PersonIdentifier).where(cm.PersonIdentifier.person_id == applicant_id, cm.PersonIdentifier.identifier_type == "national_identity")) or cm.PersonIdentifier(person_id=applicant_id, identifier_type="national_identity", value=str(value) if item.target_field == "value" else "PENDING-REVIEW", country_code=str(value) if item.target_field == "country_code" else "UNK")
         if et == "residence":
             existing = self.session.scalar(select(cm.ApplicantResidence).where(cm.ApplicantResidence.application_id == app.id, cm.ApplicantResidence.is_current.is_(True)))
-            return existing or cm.ApplicantResidence(application_id=app.id, country_code=str(item.proposed_value_json) if item.target_field == "country_code" else "UNK", is_current=True)
+            return existing or cm.ApplicantResidence(application_id=app.id, country_code=str(value) if item.target_field == "country_code" else "UNK", is_current=True)
         if et == "travel_document":
             existing = self.session.scalar(select(cm.TravelDocument).where(cm.TravelDocument.application_id == app.id, cm.TravelDocument.is_primary.is_(True)))
-            return existing or cm.TravelDocument(application_id=app.id, person_id=applicant_id, number=str(item.proposed_value_json) if item.target_field == "number" else "PENDING-REVIEW", issuing_country_code=str(item.proposed_value_json) if item.target_field == "issuing_country_code" else "UNK", is_primary=True, sort_order=0)
+            return existing or cm.TravelDocument(application_id=app.id, person_id=applicant_id, number=str(value) if item.target_field == "number" else "PENDING-REVIEW", issuing_country_code=str(value) if item.target_field == "issuing_country_code" else "UNK", is_primary=True, sort_order=0)
         if et == "contact":
             kind = "email" if item.source_path.endswith("email") else "phone"
             existing = self.session.scalar(select(cm.ContactPoint).where(cm.ContactPoint.person_id == applicant_id, cm.ContactPoint.type == kind, cm.ContactPoint.is_primary.is_(True)))
-            return existing or cm.ContactPoint(person_id=applicant_id, type=kind, value=str(item.proposed_value_json), purpose="primary", is_primary=True, sort_order=0)
+            return existing or cm.ContactPoint(person_id=applicant_id, type=kind, value=str(value), purpose="primary", is_primary=True, sort_order=0)
         if et == "address":
             if item.source_path.startswith(("family.", "relationships.")):
                 rel_key = item.source_record_key if item.source_record_key != "scalar" else "spouse"
@@ -731,11 +756,11 @@ class CanadaLegacyImportService:
             if trip is None: trip = cm.TripPlan(application_id=app.id); self.session.add(trip); self.session.flush()
             host_type = item.conflict_type.removeprefix("resolved_host_")
             if host_type == "person":
-                party = models.Person(case_id=run.case_id, first_name="Pending review", last_name=str(item.proposed_value_json), roles=["host"])
+                party = models.Person(case_id=run.case_id, first_name="Pending review", last_name=str(value), roles=["host"])
                 self.session.add(party); self.session.flush()
                 host = cm.HostRecord(trip_plan_id=trip.id, host_type="person", person_id=party.id, is_primary=True, sort_order=0)
             else:
-                party = cm.Organization(case_id=run.case_id, legal_name=str(item.proposed_value_json), organization_type="host")
+                party = cm.Organization(case_id=run.case_id, legal_name=str(value), organization_type="host")
                 self.session.add(party); self.session.flush()
                 host = cm.HostRecord(trip_plan_id=trip.id, host_type="organization", organization_id=party.id, is_primary=True, sort_order=0)
             self.session.add(host); self.session.flush(); self._link(run, "host:primary", "host", host.id)
@@ -748,7 +773,13 @@ class CanadaLegacyImportService:
         if profile is None: profile = cm.RepresentativeProfile(profile_name=name); self.session.add(profile); self.session.flush()
         latest = self.session.scalar(select(cm.RepresentativeProfileRevision).where(cm.RepresentativeProfileRevision.profile_id == profile.id).order_by(cm.RepresentativeProfileRevision.revision_number.desc()))
         values = {key: getattr(latest, key) if latest else None for key in self._representative_fields()}
-        values[item.target_field] = item.proposed_value_json
+        target_field = {
+            "organization": "organization_name", "country": "country_code",
+            "postcode": "postal_code",
+        }.get(item.target_field, item.target_field)
+        values[target_field] = self._coerce_for_field(
+            item.target_entity_type, item.target_field, item.proposed_value_json
+        )
         # A changed source produces a new immutable snapshot; incomplete names remain review placeholders.
         values["family_name"] = values["family_name"] or "Pending review"
         values["given_names"] = values["given_names"] or "Pending review"
@@ -766,7 +797,9 @@ class CanadaLegacyImportService:
         values = {key: getattr(latest, key) if latest else None for key in self._representative_fields()}
         aliases = {"organization":"organization_name", "country":"country_code", "postcode":"postal_code"}
         for item in items:
-            values[aliases.get(item.target_field, item.target_field)] = item.proposed_value_json
+            values[aliases.get(item.target_field, item.target_field)] = self._coerce_for_field(
+                item.target_entity_type, item.target_field, item.proposed_value_json
+            )
         values["family_name"] = values["family_name"] or "Pending review"
         values["given_names"] = values["given_names"] or "Pending review"
         if latest and all(getattr(latest, key) == values[key] for key in values):
@@ -782,7 +815,15 @@ class CanadaLegacyImportService:
     def _representative_fields():
         return ["family_name","given_names","organization_name","unit","street_number","street_name","city","province","country_code","postal_code","phone_country_code","phone_number","email","category","membership_number","membership_province","other_category_details","supervising_lawyer","supervising_lawyer_membership"]
 
-    def _coerce_for_field(self, entity, field, value):
+    def _coerce_for_field(self, entity_type, field, value):
+        if (entity_type, field) in COUNTRY_CODE_TARGETS:
+            text = str(value or "").strip()
+            if text not in ISO_ALPHA3_CODES:
+                raise DomainValidationError(
+                    "Country value is not a supported ISO alpha-3 code. "
+                    "Review the import value before applying."
+                )
+            return text
         if field in {"date_of_birth","issue_date","expiry_date","resident_since","arrival_date","departure_date","relationship_start_date","relationship_end_date","start_date","end_date","entry_date","exit_date","official_application_date"}: return _date(value)
         if field in {"accompanying_applicant","mailing_same_as_residential"}: return value if isinstance(value, bool) else _bool(value)
         if field in {"available_funds_amount","amount"}: return Decimal(str(value))
