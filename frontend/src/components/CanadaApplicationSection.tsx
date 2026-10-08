@@ -124,11 +124,23 @@ export function CanadaApplicationSection({
     ["Residence history", value.residence_history.length], ["Travel history", value.travel_history.length],
     ["Official answers", value.official_answers.length], ["Official explanations", value.official_explanations.length], ["Provenance history", value.provenance.length],
   ] as const;
+  const family = bundle.family_relationships.map(relationship => {
+    const person = people.find(item => item.id === relationship.related_person_id);
+    const relationshipLabel = relationship.relationship_type === "parent" && relationship.parent_type
+      ? relationship.parent_type
+      : relationship.relationship_type.replaceAll("_", " ");
+    return {
+      id: relationship.id,
+      name: person ? `${person.first_name} ${person.last_name}` : "Person unavailable",
+      relationshipLabel,
+    };
+  });
 
   return <section className="section-card" id="canada-application">
     <div className="section-heading"><div><h2>Google Forms / CSV</h2><span className="muted">Structured application source</span></div><StatusBadge value={app.application_date_review_state} /></div>
     {message && <div className="success-message" role="status">{message}</div>}{error && <div className="form-error" role="alert">{error}</div>}
     <CanadaImportSection caseId={caseId} onChanged={onChanged} />
+    {family.length ? <div className="record-list"><h3>Family</h3>{family.map(item => <div className="record" key={item.id}><strong>{item.name}</strong><span>{item.relationshipLabel}</span></div>)}</div> : null}
     <details><summary>Advanced: canonical application editor</summary>
     <div className="summary-grid">{counts.map(([label, count]) => <div className="summary-item" key={label}><strong>{count}</strong><span>{label}</span></div>)}</div>
     <details open><summary>Application metadata</summary><form className="form-grid" onSubmit={saveMetadata}><div className="field"><label>Official application date</label><input name="official_application_date" type="date" defaultValue={app.official_application_date ?? ""} /></div><div className="field"><label>Date review</label><select name="application_date_review_state" defaultValue={app.application_date_review_state}>{REVIEW_STATES.map(item => <option key={item}>{item}</option>)}</select></div><div className="field"><label>Legal guardian</label><select name="legal_guardian_person_id" defaultValue={app.legal_guardian_person_id ?? ""}><option value="">None selected</option>{people.filter(person => person.id !== app.applicant_person_id).map(person => <option key={person.id} value={person.id}>{person.first_name} {person.last_name}</option>)}</select></div><div className="field"><label>Native language</label><input name="native_language_code" defaultValue={app.native_language_code ?? ""} /></div><div className="field"><label>Preferred language</label><input name="preferred_language_code" defaultValue={app.preferred_language_code ?? ""} /></div><div className="field"><label>Service language</label><input name="service_language_code" defaultValue={app.service_language_code ?? ""} /></div><div className="field"><label>Mailing equals residential</label><select name="mailing_same_as_residential" defaultValue={app.mailing_same_as_residential === null ? "unknown" : String(app.mailing_same_as_residential)}><option value="unknown">Unknown</option><option value="true">Yes</option><option value="false">No</option></select></div><div className="button-row field-full"><button className="button">Save metadata</button></div></form></details>

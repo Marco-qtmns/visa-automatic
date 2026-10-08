@@ -18,7 +18,7 @@ from .core import CoreDataService, DomainNotFound, DomainValidationError
 from .audit import record_audit
 
 
-PersonRole = Literal[
+RequirementOwnerRole = Literal[
     "applicant", "sponsor", "host", "representative", "spouse", "child", "other"
 ]
 RequirementLevel = Literal["required", "conditional", "supporting", "optional"]
@@ -39,7 +39,7 @@ class RequirementTemplate(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     document_type: str = Field(min_length=1, max_length=128)
-    owner_role: PersonRole
+    owner_role: RequirementOwnerRole
     requirement_level: RequirementLevel
     is_blocking: bool
 

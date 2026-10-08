@@ -21,7 +21,7 @@ import {
 } from "@/lib/api";
 import { StatusBadge } from "./StatusBadge";
 
-const PERSON_ROLES: PersonRole[] = ["applicant", "sponsor", "host", "representative", "spouse", "child", "other"];
+const PERSON_ROLES: PersonRole[] = ["applicant", "sponsor", "host", "representative", "other"];
 const FACT_SOURCES: FactSource[] = ["google_form", "whatsapp", "document", "manual", "derived"];
 const FACT_STATUSES: FactStatus[] = ["confirmed", "proposed", "conflict", "rejected"];
 const REQUIREMENT_LEVELS: RequirementLevel[] = ["required", "conditional", "supporting", "optional"];

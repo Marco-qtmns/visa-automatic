@@ -76,3 +76,15 @@ legacy cases are not copied automatically, and the future adapter still must
 perform a field-by-field mapping and equivalence verification before the legacy
 sources can be retired. The six optional letter narratives are outside the
 current generator inventory and remain deferred.
+## Person roles and family relationships
+
+`case_person_roles` is the authoritative store for operational Case roles:
+`applicant`, `representative`, `sponsor`, `host`, and `other`.
+`persons.roles` remains a persisted compatibility projection and is updated in
+the same transaction by supported services. It uses exactly the same vocabulary.
+
+Kinship is an independent dimension stored in `family_relationships` as
+`spouse`, `former_spouse`, `parent`, or `child`; `parent_type` carries explicit
+mother/father semantics when the source actually provides them. A relative may
+also hold an operational role (for example, a parent who is a sponsor) without
+either dimension overwriting the other.

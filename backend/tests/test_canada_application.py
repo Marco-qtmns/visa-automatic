@@ -61,6 +61,12 @@ def test_person_can_be_parent_and_sponsor_and_current_spouse_is_unique(session):
         related_person_id=people[1].id, relationship_type="parent", parent_type="father", sort_order=0,
     ))
     assert sponsor.person_id == father.related_person_id
+    session.refresh(people[1])
+    assert "sponsor" in people[1].roles
+    assert set(people[1].roles) == set(session.scalars(select(cm.CasePersonRole.role).where(
+        cm.CasePersonRole.person_id == people[1].id
+    )))
+    assert father.relationship_type == "parent" and father.parent_type == "father"
     service.create_family_relationship(app.id, cs.FamilyRelationshipCreate(
         related_person_id=people[2].id, relationship_type="spouse", is_current=True, sort_order=0,
     ))
@@ -75,7 +81,7 @@ def test_person_can_be_parent_and_sponsor_and_current_spouse_is_unique(session):
 
 def test_child_and_activity_identity_survive_reorder(session):
     service, _case, people, app = setup_application(session)
-    fourth = models.Person(case_id=app.case_id, first_name="Child", last_name="Two", roles=["child"])
+    fourth = models.Person(case_id=app.case_id, first_name="Child", last_name="Two", roles=["other"])
     session.add(fourth)
     session.commit()
     first = service.create_family_relationship(app.id, cs.FamilyRelationshipCreate(

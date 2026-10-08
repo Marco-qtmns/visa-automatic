@@ -21,10 +21,12 @@ from ..models import (
     RequirementFulfillmentSource,
     RequirementFulfillmentStatus,
     WorkflowState,
+    OperationalRole,
 )
 
 
-PersonRole = Literal["applicant", "sponsor", "host", "representative", "spouse", "child", "other"]
+PersonRole = OperationalRole
+RequirementOwnerRole = Literal["applicant", "sponsor", "host", "representative", "spouse", "child", "other"]
 FactSource = Literal["google_form", "whatsapp", "document", "manual", "derived"]
 FactStatus = Literal["confirmed", "proposed", "conflict", "rejected"]
 RequirementLevel = Literal["required", "conditional", "supporting", "optional"]
@@ -217,7 +219,7 @@ class FactCandidateCorrection(FactCandidateReview):
 
 class RequirementCreate(BaseModel):
     document_type: str = Field(min_length=1, max_length=128)
-    owner_role: PersonRole
+    owner_role: RequirementOwnerRole
     owner_person_id: uuid.UUID | None = None
     requirement_level: RequirementLevel
     rule_id: str | None = Field(default=None, max_length=128)
@@ -235,7 +237,7 @@ class RequirementCreate(BaseModel):
 
 class RequirementUpdate(BaseModel):
     document_type: str | None = Field(default=None, min_length=1, max_length=128)
-    owner_role: PersonRole | None = None
+    owner_role: RequirementOwnerRole | None = None
     owner_person_id: uuid.UUID | None = None
     requirement_level: RequirementLevel | None = None
     rule_id: str | None = Field(default=None, max_length=128)

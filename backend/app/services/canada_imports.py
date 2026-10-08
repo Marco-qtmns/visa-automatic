@@ -23,6 +23,7 @@ from .. import models
 from ..config.canada_import_mapping import AUDITED_GENERATOR_MAPPINGS, MAPPING_VERSION, MappingEntry
 from ..models import canada as cm
 from .core import DomainNotFound, DomainValidationError
+from .person_roles import add_authoritative_role
 
 
 SOURCE_LIMITS = {
@@ -468,7 +469,7 @@ class CanadaLegacyImportService:
         target_entity_type=None, target_field=None,
     ):
         value = value.strip() if isinstance(value, str) else value
-        if field.endswith("date") or field in {"start_date", "end_date", "date_of_birth", "residence_since", "arrival_date", "departure_date", "application_date"}:
+        if field.endswith("date") or field.endswith("date_of_birth") or field in {"start_date", "end_date", "date_of_birth", "residence_since", "arrival_date", "departure_date", "application_date"}:
             try: return _date(value)
             except DomainValidationError:
                 warnings.append(f"{group}.{field}: date needs manual review")
@@ -561,6 +562,7 @@ class CanadaLegacyImportService:
                 raise DomainValidationError("Canada application is missing")
             if app.applicant_person_id is None:
                 self._create_imported_applicant(run, app, accepted)
+            accepted = self._ensure_family_targets(run, app, accepted)
             representative = [item for item in accepted if item.target_entity_type == "representative_profile"]
             if representative:
                 revision = self._apply_representative_batch(run, representative)
@@ -606,16 +608,21 @@ class CanadaLegacyImportService:
             and item.source_path in {entry.legacy_path for entry in AUDITED_GENERATOR_MAPPINGS}
         ):
             return False
-        identity = (
-            item.target_entity_type,
-            str(item.target_entity_id) if item.target_entity_id else item.source_record_key,
-            item.target_field,
-        )
+        def identity(candidate):
+            record_key = candidate.source_record_key
+            if candidate.target_entity_type.startswith("family_") and record_key == "scalar":
+                record_key = "former_spouse" if (
+                    "former_" in candidate.source_path or "previous_" in candidate.source_path
+                ) else "spouse"
+            return (
+                candidate.target_entity_type,
+                str(candidate.target_entity_id) if candidate.target_entity_id else record_key,
+                candidate.target_field,
+            )
+        item_identity = identity(item)
         relevant = [candidate for candidate in changes if candidate.id != item.id and (
-            candidate.target_entity_type,
-            str(candidate.target_entity_id) if candidate.target_entity_id else candidate.source_record_key,
-            candidate.target_field,
-        ) == identity]
+            identity(candidate) == item_identity
+        )]
         return not any(
             candidate.status in {"new", "conflict", "ambiguous", "accepted"}
             or not _equal(candidate.proposed_value_json, item.proposed_value_json)
@@ -667,6 +674,67 @@ class CanadaLegacyImportService:
             if item.target_entity_type == "person" and item.target_entity_id is None:
                 item.target_entity_id = person.id
 
+    @staticmethod
+    def _family_key(item: cm.CanadaImportCandidate) -> str:
+        if item.source_record_key != "scalar":
+            return item.source_record_key
+        return "former_spouse" if (
+            "former_" in item.source_path or "previous_" in item.source_path
+        ) else "spouse"
+
+    def _ensure_family_targets(self, run, app, accepted):
+        """Create canonical relatives only when a complete human identity is accepted."""
+        groups: dict[str, list[cm.CanadaImportCandidate]] = {}
+        for item in accepted:
+            if item.target_entity_type in {"family_person", "family_biography", "family_relationship"}:
+                groups.setdefault(self._family_key(item), []).append(item)
+        usable = list(accepted)
+        for rel_key, items in groups.items():
+            if self._linked_entity(run.case_id, "family_relationship", rel_key, cm.FamilyRelationship):
+                continue
+            first = next((item.proposed_value_json for item in items if item.target_entity_type == "family_person" and item.target_field == "first_name"), None)
+            last = next((item.proposed_value_json for item in items if item.target_entity_type == "family_person" and item.target_field == "last_name"), None)
+            if not str(first or "").strip() or not str(last or "").strip():
+                for item in items:
+                    item.status = "ambiguous"
+                    item.conflict_type = "family_identity_incomplete"
+                    if item in usable:
+                        usable.remove(item)
+                continue
+            person = models.Person(
+                case_id=run.case_id,
+                first_name=str(first).strip(),
+                last_name=str(last).strip(),
+                roles=[cm.OperationalRole.OTHER.value],
+            )
+            self.session.add(person)
+            self.session.flush()
+            add_authoritative_role(
+                self.session, person, cm.OperationalRole.OTHER, assigned_by=run.imported_by
+            )
+            kind = rel_key.split(":", 1)[0]
+            parent_part = rel_key.split(":", 2)[1] if rel_key.startswith("parent:") else None
+            parent_type = parent_part if parent_part in {"mother", "father"} else None
+            relationship = cm.FamilyRelationship(
+                application_id=app.id,
+                applicant_person_id=app.applicant_person_id,
+                related_person_id=person.id,
+                relationship_type=kind,
+                parent_type=parent_type,
+                is_current=kind == cm.FamilyRelationshipType.SPOUSE,
+                sort_order=self._next_order(cm.FamilyRelationship, app.id),
+            )
+            self.session.add(relationship)
+            self.session.flush()
+            self._link(run, rel_key, "family_relationship", relationship.id)
+            self._link(run, rel_key, "family_person", person.id)
+            for item in items:
+                if item.target_entity_type == "family_person":
+                    item.target_entity_id = person.id
+                elif item.target_entity_type == "family_relationship":
+                    item.target_entity_id = relationship.id
+        return usable
+
     def _model(self, entity_type):
         return {"person":models.Person, "family_person":models.Person, "person_biography":cm.PersonBiography,
                 "family_biography":cm.PersonBiography, "citizenship":cm.PersonCitizenship,
@@ -717,15 +785,12 @@ class CanadaLegacyImportService:
             if trip is None: trip = cm.TripPlan(application_id=app.id); self.session.add(trip); self.session.flush()
             return cm.FundingSource(trip_plan_id=trip.id, payer_kind="other", is_primary=True, sort_order=0)
         if et in {"family_person", "family_biography", "family_relationship"}:
-            rel_key = key if key != "scalar" else ("former_spouse" if "former_" in item.source_path or "previous_" in item.source_path else "spouse")
+            rel_key = self._family_key(item)
             rel = self._linked_entity(run.case_id, "family_relationship", rel_key, cm.FamilyRelationship)
             if rel is None:
-                person = models.Person(case_id=run.case_id, first_name="Pending review", last_name="Pending review", roles=["family_member"])
-                self.session.add(person); self.session.flush()
-                kind = rel_key.split(":", 1)[0]
-                rel = cm.FamilyRelationship(application_id=app.id, applicant_person_id=applicant_id, related_person_id=person.id, relationship_type=kind, is_current=kind == "spouse", sort_order=self._next_order(cm.FamilyRelationship, app.id))
-                self.session.add(rel); self.session.flush(); self._link(run, rel_key, "family_relationship", rel.id)
-                self._link(run, rel_key, "family_person", person.id)
+                raise DomainValidationError(
+                    "Family identity is incomplete. Review given and family names before applying this import."
+                )
             if et == "family_relationship": return rel
             person = self.session.get(models.Person, rel.related_person_id)
             if et == "family_person": return person
@@ -756,9 +821,9 @@ class CanadaLegacyImportService:
             if trip is None: trip = cm.TripPlan(application_id=app.id); self.session.add(trip); self.session.flush()
             host_type = item.conflict_type.removeprefix("resolved_host_")
             if host_type == "person":
-                party = models.Person(case_id=run.case_id, first_name="Pending review", last_name=str(value), roles=["host"])
-                self.session.add(party); self.session.flush()
-                host = cm.HostRecord(trip_plan_id=trip.id, host_type="person", person_id=party.id, is_primary=True, sort_order=0)
+                raise DomainValidationError(
+                    "Create or select a host person with confirmed given and family names before applying the host."
+                )
             else:
                 party = cm.Organization(case_id=run.case_id, legal_name=str(value), organization_type="host")
                 self.session.add(party); self.session.flush()
@@ -780,9 +845,10 @@ class CanadaLegacyImportService:
         values[target_field] = self._coerce_for_field(
             item.target_entity_type, item.target_field, item.proposed_value_json
         )
-        # A changed source produces a new immutable snapshot; incomplete names remain review placeholders.
-        values["family_name"] = values["family_name"] or "Pending review"
-        values["given_names"] = values["given_names"] or "Pending review"
+        if not values["family_name"] or not values["given_names"]:
+            raise DomainValidationError(
+                "Representative identity is incomplete. Review given and family names before applying."
+            )
         if latest and all(getattr(latest, key) == values[key] for key in values): return latest
         revision = cm.RepresentativeProfileRevision(profile_id=profile.id, revision_number=(latest.revision_number + 1 if latest else 1), created_by=run.imported_by, **values)
         self.session.add(revision); self.session.flush(); return revision
@@ -800,8 +866,10 @@ class CanadaLegacyImportService:
             values[aliases.get(item.target_field, item.target_field)] = self._coerce_for_field(
                 item.target_entity_type, item.target_field, item.proposed_value_json
             )
-        values["family_name"] = values["family_name"] or "Pending review"
-        values["given_names"] = values["given_names"] or "Pending review"
+        if not values["family_name"] or not values["given_names"]:
+            raise DomainValidationError(
+                "Representative identity is incomplete. Review given and family names before applying."
+            )
         if latest and all(getattr(latest, key) == values[key] for key in values):
             return latest
         revision = cm.RepresentativeProfileRevision(

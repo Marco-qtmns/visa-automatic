@@ -43,3 +43,11 @@ it("renders an empty source-first application without fake identity or broken va
   expect(screen.getByText("No active document requirements.")).toBeInTheDocument();
   expect(screen.queryByText(/undefined|null/)).not.toBeInTheDocument();
 });
+
+it("labels a people read failure as a load error, never a save error", async () => {
+  vi.mocked(loadCaseDetail).mockRejectedValue(new Error("People could not be loaded."));
+  render(<CaseDetailClient caseId="case-1" />);
+  expect(await screen.findByText("People could not be loaded.")).toBeInTheDocument();
+  expect(screen.queryByText("Changes could not be saved.")).not.toBeInTheDocument();
+  expect(screen.getByRole("button", { name: "Retry" })).toBeInTheDocument();
+});

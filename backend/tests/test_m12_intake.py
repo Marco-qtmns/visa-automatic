@@ -47,6 +47,22 @@ def minimal_csv(family_name="Diallo", given_names="Amina") -> bytes:
     return output.getvalue().encode("utf-8-sig")
 
 
+def full_family_csv() -> bytes:
+    with FIXTURE.open(encoding="utf-8-sig", newline="") as source:
+        rows = list(csv.reader(source))
+    values = [""] * len(rows[0])
+    values[0] = "2026-10-07 11:00:00"
+    values[1:3] = ["Diallo", "Amina"]
+    values[16:20] = ["Costa", "Lucia", "02/03/1985", "Brasil"]
+    values[24:27] = ["Former", "Franca", "03/04/1980"]
+    values[113:118] = ["Diallo", "Mariam", "04/05/1960", "Dakar", "Brasil"]
+    values[123:128] = ["Diallo", "Omar", "05/06/1958", "Dakar", "Brasil"]
+    values[134:141] = ["Biological", "Diallo", "Noah", "06/07/2015", "Single", "Zurich", "Brasil"]
+    output = io.StringIO(newline="")
+    csv.writer(output).writerows([rows[0], values])
+    return output.getvalue().encode("utf-8-sig")
+
+
 @pytest.fixture
 def intake(session, tmp_path):
     storage = LocalStorageProvider(tmp_path / "intake")
@@ -313,6 +329,8 @@ def test_verified_google_family_country_end_to_end_preserves_raw_and_applies_iso
     values[0] = "2026-10-07 10:00:00"
     values[1] = "Diallo"
     values[2] = "Amina"
+    values[16] = "Costa"
+    values[17] = "Lucia"
     values[19] = "Brasil"
     output = io.StringIO(newline="")
     csv.writer(output).writerows([rows[0], values])
@@ -339,6 +357,73 @@ def test_verified_google_family_country_end_to_end_preserves_raw_and_applies_iso
         if row.person_id != applicant.id
     ]
     assert [row.birth_country_code for row in family_biographies] == ["BRA"]
+
+
+def test_full_google_family_import_keeps_roles_and_relationships_separate(session, intake):
+    service, _storage, actor = intake
+    result = service.receive_and_process(
+        source_type=GOOGLE_FORMS_CSV,
+        content=full_family_csv(),
+        filename="google-full-family.csv",
+        actor=actor,
+    )
+    assert result.processing_status == "PROCESSED"
+    people = list(session.scalars(select(models.Person).where(
+        models.Person.case_id == result.case_id
+    )))
+    assert len(people) == 6
+    valid_roles = {role.value for role in cm.OperationalRole}
+    assert all(set(person.roles) <= valid_roles for person in people)
+    assert all("family_member" not in person.roles for person in people)
+    assert not any(
+        person.first_name == "Pending review" or person.last_name == "Pending review"
+        for person in people
+    )
+    relationships = list(session.scalars(select(cm.FamilyRelationship).join(
+        cm.CanadaApplication,
+        cm.CanadaApplication.id == cm.FamilyRelationship.application_id,
+    ).where(cm.CanadaApplication.case_id == result.case_id)))
+    assert [item.relationship_type for item in relationships].count("spouse") == 1
+    assert [item.relationship_type for item in relationships].count("former_spouse") == 1
+    assert [item.relationship_type for item in relationships].count("parent") == 2
+    assert [item.relationship_type for item in relationships].count("child") == 1
+
+    app.dependency_overrides[get_session] = _session_override(session)
+    try:
+        response = TestClient(app).get(f"/cases/{result.case_id}/persons")
+        assert response.status_code == 200
+        assert all(set(person["roles"]) <= valid_roles for person in response.json())
+    finally:
+        app.dependency_overrides.pop(get_session, None)
+
+
+def test_failed_full_family_intake_retry_reuses_case_and_canonical_entities(
+    session, intake, monkeypatch
+):
+    service, _storage, actor = intake
+    original_apply = CanadaLegacyImportService.apply
+    calls = 0
+
+    def fail_once(importer, *args, **kwargs):
+        nonlocal calls
+        calls += 1
+        if calls == 1:
+            raise RuntimeError("synthetic transient apply failure")
+        return original_apply(importer, *args, **kwargs)
+
+    monkeypatch.setattr(CanadaLegacyImportService, "apply", fail_once)
+    failed = service.receive_and_process(
+        source_type=GOOGLE_FORMS_CSV, content=full_family_csv(),
+        filename="google-full-family-retry.csv", actor=actor,
+    )
+    case_id = failed.case_id
+    assert failed.processing_status == "FAILED" and case_id is not None
+    retried = service.retry(failed.id, actor=actor)
+    assert retried.id == failed.id and retried.case_id == case_id
+    assert [attempt.attempt_number for attempt in service.attempts(failed.id)] == [2, 1]
+    assert session.scalar(select(func.count(models.Case.id))) == 1
+    assert session.scalar(select(func.count(models.Person.id))) == 6
+    assert session.scalar(select(func.count(cm.FamilyRelationship.id))) == 5
 
 
 def test_intake_metrics_track_operational_outcomes(session, intake):

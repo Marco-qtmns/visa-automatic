@@ -13,6 +13,7 @@ from .. import models
 from ..models import canada as cm
 from ..schemas import canada as cs
 from .core import DomainNotFound, DomainValidationError
+from .person_roles import add_authoritative_role, refresh_role_projection
 
 
 T = TypeVar("T")
@@ -99,9 +100,8 @@ class CanadaApplicationService:
         application = cm.CanadaApplication(case_id=case_id, applicant_person_id=payload.applicant_person_id)
         self.session.add(application)
         self.session.flush()
-        self.session.add(cm.CasePersonRole(
-            case_id=case_id, person_id=payload.applicant_person_id, role=cm.OperationalRole.APPLICANT,
-        ))
+        applicant = self._person_in_case(payload.applicant_person_id, case_id)
+        add_authoritative_role(self.session, applicant, cm.OperationalRole.APPLICANT)
         try:
             self.session.commit()
         except IntegrityError as error:
@@ -137,15 +137,22 @@ class CanadaApplicationService:
 
     def select_applicant(self, application_id: uuid.UUID, person_id: uuid.UUID, assigned_by: str | None = None) -> cm.CasePersonRole:
         application = self._application(application_id)
-        self._person_in_application(person_id, application)
+        person = self._person_in_application(person_id, application)
         role = self.session.scalar(select(cm.CasePersonRole).where(
             cm.CasePersonRole.case_id == application.case_id,
             cm.CasePersonRole.role == cm.OperationalRole.APPLICANT,
         ))
-        if role is None:
-            role = cm.CasePersonRole(case_id=application.case_id, person_id=person_id, role=cm.OperationalRole.APPLICANT)
-        role.person_id = person_id
-        role.assigned_by = assigned_by
+        previous = self.session.get(models.Person, role.person_id) if role is not None else None
+        if role is not None and role.person_id != person_id:
+            self.session.delete(role)
+            self.session.flush()
+            if previous is not None:
+                previous.roles = [value for value in refresh_role_projection(self.session, previous).roles if value != "applicant"]
+                if not previous.roles:
+                    add_authoritative_role(self.session, previous, cm.OperationalRole.OTHER)
+        role = add_authoritative_role(
+            self.session, person, cm.OperationalRole.APPLICANT, assigned_by=assigned_by
+        )
         application.applicant_person_id = person_id
         self.session.add_all([application, role])
         try:
@@ -157,11 +164,14 @@ class CanadaApplicationService:
         return role
 
     def assign_role(self, case_id: uuid.UUID, payload: cs.RoleCreate) -> cm.CasePersonRole:
-        self._person_in_case(payload.person_id, case_id)
+        person = self._person_in_case(payload.person_id, case_id)
         if payload.role == cm.OperationalRole.APPLICANT:
             application = self._application_for_case(case_id)
             return self.select_applicant(application.id, payload.person_id, payload.assigned_by)
-        return self._save(cm.CasePersonRole(case_id=case_id, **payload.model_dump()))
+        role = add_authoritative_role(
+            self.session, person, payload.role, assigned_by=payload.assigned_by
+        )
+        return self._save(role)
 
     def upsert_biography(self, person_id: uuid.UUID, payload: cs.BiographyWrite) -> cm.PersonBiography:
         self._get(models.Person, person_id)

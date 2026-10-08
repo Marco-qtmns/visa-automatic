@@ -13,9 +13,8 @@ export type PersonRole =
   | "sponsor"
   | "host"
   | "representative"
-  | "spouse"
-  | "child"
   | "other";
+export type RequirementOwnerRole = PersonRole | "spouse" | "child";
 export type FactStatus = "confirmed" | "proposed" | "conflict" | "rejected";
 export type FactSource = "google_form" | "whatsapp" | "document" | "manual" | "derived";
 export type RequirementLevel = "required" | "conditional" | "supporting" | "optional";
@@ -129,7 +128,7 @@ export interface Requirement {
   id: string;
   case_id: string;
   document_type: string;
-  owner_role: PersonRole;
+  owner_role: RequirementOwnerRole;
   owner_person_id: string | null;
   requirement_level: RequirementLevel;
   rule_id: string | null;
@@ -464,6 +463,13 @@ export interface CanadaTripPlan {
   departure_date: string | null;
 }
 
+export interface CanadaFamilyRelationship {
+  id: string;
+  related_person_id: string;
+  relationship_type: "spouse" | "former_spouse" | "parent" | "child";
+  parent_type: string | null;
+}
+
 export interface CanadaApplicationBundle {
   application: CanadaApplicationRecord;
   roles: Record<string, unknown>[];
@@ -478,7 +484,7 @@ export interface CanadaApplicationBundle {
   funding_sources: Record<string, unknown>[];
   hosts: Record<string, unknown>[];
   organizations: Record<string, unknown>[];
-  family_relationships: Record<string, unknown>[];
+  family_relationships: CanadaFamilyRelationship[];
   education: Record<string, unknown>[];
   activities: Record<string, unknown>[];
   residence_history: Record<string, unknown>[];

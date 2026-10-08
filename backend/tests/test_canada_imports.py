@@ -219,9 +219,12 @@ def test_every_mapped_country_route_uses_one_normalization_boundary_and_applies(
     legacy.contact.country = "Brasil"
     legacy.education.country = "Brazil"
     legacy.activities = [Activity(country="Brésil", source_role="csv", source_block_index=1)]
+    legacy.relationships.spouse_family_name = "Costa"
+    legacy.relationships.spouse_given_names = "Lucia"
     legacy.relationships.spouse_birth_country = "Brasilien"
     legacy.family.parents = [FamilyMember(
-        birth_country="Brasil", source_role="mother", source_block_index=1
+        family_name="Costa", given_names="Maria", birth_country="Brasil",
+        source_role="mother", source_block_index=1
     )]
     legacy.residence_records = [HistoryRecord(
         country="Canada", source_role="legacy", source_block_index=1
@@ -230,6 +233,8 @@ def test_every_mapped_country_route_uses_one_normalization_boundary_and_applies(
         country="Schweiz", source_role="legacy", source_block_index=1
     )]
     legacy.representative.country = "Brazil"
+    legacy.representative.family_name = "Representative"
+    legacy.representative.given_names = "Robin"
 
     importer = CanadaLegacyImportService(session)
     run = preview(session, case, legacy, "e" * 64)
@@ -259,6 +264,15 @@ def test_every_mapped_country_route_uses_one_normalization_boundary_and_applies(
 
     for item in country_changes:
         importer.review(item.id, "accept", "worker@example.invalid")
+    for item in importer.changes(run.id):
+        if (
+            item.status == "new"
+            and (
+                item.target_entity_type == "family_person"
+                or (item.target_entity_type == "representative_profile" and item.target_field in {"family_name", "given_names"})
+            )
+        ):
+            importer.review(item.id, "accept", "worker@example.invalid")
     importer.apply(run.id, reviewed_by="worker@example.invalid")
 
     assert session.get(cm.PersonBiography, applicant.id).birth_country_code == "BRA"
@@ -307,6 +321,25 @@ def test_repeated_people_have_distinguishable_stable_target_labels(record_key, o
         status="new", review_policy="safe_direct_batch", conflict_policy="review",
     )
     assert item.target_label == f"{owner} — Birth country"
+
+
+def test_explicit_parent_source_roles_populate_parent_type_without_person_role_drift(session):
+    case, _applicant, _app = setup_application(session)
+    legacy = CanadaCase()
+    legacy.family.parents = [
+        FamilyMember(family_name="Costa", given_names="Lucia", source_role="mother", source_block_index=1),
+        FamilyMember(family_name="Costa", given_names="Paulo", source_role="father", source_block_index=2),
+    ]
+    run = preview(session, case, legacy, "f" * 64)
+    CanadaLegacyImportService(session).apply(run.id, mode="safe")
+    relationships = list(session.scalars(select(cm.FamilyRelationship).order_by(
+        cm.FamilyRelationship.sort_order
+    )))
+    assert [(item.relationship_type, item.parent_type) for item in relationships] == [
+        ("parent", "mother"), ("parent", "father")
+    ]
+    relatives = [session.get(models.Person, item.related_person_id) for item in relationships]
+    assert [person.roles for person in relatives] == [["other"], ["other"]]
 
 
 def test_unknown_alpha3_country_is_not_written_to_canonical_field(session):

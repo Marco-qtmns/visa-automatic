@@ -43,3 +43,20 @@ it("keeps intake and IMM5257 purpose separate and defaults answers to unknown", 
   await user.click(screen.getByRole("button", { name: "Save official answer" }));
   expect(api.saveOfficialAnswer).toHaveBeenCalledWith("app-1", "background.criminality", expect.objectContaining({ answer: "unknown" }));
 });
+
+it("shows family semantics from relationships instead of operational roles", async () => {
+  render(<CanadaApplicationSection
+    caseId="case-1"
+    people={detail.people}
+    value={{
+      ...bundle,
+      family_relationships: [{
+        id: "family-1", related_person_id: "person-1",
+        relationship_type: "parent", parent_type: "mother",
+      }],
+    }}
+    onChanged={vi.fn().mockResolvedValue(undefined)}
+  />);
+  expect(await screen.findByText("mother")).toBeInTheDocument();
+  expect(screen.getByText(`${detail.people[0].first_name} ${detail.people[0].last_name}`)).toBeInTheDocument();
+});

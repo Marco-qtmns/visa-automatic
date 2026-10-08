@@ -338,7 +338,7 @@ def test_migration_upgrades_0010_to_single_new_head(tmp_path, monkeypatch):
     config = Config(str(PROJECT_ROOT / "backend/alembic.ini"))
     command.upgrade(config, "head")
     with engine.connect() as connection:
-        assert connection.scalar(text("SELECT version_num FROM alembic_version")) == "0013_automated_intake"
+        assert connection.scalar(text("SELECT version_num FROM alembic_version")) == "0014_person_role_alignment"
     assert "application_audit_events" in inspect(engine).get_table_names()
     assert {"intake_submissions", "intake_processing_attempts"} <= set(
         inspect(engine).get_table_names()

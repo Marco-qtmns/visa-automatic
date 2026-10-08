@@ -53,8 +53,6 @@ def create_synthetic_case(*, continuation: bool) -> dict[str, object]:
         )
         session.add(canada_application); session.flush()
         session.add_all([
-            cm.CasePersonRole(case_id=case.id, person_id=applicant.id, role="applicant", assigned_by="synthetic-d1-smoke"),
-            cm.CasePersonRole(case_id=case.id, person_id=representative.id, role="representative", assigned_by="synthetic-d1-smoke"),
             cm.PersonBiography(person_id=applicant.id, date_of_birth=date(1992, 4, 17), sex="female", birth_city="Synthetic City", birth_country_code="CHE", marital_status="single"),
             cm.PersonCitizenship(person_id=applicant.id, country_code="CHE", is_primary=True, sort_order=0),
             cm.ApplicantResidence(application_id=canada_application.id, country_code="CHE", immigration_status_code="citizen", is_current=True),

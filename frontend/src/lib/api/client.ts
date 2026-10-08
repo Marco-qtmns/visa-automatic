@@ -403,11 +403,15 @@ export async function loadCaseSummaries(): Promise<CaseSummary[]> {
   return (await api.bootstrap()).case_summary;
 }
 
-export async function loadCaseDetail(caseId: string): Promise<CaseDetailBundle> {
+class CaseDetailLoadError extends Error {}
+
+async function loadCaseDetailData(caseId: string): Promise<CaseDetailBundle> {
   const [caseRecord, people, facts, requirements, documents, documentTypes, documentMatches, conversations, tasks, workflow, nextAction, canadaApplication, preparation, preparationRuns] =
     await Promise.all([
       api.getCase(caseId),
-      api.listPeople(caseId),
+      api.listPeople(caseId).catch(() => {
+        throw new CaseDetailLoadError("People could not be loaded.");
+      }),
       api.listFacts(caseId),
       api.listRequirements(caseId),
       api.listDocuments(caseId),
@@ -458,4 +462,13 @@ export async function loadCaseDetail(caseId: string): Promise<CaseDetailBundle> 
     preparation,
     preparationRuns,
   };
+}
+
+export async function loadCaseDetail(caseId: string): Promise<CaseDetailBundle> {
+  try {
+    return await loadCaseDetailData(caseId);
+  } catch (error) {
+    if (error instanceof CaseDetailLoadError) throw error;
+    throw new CaseDetailLoadError("Some case information could not be loaded.");
+  }
 }

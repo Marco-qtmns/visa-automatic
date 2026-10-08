@@ -11,6 +11,7 @@ from sqlalchemy.orm import Session
 
 from .. import models
 from ..schemas import core as schemas
+from .person_roles import refresh_role_projection, set_authoritative_roles
 
 
 ModelT = TypeVar("ModelT")
@@ -90,17 +91,31 @@ class CoreDataService:
 
     def create_person(self, case_id: uuid.UUID, payload: schemas.PersonCreate) -> models.Person:
         self._case(case_id)
-        return self._save(models.Person(case_id=case_id, **payload.model_dump()))
+        values = payload.model_dump(mode="json")
+        roles = values.pop("roles")
+        person = models.Person(case_id=case_id, roles=roles, **values)
+        self.session.add(person)
+        self.session.flush()
+        set_authoritative_roles(self.session, person, roles)
+        return self._save(person)
 
     def list_persons(self, case_id: uuid.UUID) -> list[models.Person]:
         self._case(case_id)
-        return list(self.session.scalars(select(models.Person).where(models.Person.case_id == case_id).order_by(models.Person.created_at)))
+        people = list(self.session.scalars(select(models.Person).where(models.Person.case_id == case_id).order_by(models.Person.created_at)))
+        return [refresh_role_projection(self.session, person) for person in people]
 
     def get_person(self, person_id: uuid.UUID) -> models.Person:
-        return self._get(models.Person, person_id)
+        return refresh_role_projection(self.session, self._get(models.Person, person_id))
 
     def update_person(self, person_id: uuid.UUID, payload: schemas.PersonUpdate) -> models.Person:
-        return self._update(self.get_person(person_id), payload)
+        person = self.get_person(person_id)
+        changes = payload.model_dump(exclude_unset=True, mode="json")
+        roles = changes.pop("roles", None)
+        for key, value in changes.items():
+            setattr(person, key, value)
+        if roles is not None:
+            set_authoritative_roles(self.session, person, roles)
+        return self._save(person)
 
     def create_fact(self, case_id: uuid.UUID, payload: schemas.FactCreate) -> models.Fact:
         self._case(case_id)

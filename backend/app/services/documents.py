@@ -9,6 +9,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from .. import models
+from ..models import canada as cm
 from ..schemas import core as schemas
 from ..storage import StorageLimitExceeded, StorageProvider
 from .core import CoreDataService, DomainNotFound, DomainValidationError
@@ -147,8 +148,26 @@ class DocumentMatchingService:
         person = self.session.get(models.Person, effective_person_id)
         if person is None or person.case_id != document.case_id:
             return False, "document owner is not part of the case"
-        if requirement.owner_role not in person.roles:
-            return False, "document owner does not hold the required role"
+        if requirement.owner_role in {"spouse", "child"}:
+            relationship = self.session.scalar(
+                select(cm.FamilyRelationship.id)
+                .join(cm.CanadaApplication, cm.CanadaApplication.id == cm.FamilyRelationship.application_id)
+                .where(
+                    cm.CanadaApplication.case_id == document.case_id,
+                    cm.FamilyRelationship.related_person_id == person.id,
+                    cm.FamilyRelationship.relationship_type == requirement.owner_role,
+                )
+            )
+            if relationship is None:
+                return False, "document owner does not have the required family relationship"
+        else:
+            role = self.session.scalar(select(cm.CasePersonRole.id).where(
+                cm.CasePersonRole.case_id == document.case_id,
+                cm.CasePersonRole.person_id == person.id,
+                cm.CasePersonRole.role == requirement.owner_role,
+            ))
+            if role is None:
+                return False, "document owner does not hold the required role"
         return True, ""
 
     def compatible_requirements(self, document_id: uuid.UUID) -> list[models.Requirement]:
