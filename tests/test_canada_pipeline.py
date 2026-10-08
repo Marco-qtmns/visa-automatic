@@ -49,7 +49,7 @@ class PipelineTests(unittest.TestCase):
         self.assertTrue(all(p.given_names for p in c.family.parents))
         self.assertNotIn('PARENT_ROLE_MISSING',codes(c))
         self.assertFalse(any(i.code=='FAMILY_NAME_INCOMPLETE' and i.entity_type=='parent' for i in validate_case(c).issues))
-        self.assertEqual(c.provenance['family.parents[0].confirmed_role'].source_type,'derived_rule')
+        self.assertEqual(c.provenance['family.parents[0].confirmed_role'].source_type,'csv_explicit')
 
     def test_adult_minor_and_birthday_boundary(self):
         c=case(); c.family.parents=[FamilyMember(source_block_index=1)]

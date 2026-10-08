@@ -427,6 +427,7 @@ export interface IntakeSubmission {
   retry_count: number;
   applicant_display_name: string | null;
   case_number: string | null;
+  can_retry: boolean;
 }
 
 export interface IntakeMetrics {

@@ -324,6 +324,10 @@ class CanadaLegacyImportService:
         if proposed is None and field not in {"post_secondary_education"}:
             return None
         current = getattr(entity, target_field, None) if entity is not None and target_field != "*" else None
+        entity_id = (
+            getattr(entity, "id", getattr(entity, "person_id", None))
+            if entity is not None else None
+        )
         status = "same" if entity is not None and _equal(current, proposed) else "new"
         conflict_type = None
         if field in {"address", "mailing_address", "spouse_address"}:
@@ -343,7 +347,9 @@ class CanadaLegacyImportService:
             status, conflict_type = "ambiguous", "invalid_value"
         elif entity is not None and not _blank(current) and not _equal(current, proposed):
             status, conflict_type = "conflict", "different_canonical_value"
-        if entity is not None and self._reviewed(run.case_id, entity_type, entity.id, target_field) and not _equal(current, proposed):
+        if entity_id is not None and self._reviewed(
+            run.case_id, entity_type, entity_id, target_field
+        ) and not _equal(current, proposed):
             status, conflict_type = "conflict", "confirmed_canonical_value"
         contradiction = self._fact_contradiction(run.case_id, group, field, proposed)
         if contradiction:
@@ -352,7 +358,7 @@ class CanadaLegacyImportService:
         return cm.CanadaImportCandidate(
             import_run_id=run.id, domain_section=SECTIONS.get(group.split("[")[0], "Application"),
             employee_label=LABELS.get(field, field.replace("_", " ").title()),
-            target_entity_type=entity_type, target_entity_id=getattr(entity, "id", None),
+            target_entity_type=entity_type, target_entity_id=entity_id,
             target_field=target_field, operation="create_or_set" if entity is None else "set_field",
             source_path=mapping.legacy_path, source_record_key=record_key,
             source_classification=source_classification,
@@ -458,6 +464,52 @@ class CanadaLegacyImportService:
             cm.LegacyImportEntityLink.canonical_entity_type == entity_type,
         ))
         return self.session.get(model, link.canonical_entity_id) if link else None
+
+    def _linked_family_relationship(self, run, key):
+        """Reuse a generic parent link only after the current parser supplied an explicit role."""
+        linked = self._linked_entity(
+            run.case_id, "family_relationship", key, cm.FamilyRelationship
+        )
+        if linked is not None:
+            return linked
+        parts = key.split(":", 2)
+        if (
+            run.source_type != "google_verified_csv"
+            or len(parts) != 3
+            or parts[0] != "parent"
+            or parts[1] not in {"father", "mother"}
+        ):
+            return None
+        legacy_key = f"parent:parent:{parts[2]}"
+        relationship = self._linked_entity(
+            run.case_id, "family_relationship", legacy_key, cm.FamilyRelationship
+        )
+        if relationship is None or relationship.relationship_type != "parent":
+            return None
+        if relationship.parent_type not in {None, parts[1]}:
+            return None
+
+        old_links = list(self.session.scalars(select(cm.LegacyImportEntityLink).where(
+            cm.LegacyImportEntityLink.case_id == run.case_id,
+            cm.LegacyImportEntityLink.source_type == run.source_type,
+            cm.LegacyImportEntityLink.source_record_key == legacy_key,
+        )))
+        for old_link in old_links:
+            collision = self.session.scalar(select(cm.LegacyImportEntityLink.id).where(
+                cm.LegacyImportEntityLink.case_id == run.case_id,
+                cm.LegacyImportEntityLink.source_type == run.source_type,
+                cm.LegacyImportEntityLink.source_record_key == key,
+                cm.LegacyImportEntityLink.canonical_entity_type == old_link.canonical_entity_type,
+            ))
+            if collision is not None:
+                return None
+
+        relationship.parent_type = parts[1]
+        for old_link in old_links:
+            old_link.source_record_key = key
+            old_link.last_import_run_id = run.id
+        self.session.flush()
+        return relationship
 
     def _linked_or_first(self, app, entity_type, key, model, fallback=True):
         linked = self._linked_entity(app.case_id, entity_type, key, model)
@@ -690,7 +742,14 @@ class CanadaLegacyImportService:
                 groups.setdefault(self._family_key(item), []).append(item)
         usable = list(accepted)
         for rel_key, items in groups.items():
-            if self._linked_entity(run.case_id, "family_relationship", rel_key, cm.FamilyRelationship):
+            relationship = self._linked_family_relationship(run, rel_key)
+            if relationship is not None:
+                person = self.session.get(models.Person, relationship.related_person_id)
+                for item in items:
+                    if item.target_entity_type == "family_person":
+                        item.target_entity_id = person.id
+                    elif item.target_entity_type == "family_relationship":
+                        item.target_entity_id = relationship.id
                 continue
             first = next((item.proposed_value_json for item in items if item.target_entity_type == "family_person" and item.target_field == "first_name"), None)
             last = next((item.proposed_value_json for item in items if item.target_entity_type == "family_person" and item.target_field == "last_name"), None)
@@ -769,7 +828,7 @@ class CanadaLegacyImportService:
         if et == "address":
             if item.source_path.startswith(("family.", "relationships.")):
                 rel_key = item.source_record_key if item.source_record_key != "scalar" else "spouse"
-                relationship = self._linked_entity(run.case_id, "family_relationship", rel_key, cm.FamilyRelationship)
+                relationship = self._linked_family_relationship(run, rel_key)
                 if relationship is None: raise DomainValidationError("family relationship must be accepted before its address")
                 existing = self.session.get(cm.Address, relationship.address_id) if relationship.address_id else None
                 if existing: return existing
@@ -786,7 +845,7 @@ class CanadaLegacyImportService:
             return cm.FundingSource(trip_plan_id=trip.id, payer_kind="other", is_primary=True, sort_order=0)
         if et in {"family_person", "family_biography", "family_relationship"}:
             rel_key = self._family_key(item)
-            rel = self._linked_entity(run.case_id, "family_relationship", rel_key, cm.FamilyRelationship)
+            rel = self._linked_family_relationship(run, rel_key)
             if rel is None:
                 raise DomainValidationError(
                     "Family identity is incomplete. Review given and family names before applying this import."

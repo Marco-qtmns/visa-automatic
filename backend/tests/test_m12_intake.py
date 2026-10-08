@@ -55,8 +55,8 @@ def full_family_csv() -> bytes:
     values[1:3] = ["Diallo", "Amina"]
     values[16:20] = ["Costa", "Lucia", "02/03/1985", "Brasil"]
     values[24:27] = ["Former", "Franca", "03/04/1980"]
-    values[113:118] = ["Diallo", "Mariam", "04/05/1960", "Dakar", "Brasil"]
-    values[123:128] = ["Diallo", "Omar", "05/06/1958", "Dakar", "Brasil"]
+    values[113:118] = ["Almeida", "João Roberto", "04/05/1960", "Dakar", "Brasil"]
+    values[123:128] = ["Costa", "Lúcia Helena", "05/06/1958", "Dakar", "Brasil"]
     values[134:141] = ["Biological", "Diallo", "Noah", "06/07/2015", "Single", "Zurich", "Brasil"]
     output = io.StringIO(newline="")
     csv.writer(output).writerows([rows[0], values])
@@ -387,6 +387,27 @@ def test_full_google_family_import_keeps_roles_and_relationships_separate(sessio
     assert [item.relationship_type for item in relationships].count("former_spouse") == 1
     assert [item.relationship_type for item in relationships].count("parent") == 2
     assert [item.relationship_type for item in relationships].count("child") == 1
+    people_by_id = {person.id: person for person in people}
+    relationships_by_name = {
+        people_by_id[item.related_person_id].first_name: item
+        for item in relationships
+    }
+    assert relationships_by_name["João Roberto"].parent_type == "father"
+    assert relationships_by_name["Lúcia Helena"].parent_type == "mother"
+    assert relationships_by_name["Lucia"].relationship_type == "spouse"
+    assert relationships_by_name["Lucia"].is_current is True
+    assert relationships_by_name["Franca"].relationship_type == "former_spouse"
+    assert relationships_by_name["Franca"].is_current is False
+    assert relationships_by_name["Noah"].relationship_type == "child"
+    assert all(
+        item.is_current is False
+        for item in relationships
+        if item.relationship_type in {"parent", "child", "former_spouse"}
+    )
+    assert all(
+        people_by_id[item.related_person_id].roles == ["other"]
+        for item in relationships
+    )
 
     app.dependency_overrides[get_session] = _session_override(session)
     try:
@@ -395,6 +416,59 @@ def test_full_google_family_import_keeps_roles_and_relationships_separate(sessio
         assert all(set(person["roles"]) <= valid_roles for person in response.json())
     finally:
         app.dependency_overrides.pop(get_session, None)
+
+
+def test_stale_verified_intake_reprocess_repairs_parent_roles_without_duplicates(
+    session, intake
+):
+    service, _storage, actor = intake
+    original = service.receive_and_process(
+        source_type=GOOGLE_FORMS_CSV,
+        content=full_family_csv(),
+        filename="google-family-stale.csv",
+        actor=actor,
+    )
+    original_run = session.get(cm.CanadaLegacyImportRun, original.import_run_id)
+    original_run.mapping_version = "m9b-2"
+    original.mapping_version = "m9b-2"
+    for attempt in service.attempts(original.id):
+        attempt.mapping_version = "m9b-2"
+    parent_relationships = list(session.scalars(select(cm.FamilyRelationship).where(
+        cm.FamilyRelationship.relationship_type == "parent"
+    ).order_by(cm.FamilyRelationship.sort_order)))
+    for index, relationship in enumerate(parent_relationships, start=1):
+        relationship.parent_type = None
+        for link in session.scalars(select(cm.LegacyImportEntityLink).where(
+            cm.LegacyImportEntityLink.case_id == original.case_id,
+            cm.LegacyImportEntityLink.source_record_key.in_({
+                f"parent:father:{index}", f"parent:mother:{index}",
+            }),
+        )):
+            link.source_record_key = f"parent:parent:{index}"
+    session.commit()
+
+    assert service.get(original.id).can_retry is True
+    person_count = session.scalar(select(func.count(models.Person.id)))
+    relationship_count = session.scalar(select(func.count(cm.FamilyRelationship.id)))
+    repaired = service.retry(original.id, actor=actor)
+
+    assert repaired.processing_status == "PROCESSED"
+    assert repaired.can_retry is False
+    assert session.scalar(select(func.count(models.Person.id))) == person_count
+    assert session.scalar(select(func.count(cm.FamilyRelationship.id))) == relationship_count
+    repaired_parents = list(session.scalars(select(cm.FamilyRelationship).where(
+        cm.FamilyRelationship.relationship_type == "parent"
+    ).order_by(cm.FamilyRelationship.sort_order)))
+    assert [item.parent_type for item in repaired_parents] == ["father", "mother"]
+    parent_link_keys = set(session.scalars(select(
+        cm.LegacyImportEntityLink.source_record_key
+    ).where(
+        cm.LegacyImportEntityLink.case_id == original.case_id,
+        cm.LegacyImportEntityLink.canonical_entity_type == "family_relationship",
+        cm.LegacyImportEntityLink.source_record_key.like("parent:%"),
+    )))
+    assert parent_link_keys == {"parent:father:1", "parent:mother:2"}
+    assert len(service.attempts(original.id)) == 2
 
 
 def test_failed_full_family_intake_retry_reuses_case_and_canonical_entities(

@@ -48,8 +48,10 @@ class VerifiedIntakeTests(unittest.TestCase):
         case = canada_case_from_csv_row(row)
         self.assertEqual(case.family.parents[0].birth_country, '')
         self.assertEqual(case.family.parents[1].birth_country, 'Synthetic country 2')
-        self.assertEqual(case.family.parents[0].confirmed_role, '')
-        self.assertEqual(case.family.parents[1].confirmed_role, '')
+        self.assertEqual(case.family.parents[0].source_role, 'father')
+        self.assertEqual(case.family.parents[0].confirmed_role, 'father')
+        self.assertEqual(case.family.parents[1].source_role, 'mother')
+        self.assertEqual(case.family.parents[1].confirmed_role, 'mother')
 
     def test_no_name_splitting_or_missing_identity_facts_inferred(self):
         case = canada_case_from_csv_row(self.row({1:'Example', 2:'Synthetic', 114:'Complete Synthetic Name'}))

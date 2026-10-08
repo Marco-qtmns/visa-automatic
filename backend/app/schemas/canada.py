@@ -221,6 +221,20 @@ class FamilyRelationshipCreate(BaseModel):
     death_details: str | None = None
     sort_order: int = Field(ge=0)
 
+    @model_validator(mode="after")
+    def relationship_semantics_are_consistent(self):
+        if self.relationship_type == FamilyRelationshipType.PARENT:
+            if self.parent_type not in {None, "mother", "father"}:
+                raise ValueError("parent_type must be mother or father")
+        elif self.parent_type is not None:
+            raise ValueError("parent_type is only valid for a parent relationship")
+        expected_current = self.relationship_type == FamilyRelationshipType.SPOUSE
+        if self.is_current != expected_current:
+            raise ValueError(
+                "is_current identifies the current spouse; all other family relationship types must be false"
+            )
+        return self
+
 
 class EducationCreate(BaseModel):
     person_id: uuid.UUID

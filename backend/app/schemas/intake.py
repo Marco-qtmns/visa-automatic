@@ -33,6 +33,7 @@ class IntakeSubmissionRead(IntakeReadModel):
     retry_count: int
     applicant_display_name: str | None = None
     case_number: str | None = None
+    can_retry: bool = False
 
 
 class IntakeAttemptRead(IntakeReadModel):

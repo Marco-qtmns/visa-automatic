@@ -79,6 +79,20 @@ def test_person_can_be_parent_and_sponsor_and_current_spouse_is_unique(session):
         ))
 
 
+@pytest.mark.parametrize("payload", [
+    {"relationship_type": "spouse", "is_current": False},
+    {"relationship_type": "former_spouse", "is_current": True},
+    {"relationship_type": "parent", "parent_type": "father", "is_current": True},
+    {"relationship_type": "child", "is_current": True},
+    {"relationship_type": "child", "parent_type": "mother", "is_current": False},
+])
+def test_family_relationship_schema_rejects_inconsistent_current_and_parent_semantics(payload):
+    with pytest.raises(ValueError):
+        cs.FamilyRelationshipCreate(
+            related_person_id=uuid.uuid4(), sort_order=0, **payload
+        )
+
+
 def test_child_and_activity_identity_survive_reorder(session):
     service, _case, people, app = setup_application(session)
     fourth = models.Person(case_id=app.case_id, first_name="Child", last_name="Two", roles=["other"])

@@ -312,8 +312,15 @@ class IntakeService:
         self, submission_id: uuid.UUID, *, requested_case_id: uuid.UUID | None = None, actor=None
     ) -> IntakeSubmission:
         submission = self.get(submission_id, decorate=False)
-        if submission.processing_status not in {"FAILED", "NEEDS_REVIEW"}:
-            raise DomainValidationError("only failed or review-required intake can be retried")
+        stale_processed = (
+            submission.processing_status == "PROCESSED"
+            and submission.mapping_version != MAPPING_VERSION
+            and not self._has_current_successful_attempt(submission.id)
+        )
+        if submission.processing_status not in {"FAILED", "NEEDS_REVIEW"} and not stale_processed:
+            raise DomainValidationError(
+                "only failed, review-required, or stale processed intake can be retried"
+            )
         if requested_case_id is not None:
             submission.requested_case_id = requested_case_id
         submission.retry_count += 1
@@ -468,4 +475,19 @@ class IntakeService:
             )
         setattr(submission, "applicant_display_name", display_name)
         setattr(submission, "case_number", case_number)
+        setattr(submission, "can_retry", (
+            submission.processing_status in {"FAILED", "NEEDS_REVIEW"}
+            or (
+                submission.processing_status == "PROCESSED"
+                and submission.mapping_version != MAPPING_VERSION
+                and not self._has_current_successful_attempt(submission.id)
+            )
+        ))
         return submission
+
+    def _has_current_successful_attempt(self, submission_id: uuid.UUID) -> bool:
+        return self.session.scalar(select(IntakeProcessingAttempt.id).where(
+            IntakeProcessingAttempt.submission_id == submission_id,
+            IntakeProcessingAttempt.mapping_version == MAPPING_VERSION,
+            IntakeProcessingAttempt.status == "PROCESSED",
+        ).limit(1)) is not None

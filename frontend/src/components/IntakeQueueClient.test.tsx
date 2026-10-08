@@ -23,7 +23,7 @@ const failed: IntakeSubmission = {
   processing_started_at: "2026-10-07T10:00:01Z", processing_completed_at: "2026-10-07T10:00:02Z",
   failure_code: "SOURCE_VALIDATION_FAILED", failure_message: "The source could not be parsed or validated.",
   issue_count: 1, duplicate_receive_count: 0, retry_count: 0,
-  applicant_display_name: null, case_number: null,
+  applicant_display_name: null, case_number: null, can_retry: true,
 };
 const caseSummary = { id: "case-1", case_number: "CA-2026-1", display_name: "Amina Diallo", visa_type: "canada_trv", purpose: "Visit", workflow_state: "INTAKE" as const, issue_count: 0, next_action: "Continue application", queue: "WAITING" as const, updated_at: "2026-10-07T10:00:00Z" };
 
@@ -63,4 +63,16 @@ it("retries an exception with an employee-selected application", async () => {
   await user.selectOptions(screen.getByLabelText("Application for submission.csv"), "case-1");
   await user.click(screen.getByRole("button", { name: "Retry" }));
   await waitFor(() => expect(api.retryIntakeSubmission).toHaveBeenCalledWith("intake-1", "case-1"));
+});
+
+it("offers deterministic reprocessing for a processed submission with a stale mapping", async () => {
+  const user = userEvent.setup();
+  vi.mocked(api.listIntakeSubmissions).mockResolvedValue([{
+    ...failed, processing_status: "PROCESSED", failure_code: null,
+    failure_message: null, issue_count: 0, case_id: "case-1",
+    case_number: "CA-2026-1", can_retry: true,
+  }]);
+  render(<IntakeQueueClient />);
+  await user.click(await screen.findByRole("button", { name: "Reprocess" }));
+  await waitFor(() => expect(api.retryIntakeSubmission).toHaveBeenCalledWith("intake-1", undefined));
 });

@@ -32,7 +32,19 @@ Receipt, attempt start, case resolution/import execution, and final outcome use 
 
 Source parsing completes before automatic Case creation. Once a Case and import preview have been durably linked, a downstream apply failure intentionally retains that recovery Case and its review diagnostics. The failed queue item links to it, and retry reuses exactly that Case. Apply itself rolls back atomically, so no partial applicant/application batch remains and repeated failures do not create further Cases.
 
-Only failed or review-required submissions can be retried. A retry rereads the same immutable raw-source reference, adds a processing attempt, and reuses the linked or employee-selected Case. It does not create another submission or silently change the raw bytes.
+Failed or review-required submissions can be retried. A processed submission
+whose mapping version predates the current mapping can also be reprocessed once
+through the Intake queue. Reprocessing rereads the same immutable raw-source
+reference, adds a processing attempt, and reuses the linked Case. It does not
+create another submission or silently change the raw bytes.
+
+The fingerprint-bound 234-column Google profile defines parent block 1 as the
+father and parent block 2 as the mother. Older generic parent links are upgraded
+only while reprocessing that preserved source after the current parser has
+re-established those explicit roles. The existing Persons and relationships are
+reused; names and gender are never used to infer parent type. Other accepted
+Google profiles and `canada_case_json` remain generic unless their own source
+mapping explicitly identifies a mother or father.
 
 ## Storage, operations, and security
 

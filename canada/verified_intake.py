@@ -2,8 +2,9 @@
 
 The exact ordered header hash guards the duplicate/mislabelled parent-country
 column. A changed, missing or reordered header must never reuse these offsets.
-The owner defines the parent column following surname as given names in this
-exact schema. Its text is copied without name inference or splitting.
+The owner defines the first parent block as father, the second as mother, and
+the parent column following surname as given names in this exact schema. These
+semantics come from the fingerprint-bound mapping, never from a person's name.
 """
 from .models import Activity, CanadaCase, DocumentReference, FamilyMember
 
@@ -90,7 +91,10 @@ def read_verified(row, header_sha256):
         raw_response=row.raw_dict(),
         activities=[Activity(source_block_index=i + 1, source_role='csv') for i in range(4)],
     )
-    case.family.parents = [FamilyMember(source_block_index=i + 1, source_role='parent') for i in range(2)]
+    case.family.parents = [
+        FamilyMember(source_block_index=i + 1, source_role=role, confirmed_role=role)
+        for i, role in enumerate(('father', 'mother'))
+    ]
     case.family.children = [FamilyMember(source_block_index=i + 1, source_role='child') for i in range(5)]
     case.documents = [DocumentReference(
         source_role='applicant' if i < 226 else 'sponsor', source_block_index=i,

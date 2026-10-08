@@ -88,3 +88,8 @@ Kinship is an independent dimension stored in `family_relationships` as
 mother/father semantics when the source actually provides them. A relative may
 also hold an operational role (for example, a parent who is a sponsor) without
 either dimension overwriting the other.
+
+`FamilyRelationship.is_current` models partner history, not whether a
+biological or legal family connection still exists. It is true only for the
+current `spouse`. It is false for `former_spouse`, `parent`, and `child`; those
+relationship types carry their own enduring semantics without this flag.
