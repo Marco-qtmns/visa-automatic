@@ -184,6 +184,7 @@ class IntakeService:
         submission.processing_completed_at = None
         submission.failure_code = None
         submission.failure_message = None
+        submission.failure_detail_json = None
         self.session.add(attempt)
         self.session.commit()
 
@@ -271,23 +272,36 @@ class IntakeService:
                 },
             )
             if phase == "source_validation":
-                code = "SOURCE_VALIDATION_FAILED"
-                message = "The source could not be parsed or validated. Correct the source and retry."
+                detail = self._source_failure_detail(error)
+                code = str(detail["code"])
+                message = str(detail["message"])
             elif phase == "import_apply":
                 code = "IMPORT_APPLY_FAILED"
                 message = "The validated source could not be applied. Review the intake and retry."
             else:
                 code = "INTAKE_PROCESSING_FAILED"
                 message = "The validated source could not be processed. Review the intake and retry."
+            error_detail = getattr(error, "api_detail", None)
+            if isinstance(error_detail, dict):
+                detail = error_detail
+                code = str(detail.get("code") or code)
+                message = str(detail.get("message") or message)
+            elif phase != "source_validation":
+                detail = self._failure_detail(code, message, phase=phase)
             self._complete_failure(
                 submission, attempt, actor=actor, status="FAILED",
-                code=code, message=message,
+                code=code, message=message, detail=detail,
             )
         except StorageObjectNotFound:
             self._complete_failure(
                 submission, attempt, actor=actor, status="FAILED",
                 code="RAW_SOURCE_UNAVAILABLE",
                 message="The stored source is unavailable. Restore it before retrying.",
+                detail=self._failure_detail(
+                    "RAW_SOURCE_UNAVAILABLE",
+                    "The stored source is unavailable. Restore it before retrying.",
+                    phase="source_validation",
+                ),
             )
         except Exception as error:
             self.session.rollback()
@@ -304,6 +318,13 @@ class IntakeService:
                     "The validated source could not be applied. Review the intake and retry."
                     if phase == "import_apply"
                     else "The intake could not be processed. Retry after checking the system status."
+                ),
+                detail=self._failure_detail(
+                    "IMPORT_APPLY_FAILED" if phase == "import_apply" else "INTAKE_PROCESSING_FAILED",
+                    "The validated source could not be applied. Review the intake and retry."
+                    if phase == "import_apply"
+                    else "The intake could not be processed. Retry after checking the system status.",
+                    phase=phase,
                 ),
             )
         return self._decorate(submission)
@@ -417,18 +438,20 @@ class IntakeService:
 
     def _complete_failure(
         self, submission: IntakeSubmission, attempt: IntakeProcessingAttempt, *, actor,
-        status: str, code: str, message: str,
+        status: str, code: str, message: str, detail: dict | None = None,
     ) -> None:
         completed = datetime.now(timezone.utc)
         submission.processing_status = status
         submission.processing_completed_at = completed
         submission.failure_code = code
         submission.failure_message = message
+        submission.failure_detail_json = detail
         submission.issue_count = 1
         attempt.status = status
         attempt.completed_at = completed
         attempt.failure_code = code
         attempt.failure_message = message
+        attempt.failure_detail_json = detail
         attempt.case_id = submission.case_id
         record_audit(
             self.session, actor=actor,
@@ -439,6 +462,40 @@ class IntakeService:
             metadata={"source_type": submission.source_type, "failure_code": code},
         )
         self.session.commit()
+
+    @staticmethod
+    def _failure_detail(code: str, message: str, *, phase: str) -> dict:
+        return {
+            "category": "source_validation" if phase == "source_validation" else "persistence_failure",
+            "code": code,
+            "section": "Intake",
+            "field_path": None,
+            "entity_id": None,
+            "message": message,
+            "rejected_value": None,
+            "suggested_correction": (
+                "Correct the source file and submit it again."
+                if phase == "source_validation"
+                else "Review the indicated application field and retry."
+            ),
+            "retryable": True,
+        }
+
+    @classmethod
+    def _source_failure_detail(cls, error: Exception) -> dict:
+        text = str(error).casefold()
+        if any(term in text for term in ("schema", "header", "fingerprint", "column mapping")):
+            code = "UNSUPPORTED_GOOGLE_FORMS_SCHEMA"
+            message = "The CSV headers do not match the supported Google Forms export. Export the verified form without changing or reordering columns."
+        elif "exactly one response" in text or "width" in text:
+            code = "INVALID_GOOGLE_FORMS_RESPONSE_COUNT"
+            message = "The CSV must contain exactly one complete Google Forms response row."
+        else:
+            code = "SOURCE_VALIDATION_FAILED"
+            message = "The CSV could not be parsed as the supported Google Forms export."
+        detail = cls._failure_detail(code, message, phase="source_validation")
+        detail["field_path"] = "source_file"
+        return detail
 
     def _duplicate(
         self, source_type: str, digest: str, external_id: str | None, mapping_version: str

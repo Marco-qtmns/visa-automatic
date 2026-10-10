@@ -22,6 +22,7 @@ const failed: IntakeSubmission = {
   processing_status: "FAILED", case_id: null, import_run_id: null,
   processing_started_at: "2026-10-07T10:00:01Z", processing_completed_at: "2026-10-07T10:00:02Z",
   failure_code: "SOURCE_VALIDATION_FAILED", failure_message: "The source could not be parsed or validated.",
+  failure_detail_json: null,
   issue_count: 1, duplicate_receive_count: 0, retry_count: 0,
   applicant_display_name: null, case_number: null, can_retry: true,
 };

@@ -52,7 +52,7 @@ def _environment_names(path: Path) -> set[str]:
 
 def test_environment_contract_matches_example_and_preflight():
     contract = json.loads((PROJECT_ROOT / "deployment/environment-contract.json").read_text())
-    assert contract["expected_alembic_head"] == "0014_person_role_alignment"
+    assert contract["expected_alembic_head"] == "0015_intake_failure_detail"
     variables = contract["variables"]
     assert len({item["name"] for item in variables}) == len(variables)
     for item in variables:
@@ -292,9 +292,10 @@ def test_backend_image_is_resolved_from_compose_after_build():
 
 def test_accepted_migration_chain_has_one_expected_head():
     script = ScriptDirectory.from_config(Config(str(PROJECT_ROOT / "backend/alembic.ini")))
-    assert script.get_heads() == ["0014_person_role_alignment"]
+    assert script.get_heads() == ["0015_intake_failure_detail"]
     revisions = list(script.walk_revisions(base="base", head="heads"))
     assert [item.revision for item in revisions] == [
+        "0015_intake_failure_detail",
         "0014_person_role_alignment",
         "0013_automated_intake",
         "0012_import_raw_provenance",
@@ -345,7 +346,7 @@ def test_migration_revision_graph_fits_alembic_version_column():
             children[parent].append(revision)
     assert all(len(items) <= 1 for items in children.values()), "migration graph branches"
     heads = [revision for revision, items in children.items() if not items]
-    assert heads == ["0014_person_role_alignment"]
+    assert heads == ["0015_intake_failure_detail"]
 
     visited: set[str] = set()
     current: str | None = roots[0]
@@ -648,11 +649,11 @@ def test_synthetic_deployment_fixture_generates_and_verifies(
         ))
         session.execute(
             text("INSERT INTO alembic_version (version_num) VALUES (:revision)"),
-            {"revision": "0014_person_role_alignment"},
+            {"revision": "0015_intake_failure_detail"},
         )
     restored = verify_restored_staging.verify()
     assert restored["status"] == "PASS"
-    assert restored["alembic_revision"] == "0014_person_role_alignment"
+    assert restored["alembic_revision"] == "0015_intake_failure_detail"
     assert restored["current_package_count"] == 1
     assert set(restored["artifact_types"]) == expected
     engine.dispose()

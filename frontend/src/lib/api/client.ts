@@ -56,6 +56,10 @@ function errorMessage(detail: unknown, fallback: string): string {
   if (typeof detail === "string") return detail;
   if (typeof detail === "object" && detail !== null && "message" in detail) {
     const message = String(detail.message);
+    const location = [
+      "section" in detail ? String(detail.section ?? "") : "",
+      "field_path" in detail ? String(detail.field_path ?? "") : "",
+    ].filter(Boolean).join(" · ");
     const rawReasons = "blocking_reasons" in detail && Array.isArray(detail.blocking_reasons)
       ? detail.blocking_reasons
       : "issues" in detail && Array.isArray(detail.issues) ? detail.issues : [];
@@ -64,7 +68,8 @@ function errorMessage(detail: unknown, fallback: string): string {
           .map((item, index) => item ?? (typeof rawReasons[index] === "string" ? String(rawReasons[index]) : null))
           .filter(Boolean)
       ;
-    return reasons.length ? `${message} ${reasons.join("; ")}` : message;
+    const located = location ? `${location}: ${message}` : message;
+    return reasons.length ? `${located} ${reasons.join("; ")}` : located;
   }
   if (Array.isArray(detail)) {
     const messages = detail
@@ -397,6 +402,8 @@ export const api = {
     request<CanadaImportChange>(`/canada-import-changes/${changeId}/${action}`, json("POST", { reviewed_by: reviewedBy ?? null })),
   resolveCanadaImportChange: (changeId: string, decision: "keep_current" | "use_imported", reviewedBy?: string, hostType?: "person" | "organization") =>
     request<CanadaImportChange>(`/canada-import-changes/${changeId}/resolve`, json("POST", { decision, reviewed_by: reviewedBy ?? null, ...(hostType ? { host_type: hostType } : {}) })),
+  confirmCanadaImportChange: (changeId: string, value: unknown, reviewedBy?: string, hostType?: "person" | "organization") =>
+    request<CanadaImportChange>(`/canada-import-changes/${changeId}/confirm`, json("POST", { value, reviewed_by: reviewedBy ?? null, ...(hostType ? { host_type: hostType } : {}) })),
 };
 
 export async function loadCaseSummaries(): Promise<CaseSummary[]> {

@@ -51,6 +51,7 @@ class CanadaImportCandidateRead(ImportReadModel):
     conflict_policy: str
     reviewed_by: str | None
     reviewed_at: datetime | None
+    canonical_review_state: str | None = None
     created_at: datetime
 
 
@@ -72,6 +73,11 @@ class ImportReviewRequest(BaseModel):
 
 class ImportResolveRequest(ImportReviewRequest):
     decision: Literal["keep_current", "use_imported"]
+    host_type: Literal["person", "organization"] | None = None
+
+
+class ImportConfirmRequest(ImportReviewRequest):
+    value: Any
     host_type: Literal["person", "organization"] | None = None
 
 

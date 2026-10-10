@@ -38,6 +38,13 @@ through the Intake queue. Reprocessing rereads the same immutable raw-source
 reference, adds a processing attempt, and reuses the linked Case. It does not
 create another submission or silently change the raw bytes.
 
+Failures persist an employee-safe structured diagnostic on both the durable
+submission and its processing attempt. Source-header failures, field validation,
+database invariants, and unexpected persistence failures have distinct stable
+codes. Import Apply diagnostics retain the affected section, field path, entity
+ID when known, safe rejected value, correction guidance, and retryability; raw
+database exceptions and stack traces are never returned.
+
 The fingerprint-bound 234-column Google profile defines parent block 1 as the
 father and parent block 2 as the mother. Older generic parent links are upgraded
 only while reprocessing that preserved source after the current parser has

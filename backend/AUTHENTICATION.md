@@ -5,7 +5,7 @@ entered. Network or Tailscale reachability is not treated as identity.
 
 ## Bootstrap
 
-After applying migrations through `0014_person_role_alignment`, create the first administrator
+After applying migrations through `0015_intake_failure_detail`, create the first administrator
 inside the backend container. The password is read interactively and is never a
 command-line argument:
 

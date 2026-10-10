@@ -63,6 +63,20 @@ def full_family_csv() -> bytes:
     return output.getvalue().encode("utf-8-sig")
 
 
+def host_csv() -> bytes:
+    with FIXTURE.open(encoding="utf-8-sig", newline="") as source:
+        rows = list(csv.reader(source))
+    values = [""] * len(rows[0])
+    values[0:3] = ["2026-10-09 10:00:00", "Diallo", "Amina"]
+    values[60:66] = [
+        "Pessoa", "Ana Silva", "Friend", "", "Permanent resident",
+        "123 King Street, Toronto, ON, M5V 2T6",
+    ]
+    output = io.StringIO(newline="")
+    csv.writer(output).writerows([rows[0], values])
+    return output.getvalue().encode("utf-8-sig")
+
+
 @pytest.fixture
 def intake(session, tmp_path):
     storage = LocalStorageProvider(tmp_path / "intake")
@@ -259,7 +273,8 @@ def test_invalid_source_fails_safely_and_retry_after_parser_fix_is_idempotent(se
         source_type=GOOGLE_FORMS_CSV, content=raw, filename="invalid.csv", actor=actor,
     )
     assert failed.processing_status == "FAILED"
-    assert failed.failure_code == "SOURCE_VALIDATION_FAILED"
+    assert failed.failure_code == "UNSUPPORTED_GOOGLE_FORMS_SCHEMA"
+    assert failed.failure_detail_json["field_path"] == "source_file"
     assert "schema" not in failed.failure_message.casefold()
     with storage.open(failed.raw_source_reference) as source:
         assert source.read() == raw
@@ -357,6 +372,26 @@ def test_verified_google_family_country_end_to_end_preserves_raw_and_applies_iso
         if row.person_id != applicant.id
     ]
     assert [row.birth_country_code for row in family_biographies] == ["BRA"]
+
+
+def test_verified_google_host_review_applies_without_generic_database_failure(session, intake):
+    service, _storage, actor = intake
+    result = service.receive_and_process(
+        source_type=GOOGLE_FORMS_CSV, content=host_csv(),
+        filename="google-host.csv", actor=actor,
+    )
+    assert result.processing_status == "NEEDS_REVIEW"
+    importer = CanadaLegacyImportService(session)
+    changes = importer.changes(result.import_run_id)
+    for item in changes:
+        if item.conflict_type == "host_type_ambiguous":
+            importer.review(item.id, "use_imported", actor.email, host_type="person")
+        elif item.status == "new":
+            importer.review(item.id, "accept", actor.email)
+    importer.apply(result.import_run_id, reviewed_by=actor.email)
+    host = session.scalar(select(cm.HostRecord))
+    assert host.host_type == "person"
+    assert session.get(cm.Address, host.address_id).postal_code == "M5V 2T6"
 
 
 def test_full_google_family_import_keeps_roles_and_relationships_separate(session, intake):

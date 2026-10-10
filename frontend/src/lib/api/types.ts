@@ -422,6 +422,11 @@ export interface IntakeSubmission {
   processing_completed_at: string | null;
   failure_code: string | null;
   failure_message: string | null;
+  failure_detail_json: {
+    category: string; code: string; section: string | null; field_path: string | null;
+    entity_id: string | null; message: string; rejected_value: unknown;
+    suggested_correction: string; retryable: boolean;
+  } | null;
   issue_count: number;
   duplicate_receive_count: number;
   retry_count: number;
@@ -536,6 +541,7 @@ export interface CanadaImportChange {
   conflict_policy: string;
   reviewed_by: string | null;
   reviewed_at: string | null;
+  canonical_review_state?: "unreviewed" | "confirmed" | "corrected" | "needs_review" | "rejected" | null;
   created_at: string;
 }
 

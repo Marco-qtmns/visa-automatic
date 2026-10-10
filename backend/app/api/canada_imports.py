@@ -87,3 +87,10 @@ def reject_change(change_id: uuid.UUID, payload: schemas.ImportReviewRequest, se
 @router.post("/canada-import-changes/{change_id}/resolve", response_model=schemas.CanadaImportCandidateRead)
 def resolve_change(change_id: uuid.UUID, payload: schemas.ImportResolveRequest, session: SessionDep):
     return service(session).review(change_id, payload.decision, payload.reviewed_by, host_type=payload.host_type)
+
+
+@router.post("/canada-import-changes/{change_id}/confirm", response_model=schemas.CanadaImportCandidateRead)
+def confirm_change(change_id: uuid.UUID, payload: schemas.ImportConfirmRequest, session: SessionDep):
+    return service(session).confirm(
+        change_id, payload.value, payload.reviewed_by, host_type=payload.host_type
+    )

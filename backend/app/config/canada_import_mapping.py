@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from dataclasses import asdict, dataclass
 
-MAPPING_VERSION = "m12-family-semantics-1"
+MAPPING_VERSION = "m13-normalization-review-1"
 
 @dataclass(frozen=True)
 class MappingEntry:

@@ -305,6 +305,49 @@ def test_unknown_country_is_preserved_for_review_and_identifies_target(session):
     assert change.target_label == "Applicant — Birth Country"
 
 
+def test_multiple_citizenships_create_distinct_canonical_rows(session):
+    case, applicant, _app = setup_application(session)
+    legacy = CanadaCase()
+    legacy.identity.other_citizenship = "Brasileira; Canadense"
+    run = preview(session, case, legacy, "2" * 64)
+    importer = CanadaLegacyImportService(session)
+    changes = importer.changes(run.id)
+    assert [item.raw_value_json for item in changes] == ["Brasileira", "Canadense"]
+    assert [item.proposed_value_json for item in changes] == ["BRA", "CAN"]
+    importer.apply(run.id, mode="safe", reviewed_by="worker@example.invalid")
+    assert {
+        row.country_code for row in session.scalars(
+            select(cm.PersonCitizenship).where(cm.PersonCitizenship.person_id == applicant.id)
+        )
+    } == {"BRA", "CAN"}
+
+
+def test_explicit_person_host_choice_creates_linked_host_and_reviewable_address(session):
+    case, _applicant, app = setup_application(session)
+    legacy = CanadaCase()
+    legacy.trip.visiting_person_or_institution = "Pessoa"
+    legacy.trip.host_name = "Ana Silva"
+    legacy.trip.relationship = "Friend"
+    legacy.trip.host_address = "123 King Street, Toronto, ON, M5V 2T6"
+    run = preview(session, case, legacy, "3" * 64)
+    importer = CanadaLegacyImportService(session)
+    changes = importer.changes(run.id)
+    assert next(item for item in changes if item.source_path == "trip.visiting_person_or_institution").proposed_value_json == "person"
+    for item in changes:
+        if item.conflict_type == "host_type_ambiguous":
+            importer.review(item.id, "use_imported", "worker@example.invalid", host_type="person")
+        elif item.status == "new":
+            importer.review(item.id, "accept", "worker@example.invalid")
+    importer.apply(run.id, reviewed_by="worker@example.invalid")
+    host = session.scalar(select(cm.HostRecord))
+    assert host.host_type == "person" and host.person_id is not None
+    address = session.get(cm.Address, host.address_id)
+    assert address.context == "host"
+    assert address.unstructured_source_text == legacy.trip.host_address
+    assert address.postal_code == "M5V 2T6"
+    assert address.review_state == "needs_review"
+
+
 @pytest.mark.parametrize("record_key, owner", [
     ("parent:mother:1", "Mother"),
     ("parent:father:2", "Father"),
@@ -457,14 +500,38 @@ def test_low_level_apply_failure_is_sanitized_and_transactional(session, monkeyp
     monkeypatch.setattr(importer, "_apply_candidate", lambda *_args: (_ for _ in ()).throw(RuntimeError("SELECT secret FROM users password=leak")))
     with pytest.raises(DomainValidationError) as captured:
         importer.apply(run.id)
-    assert captured.value.api_detail == {
-        "code": "IMPORT_APPLY_FAILED",
-        "message": "Import could not be applied.",
-        "issues": ["Review the highlighted value and try again."],
-    }
+    detail = captured.value.api_detail
+    assert detail["category"] == "persistence_failure"
+    assert detail["code"] == "IMPORT_FIELD_INVALID"
+    assert detail["section"] == "Applicant"
+    assert detail["field_path"] == "identity.family_name"
+    assert detail["rejected_value"] == "Imported"
+    assert detail["retryable"] is True
     assert "SELECT" not in str(captured.value.api_detail)
     session.refresh(applicant)
     assert applicant.last_name == "Synthetic"
+
+
+def test_confirmed_import_field_can_be_corrected_through_service_with_audit_state(session):
+    case, applicant, _app = setup_application(session)
+    legacy = CanadaCase()
+    legacy.identity.family_name = "Imported"
+    run = preview(session, case, legacy, "a" * 64)
+    importer = CanadaLegacyImportService(session)
+    change = importer.changes(run.id)[0]
+    importer.review(change.id, "use_imported", "worker@example.invalid")
+    importer.apply(run.id, reviewed_by="worker@example.invalid")
+
+    importer.confirm(change.id, "Corrected", "reviewer@example.invalid")
+    session.refresh(applicant)
+    assert applicant.last_name == "Corrected"
+    provenance = session.scalar(select(cm.FieldProvenanceReview).where(
+        cm.FieldProvenanceReview.entity_id == applicant.id,
+        cm.FieldProvenanceReview.field_key == "last_name",
+        cm.FieldProvenanceReview.superseded_at.is_(None),
+    ))
+    assert provenance.review_state == "corrected"
+    assert provenance.reviewed_by == "reviewer@example.invalid"
 
 
 def test_source_first_import_can_identify_an_unnamed_case(session):

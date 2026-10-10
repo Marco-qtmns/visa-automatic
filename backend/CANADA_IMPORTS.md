@@ -46,9 +46,11 @@ IMM5257 purpose code.
    accept all safe, non-conflicting direct applicant values.
 4. Applying accepted candidates is one transaction. A failed invariant rolls
    back the entire batch.
-5. Applied values receive `FieldProvenanceReview` rows with source reference,
-   source digest, and `unreviewed` state. An explicit import decision does not
-   falsely claim the field was substantively confirmed.
+5. Applied values receive `FieldProvenanceReview` rows with source reference
+   and source digest. Unambiguous `applicant_direct` fields covered by the
+   documented `safe_direct_batch` policy are automatically `confirmed`.
+   Conflicts, classifications, official answers, and other explicit-review
+   fields remain `unreviewed` until the employee confirms the canonical value.
 
 The safe batch excludes conflicts, ambiguous host/person mapping, official
 answers, representative selection, and every field whose mapping requires
@@ -69,6 +71,24 @@ Legacy order initializes `sort_order`. A manual canonical reorder marks linked
 rows `employee_order_locked`; later imports retain that employee ordering.
 Ambiguous hosts remain review items because the importer does not guess person
 versus organization from a name.
+
+Country input is normalized by the single country-normalization service before
+candidate validation. It accepts ISO alpha-3, ISO alpha-2, English names,
+Portuguese names and supported Portuguese nationality adjectives. Multiple
+citizenships separated explicitly in the source become separate candidates and
+canonical citizenship rows. Unknown values remain attached to their raw source
+and become field-specific invalid review items; the Apply boundary independently
+requires a real ISO alpha-3 value.
+
+All address contexts use the same conservative address normalizer. The original
+text is retained, reliable components are populated without overwriting
+structured CSV components, unresolved fragments remain in review diagnostics,
+and the canonical address stays `needs_review` until employee confirmation.
+
+Apply errors use the application error contract: category, stable code, section,
+canonical/source field path, stable entity ID when available, safe rejected
+value, correction guidance, and retryability. Candidate-level errors identify
+the exact field while the surrounding transaction still rolls back atomically.
 
 Representative imports create reusable profiles and immutable revisions.
 Changed source data creates a revision; importing a default profile never

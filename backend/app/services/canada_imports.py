@@ -22,7 +22,9 @@ from canada.source_readers import read_google_forms_csv
 from .. import models
 from ..config.canada_import_mapping import AUDITED_GENERATOR_MAPPINGS, MAPPING_VERSION, MappingEntry
 from ..models import canada as cm
+from .address_normalization import normalize_address
 from .core import DomainNotFound, DomainValidationError
+from .country_normalization import ISO_ALPHA3_CODES, normalize_country, split_country_values
 from .person_roles import add_authoritative_role
 
 
@@ -50,19 +52,6 @@ LABELS = {
     "email": "Email", "phone": "Phone", "address": "Address",
     "application_date": "Official application date",
 }
-
-COUNTRY_CODES = {
-    "brazil": "BRA", "brasil": "BRA", "canada": "CAN", "canadá": "CAN",
-    "brésil": "BRA", "brasilien": "BRA",
-    "switzerland": "CHE", "schweiz": "CHE", "suíça": "CHE", "suisse": "CHE",
-    "united states": "USA", "estados unidos": "USA", "usa": "USA",
-    "portugal": "PRT", "germany": "DEU", "alemanha": "DEU",
-    "france": "FRA", "frança": "FRA", "italy": "ITA", "itália": "ITA",
-    "united kingdom": "GBR", "reino unido": "GBR", "spain": "ESP", "espanha": "ESP",
-}
-ISO_ALPHA3_CODES = frozenset("""
-ABW AFG AGO AIA ALA ALB AND ARE ARG ARM ASM ATA ATF ATG AUS AUT AZE BDI BEL BEN BES BFA BGD BGR BHR BHS BIH BLM BLR BLZ BMU BOL BRA BRB BRN BTN BVT BWA CAF CAN CCK CHE CHL CHN CIV CMR COD COG COK COL COM CPV CRI CUB CUW CXR CYM CYP CZE DEU DJI DMA DNK DOM DZA ECU EGY ERI ESH ESP EST ETH FIN FJI FLK FRA FRO FSM GAB GBR GEO GGY GHA GIB GIN GLP GMB GNB GNQ GRC GRD GRL GTM GUF GUM GUY HKG HMD HND HRV HTI HUN IDN IMN IND IOT IRL IRN IRQ ISL ISR ITA JAM JEY JOR JPN KAZ KEN KGZ KHM KIR KNA KOR KWT LAO LBN LBR LBY LCA LIE LKA LSO LTU LUX LVA MAC MAF MAR MCO MDA MDG MDV MEX MHL MKD MLI MLT MMR MNE MNG MNP MOZ MRT MSR MTQ MUS MWI MYS MYT NAM NCL NER NFK NGA NIC NIU NLD NOR NPL NRU NZL OMN PAK PAN PCN PER PHL PLW PNG POL PRI PRK PRT PRY PSE PYF QAT REU ROU RUS RWA SAU SDN SEN SGP SGS SHN SJM SLB SLE SLV SMR SOM SPM SRB SSD STP SUR SVK SVN SWE SWZ SXM SYC SYR TCA TCD TGO THA TJK TKL TKM TLS TON TTO TUN TUR TUV TWN TZA UGA UKR UMI URY USA UZB VAT VCT VEN VGB VIR VNM VUT WLF WSM YEM ZAF ZMB ZWE
-""".split())
 
 # These are the audited import targets whose canonical storage contract is an
 # ISO-3166 alpha-3 code. Phone prefixes and free-text addresses are excluded.
@@ -169,12 +158,7 @@ def _date(value: Any) -> date | None:
 
 
 def _country(value: Any) -> str | None:
-    if _blank(value):
-        return None
-    text = str(value).strip()
-    if text.upper() in ISO_ALPHA3_CODES:
-        return text.upper()
-    return COUNTRY_CODES.get(text.casefold())
+    return normalize_country(value).code
 
 
 def _yes_no(value: Any) -> str:
@@ -266,6 +250,7 @@ class CanadaLegacyImportService:
         self.session.add(run)
         self.session.flush()
         warnings: list[str] = []
+        self._host_type_proposal = self._propose_host_type(legacy)
         for mapping, record_key, value, source_classification in self._legacy_values(legacy):
             if _blank(value):
                 continue
@@ -307,6 +292,14 @@ class CanadaLegacyImportService:
                 for index, item in enumerate(items):
                     key = f"{prefix}:{item.source_role or 'legacy'}:{item.source_block_index or index + 1}"
                     yield mapping, key, getattr(item, field, ""), source_classification
+            elif group == "identity" and field == "other_citizenship":
+                for index, citizenship in enumerate(
+                    split_country_values(getattr(legacy.identity, field, "")), start=1
+                ):
+                    yield (
+                        mapping, f"citizenship:other:{index}", citizenship,
+                        source_classification,
+                    )
             else:
                 yield mapping, "scalar", getattr(getattr(legacy, group), field, ""), source_classification
 
@@ -320,6 +313,11 @@ class CanadaLegacyImportService:
             group, field, raw, warnings, record_key,
             target_entity_type=entity_type, target_field=target_field,
         )
+        if (
+            group == "trip" and field == "visiting_person_or_institution"
+            and getattr(self, "_host_type_proposal", None)
+        ):
+            proposed = self._host_type_proposal
         transform_invalid = len(warnings) > warning_count
         if proposed is None and field not in {"post_secondary_education"}:
             return None
@@ -330,8 +328,14 @@ class CanadaLegacyImportService:
         )
         status = "same" if entity is not None and _equal(current, proposed) else "new"
         conflict_type = None
-        if field in {"address", "mailing_address", "spouse_address"}:
-            warnings.append(f"{mapping.legacy_path}: unstructured address preserved; components need review")
+        if field in {"address", "mailing_address", "spouse_address", "host_address"}:
+            parsed = normalize_address(raw)
+            detail = ", ".join(parsed.parse_issues) or "employee confirmation required"
+            if parsed.unresolved_text:
+                detail = f"{detail}; unresolved: {parsed.unresolved_text}"
+            warnings.append(
+                f"{mapping.legacy_path}: original address preserved; parsed components need review ({detail})"
+            )
         if group == "family.members[*]" and record_key.startswith("parent:") and field == "relationship":
             warnings.append(f"{record_key}: parent role is not specific enough to infer mother/father")
         if group == "representative" and field == "cancelled_family_name":
@@ -565,6 +569,21 @@ class CanadaLegacyImportService:
         fact = self.session.scalar(select(models.Fact).where(models.Fact.case_id == case_id, models.Fact.key.in_(keys), models.Fact.status == "confirmed").order_by(models.Fact.created_at.desc()))
         return "confirmed_fact_contradiction" if fact and fact.value_json is False and not _blank(proposed) else None
 
+    @staticmethod
+    def _propose_host_type(legacy: CanadaCase) -> str | None:
+        """Use explicit relationship/type answers, never the host's name."""
+        relationship = " ".join(filter(None, (
+            legacy.trip.relationship, legacy.trip.family_relationship,
+        ))).strip()
+        if relationship:
+            return "person"
+        answer = str(legacy.trip.visiting_person_or_institution or "").casefold()
+        if any(word in answer for word in ("instituição", "instituicao", "institution", "empresa", "company")):
+            return "organization"
+        if any(word in answer for word in ("pessoa", "person")):
+            return "person"
+        return None
+
     def list_runs(self, case_id):
         return list(self.session.scalars(select(cm.CanadaLegacyImportRun).where(cm.CanadaLegacyImportRun.case_id == case_id).order_by(cm.CanadaLegacyImportRun.created_at.desc())))
 
@@ -575,7 +594,19 @@ class CanadaLegacyImportService:
 
     def changes(self, import_id):
         self.get_run(import_id)
-        return list(self.session.scalars(select(cm.CanadaImportCandidate).where(cm.CanadaImportCandidate.import_run_id == import_id).order_by(cm.CanadaImportCandidate.domain_section, cm.CanadaImportCandidate.created_at)))
+        items = list(self.session.scalars(select(cm.CanadaImportCandidate).where(cm.CanadaImportCandidate.import_run_id == import_id).order_by(cm.CanadaImportCandidate.domain_section, cm.CanadaImportCandidate.created_at)))
+        for item in items:
+            entity_type = {"family_person":"person", "family_biography":"person_biography"}.get(item.target_entity_type, item.target_entity_type)
+            state = None
+            if item.target_entity_id and entity_type in {value.value for value in cm.ProvenanceEntityType}:
+                state = self.session.scalar(select(cm.FieldProvenanceReview.review_state).where(
+                    cm.FieldProvenanceReview.entity_type == entity_type,
+                    cm.FieldProvenanceReview.entity_id == item.target_entity_id,
+                    cm.FieldProvenanceReview.field_key == item.target_field,
+                    cm.FieldProvenanceReview.superseded_at.is_(None),
+                ))
+            setattr(item, "canonical_review_state", state)
+        return items
 
     def review(self, candidate_id, decision, reviewed_by=None, *, host_type=None):
         item = self.session.get(cm.CanadaImportCandidate, candidate_id)
@@ -592,11 +623,86 @@ class CanadaLegacyImportService:
                 if host_type not in {"person", "organization"}:
                     raise DomainValidationError("host type must be selected explicitly")
                 item.conflict_type = f"resolved_host_{host_type}"
+                if item.target_field == "host_type":
+                    item.proposed_value_json = host_type
             item.status = "accepted"
         else: raise DomainValidationError("unsupported import review decision")
         item.reviewed_by, item.reviewed_at = reviewed_by, datetime.now(timezone.utc)
         run = self.get_run(item.import_run_id); run.status = "reviewing"
         self._refresh_counts(run); self.session.commit(); self.session.refresh(item)
+        return item
+
+    def confirm(self, candidate_id, value, reviewed_by=None, *, host_type=None):
+        """Validate an employee correction and accept the existing proposal."""
+        item = self.session.get(cm.CanadaImportCandidate, candidate_id)
+        if item is None:
+            raise DomainNotFound("Canada import change not found")
+        proposed = value
+        if (item.target_entity_type, item.target_field) in COUNTRY_CODE_TARGETS:
+            result = normalize_country(value)
+            if not result.code:
+                raise self._candidate_apply_error(
+                    item,
+                    DomainValidationError(
+                        "Country is unknown or ambiguous; enter an ISO alpha-3 code or a recognized country name."
+                    ),
+                )
+            proposed = result.code
+        else:
+            proposed = _json_value(self._coerce_for_field(
+                item.target_entity_type, item.target_field, value
+            ))
+        if item.conflict_type == "host_type_ambiguous":
+            if host_type not in {"person", "organization"}:
+                raise DomainValidationError("host type must be selected explicitly")
+            item.conflict_type = f"resolved_host_{host_type}"
+            if item.target_field == "host_type":
+                proposed = host_type
+        if item.status in {"applied", "same"}:
+            run = self.get_run(item.import_run_id)
+            model = self._model(item.target_entity_type)
+            entity = self.session.get(model, item.target_entity_id) if model and item.target_entity_id else None
+            if entity is None:
+                raise DomainValidationError("Canonical field is unavailable for confirmation")
+            changed = not _equal(item.proposed_value_json, proposed)
+            if changed:
+                item.proposed_value_json = proposed
+                app = self.session.scalar(select(cm.CanadaApplication).where(
+                    cm.CanadaApplication.case_id == run.case_id
+                ))
+                try:
+                    self._apply_candidate(run, app, item)
+                except Exception as error:
+                    self.session.rollback()
+                    raise self._candidate_apply_error(item, error) from error
+                active = self.session.scalar(select(cm.FieldProvenanceReview).where(
+                    cm.FieldProvenanceReview.case_id == run.case_id,
+                    cm.FieldProvenanceReview.entity_id == item.target_entity_id,
+                    cm.FieldProvenanceReview.field_key == item.target_field,
+                    cm.FieldProvenanceReview.superseded_at.is_(None),
+                ).order_by(cm.FieldProvenanceReview.created_at.desc()))
+                if active:
+                    active.review_state = "corrected"
+                    active.reviewed_by = reviewed_by
+                    active.reviewed_at = datetime.now(timezone.utc)
+            else:
+                self._provenance(
+                    run, item, entity, review_state="confirmed", reviewed_by=reviewed_by
+                )
+            item.reviewed_by = reviewed_by
+            item.reviewed_at = datetime.now(timezone.utc)
+            self.session.commit()
+            self.session.refresh(item)
+            return item
+        item.proposed_value_json = proposed
+        item.status = "accepted"
+        item.reviewed_by = reviewed_by
+        item.reviewed_at = datetime.now(timezone.utc)
+        run = self.get_run(item.import_run_id)
+        run.status = "reviewing"
+        self._refresh_counts(run)
+        self.session.commit()
+        self.session.refresh(item)
         return item
 
     def apply(self, import_id, *, mode="accepted", reviewed_by=None):
@@ -615,6 +721,10 @@ class CanadaLegacyImportService:
             if app.applicant_person_id is None:
                 self._create_imported_applicant(run, app, accepted)
             accepted = self._ensure_family_targets(run, app, accepted)
+            accepted.sort(key=lambda item: (
+                0 if item.source_path == "trip.host_name" else 1,
+                item.created_at,
+            ))
             representative = [item for item in accepted if item.target_entity_type == "representative_profile"]
             if representative:
                 revision = self._apply_representative_batch(run, representative)
@@ -622,7 +732,10 @@ class CanadaLegacyImportService:
                     item.target_entity_id, item.status = revision.id, "applied"
                 accepted = [item for item in accepted if item.target_entity_type != "representative_profile"]
             for item in accepted:
-                self._apply_candidate(run, app, item)
+                try:
+                    self._apply_candidate(run, app, item)
+                except Exception as error:
+                    raise self._candidate_apply_error(item, error) from error
                 item.status = "applied"
             self.session.flush()
             unresolved = any(item.status in {"new", "conflict", "ambiguous", "accepted"} for item in changes)
@@ -638,9 +751,16 @@ class CanadaLegacyImportService:
                 "Import could not be applied. Review the highlighted values and try again."
             )
             failure.api_detail = {
+                "category": "persistence_failure",
                 "code": "IMPORT_APPLY_FAILED",
+                "section": "Application",
+                "field_path": None,
+                "entity_id": None,
                 "message": "Import could not be applied.",
-                "issues": ["Review the highlighted value and try again."],
+                "rejected_value": None,
+                "suggested_correction": "Retry the import. If it fails again, contact an administrator with the import run ID.",
+                "retryable": True,
+                "issues": [{"message": "The transaction was rolled back; no imported values were partially applied."}],
             }
             raise failure from error
         self.session.refresh(run)
@@ -689,9 +809,92 @@ class CanadaLegacyImportService:
         if entity is None:
             entity = self._create_target(run, app, item, value)
             item.target_entity_id = getattr(entity, "id", getattr(entity, "person_id", None))
-        if item.target_field != "*": setattr(entity, item.target_field, value)
+        if item.target_entity_type == "host" and item.target_field == "address":
+            self._apply_host_address(app, entity, value)
+            self.session.add(entity); self.session.flush()
+            self._provenance(run, item, entity)
+            return
+        if item.target_entity_type == "host" and item.target_field == "party_name":
+            if entity.host_type == "person":
+                parts = str(value or "").split()
+                if len(parts) < 2:
+                    raise DomainValidationError("A person host requires both given and family names")
+                party = self.session.get(models.Person, entity.person_id)
+                party.first_name, party.last_name = " ".join(parts[:-1]), parts[-1]
+            else:
+                party = self.session.get(cm.Organization, entity.organization_id)
+                party.legal_name = str(value or "").strip()
+            self.session.add(party); self.session.flush()
+            self._provenance(run, item, entity)
+            return
+        if item.target_entity_type == "address" and item.target_field == "unstructured_source_text":
+            self._apply_normalized_address(entity, value)
+        elif item.target_field != "*":
+            setattr(entity, item.target_field, value)
         self.session.add(entity); self.session.flush()
         self._provenance(run, item, entity)
+
+    def _apply_host_address(self, app, host: cm.HostRecord, value: object) -> None:
+        address = self.session.get(cm.Address, host.address_id) if host.address_id else None
+        if address is None:
+            address = cm.Address(application_id=app.id, context="host", owner_id=host.id)
+            self.session.add(address)
+            self.session.flush()
+            host.address_id = address.id
+        self._apply_normalized_address(address, value)
+
+    @staticmethod
+    def _apply_normalized_address(entity: cm.Address, value: object) -> None:
+        parsed = normalize_address(value)
+        entity.unstructured_source_text = parsed.raw
+        for field, parsed_value in {
+            "unit": parsed.unit,
+            "street_number": parsed.street_number,
+            "street_name": parsed.street_name,
+            "city": parsed.city,
+            "state_province": parsed.province_or_state,
+            "postal_code": parsed.postal_code,
+            "country_code": parsed.country_code,
+        }.items():
+            if parsed_value and not getattr(entity, field):
+                setattr(entity, field, parsed_value)
+        entity.review_state = "needs_review"
+
+    @staticmethod
+    def _candidate_apply_error(
+        item: cm.CanadaImportCandidate, error: Exception
+    ) -> DomainValidationError:
+        category = (
+            "database_invariant" if isinstance(error, IntegrityError)
+            else "field_validation" if isinstance(error, (DomainValidationError, DomainNotFound))
+            else "persistence_failure"
+        )
+        explanation = (
+            str(error) if isinstance(error, (DomainValidationError, DomainNotFound))
+            else "The value violates a canonical data constraint."
+        )
+        message = f"{item.target_label} could not be applied. {explanation}"
+        failure = DomainValidationError(message)
+        value = item.proposed_value_json
+        safe_value = value if isinstance(value, (str, int, float, bool, type(None))) else None
+        if isinstance(safe_value, str):
+            safe_value = safe_value[:255]
+        failure.api_detail = {
+            "category": category,
+            "code": "IMPORT_FIELD_INVALID",
+            "section": item.domain_section,
+            "field_path": item.source_path,
+            "entity_id": str(item.target_entity_id) if item.target_entity_id else None,
+            "message": message,
+            "rejected_value": safe_value,
+            "suggested_correction": "Edit or reject the proposed value, then apply the import again.",
+            "retryable": True,
+            "issues": [{
+                "message": "The complete Apply transaction was rolled back.",
+                "field_path": item.source_path,
+            }],
+        }
+        return failure
 
     def _create_imported_applicant(self, run, app, accepted):
         first = next((
@@ -875,13 +1078,29 @@ class CanadaLegacyImportService:
             existing = self.session.scalar(select(cm.HostRecord).where(cm.HostRecord.trip_plan_id == trip.id, cm.HostRecord.is_primary.is_(True))) if trip else None
             if existing:
                 return existing
-            if item.target_field != "party_name" or not item.conflict_type.startswith("resolved_host_"):
+            if item.target_field != "party_name" or not str(item.conflict_type or "").startswith("resolved_host_"):
                 raise DomainValidationError("host type must be explicitly resolved before creating a host")
             if trip is None: trip = cm.TripPlan(application_id=app.id); self.session.add(trip); self.session.flush()
             host_type = item.conflict_type.removeprefix("resolved_host_")
             if host_type == "person":
-                raise DomainValidationError(
-                    "Create or select a host person with confirmed given and family names before applying the host."
+                parts = str(value or "").split()
+                if len(parts) < 2:
+                    raise DomainValidationError(
+                        "A person host requires both given and family names. Edit the host name and retry."
+                    )
+                party = models.Person(
+                    case_id=run.case_id,
+                    first_name=" ".join(parts[:-1]),
+                    last_name=parts[-1],
+                    roles=[cm.OperationalRole.HOST.value],
+                )
+                self.session.add(party); self.session.flush()
+                add_authoritative_role(
+                    self.session, party, cm.OperationalRole.HOST, assigned_by=run.imported_by
+                )
+                host = cm.HostRecord(
+                    trip_plan_id=trip.id, host_type="person", person_id=party.id,
+                    is_primary=True, sort_order=0,
                 )
             else:
                 party = cm.Organization(case_id=run.case_id, legal_name=str(value), organization_type="host")
@@ -954,7 +1173,7 @@ class CanadaLegacyImportService:
         if field in {"date_of_birth","issue_date","expiry_date","resident_since","arrival_date","departure_date","relationship_start_date","relationship_end_date","start_date","end_date","entry_date","exit_date","official_application_date"}: return _date(value)
         if field in {"accompanying_applicant","mailing_same_as_residential"}: return value if isinstance(value, bool) else _bool(value)
         if field in {"available_funds_amount","amount"}: return Decimal(str(value))
-        if field in {"party_name", "address"}: return None
+        if field == "address": return value
         return value
 
     def _next_order(self, model, app_id):
@@ -966,13 +1185,26 @@ class CanadaLegacyImportService:
         if link: link.last_import_run_id = run.id
         else: self.session.add(cm.LegacyImportEntityLink(case_id=run.case_id, source_type=run.source_type, source_record_key=key, canonical_entity_type=entity_type, canonical_entity_id=entity_id, first_import_run_id=run.id, last_import_run_id=run.id))
 
-    def _provenance(self, run, item, entity):
+    def _provenance(self, run, item, entity, *, review_state=None, reviewed_by=None):
         entity_type = {"family_person":"person", "family_biography":"person_biography"}.get(item.target_entity_type, item.target_entity_type)
         if entity_type not in {value.value for value in cm.ProvenanceEntityType}: return
         entity_id = getattr(entity, "id", getattr(entity, "person_id", None))
         now = datetime.now(timezone.utc)
         for old in self.session.scalars(select(cm.FieldProvenanceReview).where(cm.FieldProvenanceReview.case_id == run.case_id, cm.FieldProvenanceReview.entity_type == entity_type, cm.FieldProvenanceReview.entity_id == entity_id, cm.FieldProvenanceReview.field_key == item.target_field, cm.FieldProvenanceReview.superseded_at.is_(None))): old.superseded_at = now
-        self.session.add(cm.FieldProvenanceReview(case_id=run.case_id, entity_type=entity_type, entity_id=entity_id, field_key=item.target_field, source_type=item.source_classification, source_reference=item.source_reference, source_digest=run.source_hash, review_state="unreviewed"))
+        if review_state is None:
+            review_state = "confirmed" if (
+                item.source_classification == "applicant_direct"
+                and item.review_policy == "safe_direct_batch"
+                and item.conflict_type is None
+            ) else "unreviewed"
+        reviewed_at = now if review_state in {"confirmed", "corrected", "rejected"} else None
+        self.session.add(cm.FieldProvenanceReview(
+            case_id=run.case_id, entity_type=entity_type, entity_id=entity_id,
+            field_key=item.target_field, source_type=item.source_classification,
+            source_reference=item.source_reference, source_digest=run.source_hash,
+            review_state=review_state, reviewed_by=reviewed_by,
+            reviewed_at=reviewed_at,
+        ))
 
     def _refresh_counts(self, run):
         counts = {key: 0 for key in ("new","same","conflict","ambiguous","accepted","rejected","applied")}

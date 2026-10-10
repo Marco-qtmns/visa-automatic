@@ -146,7 +146,7 @@ _assign(Permission.CASE_EDIT,
     "delete_collection_record", "upsert_official_answer", "upsert_official_explanation",
     "create_representative_profile", "revise_representative_profile",
     "authorize_representative", "add_provenance", "apply_import", "accept_change",
-    "reject_change", "resolve_change",
+    "reject_change", "resolve_change", "confirm_change",
 )
 _assign(Permission.FACT_READ,
     "list_facts", "get_fact", "list_fact_extraction_runs", "list_fact_candidates",

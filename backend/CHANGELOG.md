@@ -250,3 +250,9 @@ The target backend is added under the existing program repository instead of
 reorganizing the working desktop application. This preserves the current
 launcher and generator paths while moving incrementally toward the documented
 modular-monolith target.
+# 2026-10-09
+
+- Repaired Google Forms intake country, host, address, and Apply validation.
+- Added structured candidate-level and durable intake failure diagnostics.
+- Added edit-and-confirm import decisions and official-section review UI support.
+- Added migration `0015_intake_failure_detail`.

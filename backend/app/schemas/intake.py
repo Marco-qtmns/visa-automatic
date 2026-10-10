@@ -28,6 +28,7 @@ class IntakeSubmissionRead(IntakeReadModel):
     processing_completed_at: datetime | None
     failure_code: str | None
     failure_message: str | None
+    failure_detail_json: dict | None
     issue_count: int
     duplicate_receive_count: int
     retry_count: int
@@ -46,6 +47,7 @@ class IntakeAttemptRead(IntakeReadModel):
     completed_at: datetime | None
     failure_code: str | None
     failure_message: str | None
+    failure_detail_json: dict | None
     case_id: uuid.UUID | None
     import_run_id: uuid.UUID | None
     created_case: int

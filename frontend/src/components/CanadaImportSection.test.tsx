@@ -10,6 +10,7 @@ vi.mock("@/lib/api", async () => {
     listCanadaImports: vi.fn(), listCanadaImportChanges: vi.fn(),
     previewCanadaImport: vi.fn(), applyCanadaImport: vi.fn(),
     reviewCanadaImportChange: vi.fn(), resolveCanadaImportChange: vi.fn(),
+    confirmCanadaImportChange: vi.fn(),
   }};
 });
 
@@ -39,29 +40,47 @@ beforeEach(() => {
   vi.mocked(api.listCanadaImportChanges).mockResolvedValue([base, conflict]);
   vi.mocked(api.applyCanadaImport).mockResolvedValue(run);
   vi.mocked(api.resolveCanadaImportChange).mockResolvedValue({ ...conflict, status: "accepted" });
+  vi.mocked(api.confirmCanadaImportChange).mockResolvedValue({ ...conflict, status: "accepted" });
 });
 
 it("renders preview counts, warnings, and domain sections", async () => {
   render(<CanadaImportSection caseId="case-1" onChanged={vi.fn().mockResolvedValue(undefined)} />);
-  expect(await screen.findByText("Applicant — Passport number")).toBeInTheDocument();
+  expect(await screen.findByText("Applicant — Date of birth")).toBeInTheDocument();
   expect(screen.getByText("Address needs component review")).toBeInTheDocument();
-  expect(screen.getByText("Needs review")).toBeInTheDocument();
+  expect(screen.getByRole("button", { name: "Needs attention" })).toBeInTheDocument();
+  expect(screen.getByRole("button", { name: /Passport \(0\/1\)/ })).toBeInTheDocument();
 });
 
-it("resolves a conflict individually", async () => {
+it("requires a corrected invalid value before confirmation", async () => {
   const user = userEvent.setup();
   render(<CanadaImportSection caseId="case-1" onChanged={vi.fn().mockResolvedValue(undefined)} />);
-  await screen.findByText("Applicant — Passport number");
-  await user.click(screen.getByRole("button", { name: "Use imported" }));
-  expect(api.resolveCanadaImportChange).toHaveBeenCalledWith("change-conflict", "use_imported", "manual-ui", undefined);
+  await screen.findByText("Applicant — Date of birth");
+  await user.click(screen.getByRole("button", { name: /Passport \(0\/1\)/ }));
+  const input = await screen.findByLabelText("Application value");
+  expect(screen.getByRole("button", { name: "Confirm" })).toBeDisabled();
+  await user.clear(input); await user.type(input, "ZZ123456");
+  await user.click(screen.getByRole("button", { name: "Save correction and confirm" }));
+  expect(api.confirmCanadaImportChange).toHaveBeenCalledWith("change-conflict", "ZZ123456", "manual-ui", undefined);
 });
 
-it("does not render deterministic safe values as review cards", async () => {
+it("keeps section navigation and attention filtering in the unified form", async () => {
   const user = userEvent.setup();
   render(<CanadaImportSection caseId="case-1" onChanged={vi.fn().mockResolvedValue(undefined)} />);
-  await screen.findByText("Applicant — Passport number");
-  expect(screen.queryByText("Applicant — Date of birth")).not.toBeInTheDocument();
-  await user.click(screen.getByRole("button", { name: "Process safe values" }));
-  expect(api.applyCanadaImport).toHaveBeenCalledWith("import-1", "safe", "manual-ui");
-  expect(screen.queryByRole("button", { name: /accept all including conflicts/i })).not.toBeInTheDocument();
+  expect(await screen.findByText("Applicant — Date of birth")).toBeInTheDocument();
+  await user.click(screen.getByRole("button", { name: "Needs attention" }));
+  expect(screen.getByText("Applicant — Date of birth")).toBeInTheDocument();
+  await user.click(screen.getByRole("button", { name: /Passport \(0\/1\)/ }));
+  expect(await screen.findByText("Applicant — Passport number")).toBeInTheDocument();
+});
+
+it("keeps confirmed values editable and saves a correction", async () => {
+  const user = userEvent.setup();
+  const confirmed = { ...base, status: "applied", canonical_review_state: "confirmed" as const };
+  vi.mocked(api.listCanadaImportChanges).mockResolvedValue([confirmed]);
+  render(<CanadaImportSection caseId="case-1" onChanged={vi.fn().mockResolvedValue(undefined)} />);
+  const input = await screen.findByLabelText("Application value");
+  expect(input).toBeEnabled();
+  await user.clear(input); await user.type(input, "1993-04-17");
+  await user.click(screen.getByRole("button", { name: "Save correction and confirm" }));
+  expect(api.confirmCanadaImportChange).toHaveBeenCalledWith("change-new", "1993-04-17", "manual-ui", undefined);
 });

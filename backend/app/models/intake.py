@@ -7,7 +7,7 @@ from sqlalchemy import CheckConstraint, DateTime, ForeignKey, Index, Integer, St
 from sqlalchemy.orm import Mapped, mapped_column
 
 from ..database import Base
-from .core import utcnow
+from .core import JSON_TYPE, utcnow
 
 
 INTAKE_STATUSES = "'RECEIVED', 'PROCESSING', 'PROCESSED', 'NEEDS_REVIEW', 'FAILED'"
@@ -50,6 +50,7 @@ class IntakeSubmission(Base):
     processing_completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     failure_code: Mapped[str | None] = mapped_column(String(64))
     failure_message: Mapped[str | None] = mapped_column(Text)
+    failure_detail_json: Mapped[dict | None] = mapped_column(JSON_TYPE)
     issue_count: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     duplicate_receive_count: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     retry_count: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
@@ -73,6 +74,7 @@ class IntakeProcessingAttempt(Base):
     completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     failure_code: Mapped[str | None] = mapped_column(String(64))
     failure_message: Mapped[str | None] = mapped_column(Text)
+    failure_detail_json: Mapped[dict | None] = mapped_column(JSON_TYPE)
     case_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("cases.id", ondelete="SET NULL"))
     import_run_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("canada_legacy_import_runs.id", ondelete="SET NULL"))
     created_case: Mapped[int] = mapped_column(Integer, default=0, nullable=False)

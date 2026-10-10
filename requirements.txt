@@ -11,5 +11,6 @@ uvicorn>=0.34,<1
 argon2-cffi>=23,<26
 cryptography>=45,<47
 email-validator>=2.2,<3
+pycountry>=24.6,<25
 pytest>=8.3,<9
 httpx>=0.28,<1
