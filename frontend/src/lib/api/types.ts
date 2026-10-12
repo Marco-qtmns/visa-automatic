@@ -545,6 +545,11 @@ export interface CanadaImportChange {
   created_at: string;
 }
 
+export interface CanadaImportSectionConfirmResult {
+  confirmed_ids: string[];
+  skipped: { change_id: string; reason: string }[];
+}
+
 export interface CaseDetailBundle {
   case: CaseRecord;
   people: Person[];

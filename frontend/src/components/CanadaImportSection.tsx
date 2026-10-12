@@ -33,7 +33,6 @@ function officialSection(change: CanadaImportChange): OfficialSection {
 
 function displayStatus(change: CanadaImportChange): DisplayStatus {
   if (["confirmed", "corrected"].includes(change.canonical_review_state ?? "")) return "Confirmed";
-  if (change.status === "rejected") return "Confirmed";
   if (["conflict", "ambiguous"].includes(change.status)) return "Conflict / Invalid";
   if (change.proposed_value_json === null || change.proposed_value_json === "") return "Missing";
   return "Needs confirmation";
@@ -58,6 +57,7 @@ export function CanadaImportSection({ caseId, onChanged }: { caseId: string; onC
   const [activeSection, setActiveSection] = useState<OfficialSection>("Personal Details");
   const [filter, setFilter] = useState<"all" | "attention">("all");
   const [error, setError] = useState("");
+  const [sectionNotice, setSectionNotice] = useState("");
   const [busy, setBusy] = useState(false);
 
   async function load(preferred?: CanadaImportRun) {
@@ -73,7 +73,7 @@ export function CanadaImportSection({ caseId, onChanged }: { caseId: string; onC
   useEffect(() => { load().catch(reason => setError(reason instanceof Error ? reason.message : "Imports could not be loaded.")); }, [caseId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   async function act(action: () => Promise<unknown>) {
-    setBusy(true); setError("");
+    setBusy(true); setError(""); setSectionNotice("");
     try { await action(); await load(); await onChanged(); }
     catch (reason) { setError(reason instanceof Error ? reason.message : "Import action failed."); }
     finally { setBusy(false); }
@@ -96,8 +96,6 @@ export function CanadaImportSection({ caseId, onChanged }: { caseId: string; onC
   const unresolved = changes.filter(change => displayStatus(change) !== "Confirmed");
   const sectionItems = grouped[activeSection] ?? [];
   const visibleItems = filter === "attention" ? sectionItems.filter(change => displayStatus(change) !== "Confirmed") : sectionItems;
-  const invalidInSection = sectionItems.some(change => ["conflict", "ambiguous"].includes(change.status));
-  const confirmableInSection = sectionItems.filter(change => ["new", "accepted"].includes(change.status));
   const counts = selected?.counts_json ?? {};
   const detected = Object.values(counts).reduce((sum, value) => sum + value, 0);
 
@@ -113,6 +111,7 @@ export function CanadaImportSection({ caseId, onChanged }: { caseId: string; onC
     <summary>Canada application review</summary>
     <p className="muted">Review imported data in official application order. Original values and canonical proposals remain linked to the audit history.</p>
     {error && <div className="form-error" role="alert">{error}</div>}
+    {sectionNotice && <div className="success-message" role="status">{sectionNotice}</div>}
     <form className="form-grid" onSubmit={upload}>
       <div className="field"><label htmlFor="canada-import-source">Source</label><select id="canada-import-source" name="source_type"><option value="google_verified_csv">Verified Google intake CSV</option><option value="canada_case_json">Canada case JSON</option><option value="representative_profile_json">Representative profile JSON</option></select></div>
       <div className="field"><label htmlFor="canada-import-file">Source file</label><input id="canada-import-file" name="file" type="file" required /></div>
@@ -121,10 +120,9 @@ export function CanadaImportSection({ caseId, onChanged }: { caseId: string; onC
     {runs.length > 0 && <div className="field"><label htmlFor="canada-import-run">Import run</label><select id="canada-import-run" value={selected?.id ?? ""} onChange={event => { const run = runs.find(item => item.id === event.target.value); if (run) load(run).catch(() => setError("Import changes could not be loaded.")); }}>{runs.map(run => <option key={run.id} value={run.id}>{run.source_identifier} · {run.status}</option>)}</select></div>}
     {selected && <>
       <div className="success-message" role="status"><strong>Application intake processed</strong><br />{detected} values detected · {changes.length - unresolved.length} confirmed · {unresolved.length} need attention</div>
-      {selected.warnings_json.length > 0 && <details><summary>{selected.warnings_json.length} parsing notes</summary><ul>{selected.warnings_json.map((warning, index) => <li key={`${warning}-${index}`}>{warning}</li>)}</ul></details>}
       <div className="button-row" aria-label="Review filters"><button type="button" className={filter === "all" ? "button" : "button button-secondary"} onClick={() => setFilter("all")}>All fields</button><button type="button" className={filter === "attention" ? "button" : "button button-secondary"} onClick={() => setFilter("attention")}>Needs attention</button><button type="button" className="button button-secondary" disabled={!unresolved.length} onClick={nextUnresolved}>Next unresolved field</button></div>
       <nav className="button-row" aria-label="Canada application sections">{OFFICIAL_SECTIONS.map(section => { const items = grouped[section]; const remaining = items.filter(item => displayStatus(item) !== "Confirmed").length; return <button type="button" key={section} className={section === activeSection ? "button" : "button button-secondary"} onClick={() => setActiveSection(section)}>{section} ({items.length - remaining}/{items.length})</button>; })}</nav>
-      <div className="section-heading"><div><h3>{activeSection}</h3><span className="muted">{sectionItems.length - sectionItems.filter(item => displayStatus(item) !== "Confirmed").length} of {sectionItems.length} confirmed</span></div>{confirmableInSection.length > 0 && <button type="button" className="button" disabled={busy || invalidInSection} title={invalidInSection ? "Resolve invalid or conflicting fields first" : undefined} onClick={() => act(async () => { for (const change of confirmableInSection) await api.confirmCanadaImportChange(change.id, drafts[change.id] ?? "", actor, hostTypes[change.id] || undefined); })}>Confirm section</button>}</div>
+      <div className="section-heading"><div><h3>{activeSection}</h3><span className="muted">{sectionItems.length - sectionItems.filter(item => displayStatus(item) !== "Confirmed").length} of {sectionItems.length} confirmed</span></div>{sectionItems.some(item => displayStatus(item) !== "Confirmed") && <button type="button" className="button" disabled={busy || !selected} onClick={() => act(async () => { const result = await api.confirmCanadaImportSection(selected.id, sectionItems.map(change => ({ change_id: change.id, value: drafts[change.id] ?? "", ...(hostTypes[change.id] ? { host_type: hostTypes[change.id] as "person" | "organization" } : {}) })), actor); setSectionNotice(`${result.confirmed_ids.length} fields confirmed${result.skipped.length ? `; ${result.skipped.length} left for individual review` : ""}.`); })}>Confirm section</button>}</div>
       {!visibleItems.length && <div className="empty-state">No fields in this section match the current filter.</div>}
       {visibleItems.map(change => {
         const status = displayStatus(change); const changed = (drafts[change.id] ?? "") !== editableValue(change.proposed_value_json); const invalid = status === "Conflict / Invalid"; const needsHostType = change.conflict_type === "host_type_ambiguous"; const canConfirm = !invalid || changed || (needsHostType && Boolean(hostTypes[change.id])); const confirmDisabled = busy || (status === "Confirmed" ? !changed : !canConfirm);

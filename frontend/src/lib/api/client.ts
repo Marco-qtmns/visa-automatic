@@ -386,6 +386,12 @@ export const api = {
     request<{ id: string }>(`/canada-applications/${applicationId}/travel-documents`, json("POST", payload)),
   createCanadaActivity: (applicationId: string, payload: Record<string, unknown>) =>
     request<{ id: string }>(`/canada-applications/${applicationId}/activities`, json("POST", payload)),
+  createCanadaFundingSource: (applicationId: string, payload: Record<string, unknown>) =>
+    request<{ id: string }>(`/canada-applications/${applicationId}/funding-sources`, json("POST", payload)),
+  createCanadaHost: (applicationId: string, payload: Record<string, unknown>) =>
+    request<{ id: string }>(`/canada-applications/${applicationId}/hosts`, json("POST", payload)),
+  deleteCanadaCollectionRecord: (collection: string, recordId: string) =>
+    request<void>(`/canada-collections/${collection}/${recordId}`, { method: "DELETE" }),
   saveOfficialAnswer: (applicationId: string, questionCode: string, payload: Record<string, unknown>) =>
     request<{ id: string }>(`/canada-applications/${applicationId}/official-answers/${encodeURIComponent(questionCode)}`, json("PUT", payload)),
   previewCanadaImport: (caseId: string, sourceType: string, file: File, importedBy?: string) => {
@@ -404,6 +410,8 @@ export const api = {
     request<CanadaImportChange>(`/canada-import-changes/${changeId}/resolve`, json("POST", { decision, reviewed_by: reviewedBy ?? null, ...(hostType ? { host_type: hostType } : {}) })),
   confirmCanadaImportChange: (changeId: string, value: unknown, reviewedBy?: string, hostType?: "person" | "organization") =>
     request<CanadaImportChange>(`/canada-import-changes/${changeId}/confirm`, json("POST", { value, reviewed_by: reviewedBy ?? null, ...(hostType ? { host_type: hostType } : {}) })),
+  confirmCanadaImportSection: (importId: string, items: { change_id: string; value: unknown; host_type?: "person" | "organization" }[], reviewedBy?: string) =>
+    request<import("./types").CanadaImportSectionConfirmResult>(`/canada-imports/${importId}/confirm-section`, json("POST", { items, reviewed_by: reviewedBy ?? null })),
 };
 
 export async function loadCaseSummaries(): Promise<CaseSummary[]> {

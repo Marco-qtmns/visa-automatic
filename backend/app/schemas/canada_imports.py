@@ -11,7 +11,7 @@ class ImportReadModel(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
-class CanadaImportRunRead(ImportReadModel):
+class CanadaImportRunSummary(ImportReadModel):
     id: uuid.UUID
     case_id: uuid.UUID
     source_type: str
@@ -21,10 +21,14 @@ class CanadaImportRunRead(ImportReadModel):
     status: str
     imported_by: str | None
     counts_json: dict[str, int]
-    warnings_json: list[str]
-    error_summary: str | None
+    warnings_json: list[str] = Field(default_factory=list)
+    error_summary: str | None = None
     created_at: datetime
     completed_at: datetime | None
+
+
+class CanadaImportRunRead(CanadaImportRunSummary):
+    pass
 
 
 class CanadaImportCandidateRead(ImportReadModel):
@@ -56,7 +60,7 @@ class CanadaImportCandidateRead(ImportReadModel):
 
 
 class CanadaImportDetail(BaseModel):
-    run: CanadaImportRunRead
+    run: CanadaImportRunSummary
     changes: list[CanadaImportCandidateRead]
 
 
@@ -79,6 +83,27 @@ class ImportResolveRequest(ImportReviewRequest):
 class ImportConfirmRequest(ImportReviewRequest):
     value: Any
     host_type: Literal["person", "organization"] | None = None
+
+
+class ImportSectionConfirmItem(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    change_id: uuid.UUID
+    value: Any
+    host_type: Literal["person", "organization"] | None = None
+
+
+class ImportSectionConfirmRequest(ImportReviewRequest):
+    items: list[ImportSectionConfirmItem] = Field(min_length=1)
+
+
+class ImportSectionConfirmSkip(BaseModel):
+    change_id: uuid.UUID
+    reason: str
+
+
+class ImportSectionConfirmResult(BaseModel):
+    confirmed_ids: list[uuid.UUID]
+    skipped: list[ImportSectionConfirmSkip]
 
 
 class ImportMappingRead(BaseModel):
