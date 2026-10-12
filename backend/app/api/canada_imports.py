@@ -94,3 +94,17 @@ def confirm_change(change_id: uuid.UUID, payload: schemas.ImportConfirmRequest, 
     return service(session).confirm(
         change_id, payload.value, payload.reviewed_by, host_type=payload.host_type
     )
+
+
+@router.post(
+    "/canada-imports/{import_id}/confirm-section",
+    response_model=list[schemas.CanadaImportCandidateRead],
+)
+def confirm_section(
+    import_id: uuid.UUID, payload: schemas.ImportBatchConfirmRequest, session: SessionDep
+):
+    return service(session).confirm_batch(
+        import_id,
+        [item.model_dump() for item in payload.confirmations],
+        reviewed_by=payload.reviewed_by,
+    )

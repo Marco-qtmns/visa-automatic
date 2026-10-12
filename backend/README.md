@@ -118,11 +118,18 @@ authentication.
 
 Milestone M10A adds mandatory password plus TOTP authentication, revocable
 server-side sessions, CSRF protection, the three employee roles, and a safe
-administrator bootstrap command. Apply migrations through `0015_intake_failure_detail` and see
+administrator bootstrap command. Apply migrations through `0017_import_review_state` and see
 [`AUTHENTICATION.md`](AUTHENTICATION.md).
 
 Milestone M12 adds durable, idempotent Google Forms CSV intake, deterministic
 Case resolution/creation, controlled retry history, operational counters, and
-an exception-first employee queue. Apply migration `0015_intake_failure_detail` and
+an exception-first employee queue. Apply migrations through `0017_import_review_state` and
 see [INTAKE.md](INTAKE.md). Manual authenticated CSV upload is complete; live
 Google acquisition remains deliberately outside the Tailscale-only server.
+
+Canada TRV schema review adds strict 234/235-column Google Forms matching,
+schema-target normalization, field-level provenance and corrections, explicit
+confirmation, and a responsive employee review surface. Apply migration
+`0017_import_review_state` and see
+[CANADA_TRV_REVIEW.md](CANADA_TRV_REVIEW.md). This layer prepares reviewed
+structured data; it does not itself fill official forms or generate letters.

@@ -103,7 +103,16 @@ def test_alembic_upgrade_from_0013_repairs_existing_family_member(tmp_path, monk
     database_path = tmp_path / "existing-0013.db"
     url = f"sqlite+pysqlite:///{database_path}"
     engine = create_engine(url)
-    Base.metadata.create_all(engine)
+    Base.metadata.create_all(
+        engine,
+        tables=[
+            table for table in Base.metadata.sorted_tables
+            if table.name not in {
+                "canada_trv_review_imports", "canada_trv_review_applications",
+                "canada_trv_review_fields", "canada_trv_review_revisions",
+            }
+        ],
+    )
     with Session(engine) as database:
         case = models.Case(case_number="UPGRADE-0013", visa_type="canada_trv", purpose="Test")
         database.add(case)
@@ -116,6 +125,9 @@ def test_alembic_upgrade_from_0013_repairs_existing_family_member(tmp_path, monk
         database.commit()
         person_id = person.id
     with engine.begin() as connection:
+        connection.execute(text(
+            "ALTER TABLE canada_import_candidates DROP COLUMN canonical_review_state"
+        ))
         connection.execute(text(
             "CREATE TABLE alembic_version (version_num VARCHAR(32) NOT NULL PRIMARY KEY)"
         ))

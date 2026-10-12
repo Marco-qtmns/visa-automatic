@@ -47,7 +47,7 @@ def ready_case(session, *, state=models.WorkflowState.PREPARE):
         cm.Address(application_id=app.id, context="residential", owner_id=app.id, street_number="1", street_name="Teststrasse", city="Zurich", state_province="ZH", postal_code="8000", country_code="CHE", review_state="confirmed"),
     ])
     passport = cm.TravelDocument(application_id=app.id, person_id=applicant.id, document_type="passport", number="SYN123456", issuing_country_code="CHE", issue_date=date(2024, 1, 1), expiry_date=date(2034, 1, 1), is_primary=True, sort_order=0)
-    trip = cm.TripPlan(application_id=app.id, intake_purpose_text="Visit friends", imm5257_purpose_code="Tourism", purpose_review_state="confirmed", arrival_date=date(2027, 1, 10), departure_date=date(2027, 1, 24), available_funds_amount=5000, available_funds_currency="CAD", funds_source_reference="Personal savings")
+    trip = cm.TripPlan(application_id=app.id, intake_purpose_text="Visit friends", imm5257_purpose_code="02", purpose_review_state="confirmed", arrival_date=date(2027, 1, 10), departure_date=date(2027, 1, 24), available_funds_amount=5000, available_funds_currency="CAD", funds_source_reference="Personal savings")
     session.add_all([passport, trip]); session.flush()
     session.add(cm.ActivityRecord(application_id=app.id, person_id=applicant.id, activity_type="employment", position="Analyst", organization_name="Synthetic AG", start_date=date(2020, 1, 1), period_status="current", city="Zurich", country_code="CHE", sort_order=0))
     for key, value in (("sponsor.exists", False), ("host.exists", False), ("trip.payer", "applicant")):
@@ -127,6 +127,22 @@ def test_provenance_review_import_and_fact_conflicts_block(session):
     assert {"review_required", "unresolved_import_conflict", "unresolved_fact_conflict"} <= {item.code for item in result.issues}
     provenance.review_state = "confirmed"; session.commit()
     assert not any(item.path == "applicant.passport.number" and item.code == "review_required" for item in CanadaPreparationReadinessService(session).evaluate(case.id).issues)
+
+
+def test_rejected_applied_import_value_blocks_preparation(session):
+    case, _applicant, _app, passport, _trip = ready_case(session)
+    run = cm.CanadaLegacyImportRun(case_id=case.id, source_type="canada_case_json", source_identifier="synthetic.canada-case.json", source_hash="e" * 64, mapping_version="m9b-1", status="reviewing")
+    session.add(run); session.flush()
+    session.add(cm.CanadaImportCandidate(
+        import_run_id=run.id, domain_section="passport", employee_label="Passport number",
+        target_entity_type="travel_document", target_entity_id=passport.id, target_field="number",
+        source_path="passport.number", source_record_key="scalar", source_classification="legacy_derived",
+        source_reference="synthetic", raw_value_json=passport.number, proposed_value_json=passport.number,
+        current_value_json=None, status="applied", canonical_review_state="rejected",
+        review_policy="explicit_review", conflict_policy="manual_resolution",
+    )); session.commit()
+    result = CanadaPreparationReadinessService(session).evaluate(case.id)
+    assert any(item.code == "rejected_import_value" and item.path == "imports.passport.number" for item in result.issues)
 
 
 def test_official_explanation_host_and_representative_conditionals(session):

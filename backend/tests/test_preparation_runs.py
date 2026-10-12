@@ -139,7 +139,7 @@ def test_adapter_maps_identity_passport_address_trip_answers_and_representative(
     assert legacy.passport.number == "SYN123456" and legacy.passport.has_other_valid_passport == "No"
     assert legacy.contact.address == "1 Teststrasse Zurich ZH 8000 CHE"
     assert legacy.contact.mailing_same_as_residential == "Yes"
-    assert legacy.trip.purpose == "Tourism" and legacy.trip.available_funds_cad == "5000"
+    assert legacy.trip.purpose == "02" and legacy.trip.available_funds_cad == "5000"
     assert legacy.activities[0].position == "Analyst"
     assert legacy.official_review.tuberculosis_or_close_contact_last_two_years == "No"
     assert legacy.representative.family_name == "Representative"

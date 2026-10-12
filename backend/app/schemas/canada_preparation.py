@@ -17,6 +17,7 @@ class PreparationIssue(FrozenValue):
         "unresolved_fact_conflict", "unresolved_fact_candidate", "missing_selection", "invalid_cardinality",
         "inconsistent_data", "blocking_requirement", "unsupported_value",
         "missing_collection_record", "incomplete_collection", "ambiguous_reference",
+        "rejected_import_value",
     ]
     path: str
     section: str

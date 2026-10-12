@@ -322,6 +322,108 @@ def test_multiple_citizenships_create_distinct_canonical_rows(session):
     } == {"BRA", "CAN"}
 
 
+@pytest.mark.parametrize("raw", ["Não", "Nao", "no"])
+def test_negative_additional_citizenship_is_an_answer_not_a_country(session, raw):
+    case, applicant, app = setup_application(session)
+    legacy = CanadaCase()
+    legacy.identity.other_citizenship = raw
+    run = preview(session, case, legacy, hashlib.sha256(raw.encode()).hexdigest())
+    importer = CanadaLegacyImportService(session)
+    change = importer.changes(run.id)[0]
+
+    assert change.target_entity_type == "official_answer"
+    assert change.proposed_value_json == "no"
+    assert change.conflict_type is None
+
+    importer.confirm(change.id, "no", "worker@example.invalid")
+    importer.apply(run.id, reviewed_by="worker@example.invalid")
+    assert session.scalar(select(func.count(cm.PersonCitizenship.id)).where(
+        cm.PersonCitizenship.person_id == applicant.id
+    )) == 0
+    answer = session.scalar(select(cm.OfficialApplicationAnswer).where(
+        cm.OfficialApplicationAnswer.application_id == app.id,
+        cm.OfficialApplicationAnswer.question_code == "other_citizenship",
+    ))
+    assert answer.answer == "no"
+
+
+def test_yes_without_additional_citizenship_country_requires_information(session):
+    case, _applicant, _app = setup_application(session)
+    legacy = CanadaCase()
+    legacy.identity.other_citizenship = "Sim"
+    run = preview(session, case, legacy, "8" * 64)
+    change = CanadaLegacyImportService(session).changes(run.id)[0]
+    assert change.status == "ambiguous"
+    assert change.conflict_type == "additional_citizenship_country_missing"
+
+
+def test_second_passport_answer_and_details_use_supported_canonical_records(session):
+    case, _applicant, app = setup_application(session)
+    legacy = CanadaCase()
+    legacy.passport.has_other_valid_passport = "Não"
+    run = preview(session, case, legacy, "9" * 64)
+    importer = CanadaLegacyImportService(session)
+    change = importer.changes(run.id)[0]
+    assert (change.target_entity_type, change.target_field, change.proposed_value_json) == (
+        "official_answer", "answer", "no"
+    )
+    importer.confirm(change.id, "no", "worker@example.invalid")
+    importer.apply(run.id, reviewed_by="worker@example.invalid")
+    assert session.scalar(select(func.count(cm.TravelDocument.id)).where(
+        cm.TravelDocument.application_id == app.id
+    )) == 0
+
+    second = CanadaCase()
+    second.passport.has_other_valid_passport = "Sim"
+    second.passport.other_passport_details = "Passport details supplied by applicant"
+    second_run = preview(session, case, second, "0" * 64)
+    changes = importer.changes(second_run.id)
+    details = next(item for item in changes if item.source_path == "passport.other_passport_details")
+    assert (details.target_entity_type, details.target_field) == ("official_explanation", "text")
+    assert details.proposed_value_json == "Passport details supplied by applicant"
+
+
+def test_language_intake_fields_are_reviewable_without_inferring_language_roles(session):
+    case, _applicant, app = setup_application(session)
+    legacy = CanadaCase()
+    legacy.identity.languages = "Português e inglês"
+    legacy.identity.language_test_answer = "Não"
+    legacy.staff_review.native_language = "pt"
+    legacy.staff_review.preferred_language = "en"
+    legacy.staff_review.service_language = "fr"
+    run = preview(session, case, legacy, "b" * 64)
+    changes = CanadaLegacyImportService(session).changes(run.id)
+    targets = {item.source_path: (item.target_entity_type, item.target_field) for item in changes}
+    assert targets["identity.languages"] == ("official_explanation", "text")
+    assert targets["identity.language_test_answer"] == ("official_answer", "answer")
+    assert targets["staff_review.native_language"] == ("application", "native_language_code")
+    assert targets["staff_review.preferred_language"] == ("application", "preferred_language_code")
+    assert targets["staff_review.service_language"] == ("application", "service_language_code")
+    assert app.native_language_code is None
+
+
+def test_section_confirmation_is_atomic_when_one_field_is_invalid(session):
+    case, _applicant, _app = setup_application(session)
+    legacy = CanadaCase()
+    legacy.trip.purpose = "Visit friends"
+    legacy.identity.birth_country = "Unknownland"
+    run = preview(session, case, legacy, "c" * 64)
+    importer = CanadaLegacyImportService(session)
+    changes = importer.changes(run.id)
+    purpose = next(item for item in changes if item.source_path == "trip.purpose")
+    country = next(item for item in changes if item.source_path == "identity.birth_country")
+
+    with pytest.raises(DomainValidationError, match="Country is unknown"):
+        importer.confirm_batch(run.id, [
+            {"candidate_id": purpose.id, "value": "Visit friends"},
+            {"candidate_id": country.id, "value": "Unknownland"},
+        ], reviewed_by="worker@example.invalid")
+
+    session.expire_all()
+    assert session.get(cm.CanadaImportCandidate, purpose.id).status == "new"
+    assert session.get(cm.CanadaImportCandidate, purpose.id).canonical_review_state is None
+
+
 def test_explicit_person_host_choice_creates_linked_host_and_reviewable_address(session):
     case, _applicant, app = setup_application(session)
     legacy = CanadaCase()
@@ -532,6 +634,32 @@ def test_confirmed_import_field_can_be_corrected_through_service_with_audit_stat
     ))
     assert provenance.review_state == "corrected"
     assert provenance.reviewed_by == "reviewer@example.invalid"
+
+
+def test_applied_nationality_can_be_confirmed_or_rejected_persistently(session):
+    case, _applicant, _app = setup_application(session)
+    legacy = CanadaCase()
+    legacy.identity.nationality = "Brazil"
+    run = preview(session, case, legacy, "e" * 64)
+    importer = CanadaLegacyImportService(session)
+    change = importer.changes(run.id)[0]
+    importer.apply(run.id, mode="safe", reviewed_by="worker@example.invalid")
+    session.refresh(change)
+    change.canonical_review_state = None
+    change.target_entity_id = None  # Simulate an applied row created before target IDs were persisted.
+    session.commit()
+
+    importer.confirm(change.id, "BRA", "reviewer@example.invalid")
+    assert importer.changes(run.id)[0].canonical_review_state == "confirmed"
+    assert importer.changes(run.id)[0].target_entity_id is not None
+
+    change = session.get(cm.CanadaImportCandidate, change.id)
+    change.canonical_review_state = None
+    session.commit()
+    importer.review(change.id, "reject", "reviewer@example.invalid")
+    reloaded = importer.changes(run.id)[0]
+    assert reloaded.status == "applied"
+    assert reloaded.canonical_review_state == "rejected"
 
 
 def test_source_first_import_can_identify_an_unnamed_case(session):

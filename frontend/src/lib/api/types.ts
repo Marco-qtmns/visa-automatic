@@ -474,6 +474,7 @@ export interface CanadaFamilyRelationship {
   related_person_id: string;
   relationship_type: "spouse" | "former_spouse" | "parent" | "child";
   parent_type: string | null;
+  is_current?: boolean;
 }
 
 export interface CanadaApplicationBundle {
@@ -543,6 +544,57 @@ export interface CanadaImportChange {
   reviewed_at: string | null;
   canonical_review_state?: "unreviewed" | "confirmed" | "corrected" | "needs_review" | "rejected" | null;
   created_at: string;
+}
+
+export type CanadaTrvReviewStatus =
+  | "pending" | "confirmed" | "corrected_pending_confirmation"
+  | "confirmed_after_correction" | "not_applicable" | "missing" | "needs_review";
+
+export interface CanadaTrvReviewApplication {
+  id: string;
+  import_id: string;
+  case_id: string;
+  import_row_number: number;
+  status: "in_progress" | "needs_attention" | "ready_to_confirm" | "confirmed";
+  confirmed_by: string | null;
+  confirmed_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CanadaTrvReviewField {
+  id: string;
+  field_id: string;
+  section_id: string;
+  target_path: string;
+  source_csv_column_1based: number | null;
+  source_header: string;
+  raw_value: string;
+  normalized_value_json: unknown;
+  edited_value_json: unknown | null;
+  applicability: "applicable" | "not_applicable" | "unknown";
+  review_status: CanadaTrvReviewStatus;
+  evidence: string | null;
+  requirement_mode: string;
+  reviewer_id: string | null;
+  reviewed_at: string | null;
+  label_pt: string;
+  normalized_type: string;
+  ui: { group_id: string; group_title_pt: string; label: string; section_ordinal: number; record_index_0based: number | null; span_columns: number | "full"; show_in_review: boolean };
+  revisions: { id: string; old_value_json: unknown; new_value_json: unknown; actor_id: string; created_at: string }[];
+}
+
+export interface CanadaTrvReviewDetail {
+  application: CanadaTrvReviewApplication;
+  schema_id: string;
+  schema_version: string;
+  variant_id: string;
+  source_filename: string;
+  sections: { id: string; title: string; ui_group_title_pt: string; order: number; reviewable: boolean; evidence: string }[];
+  fields: CanadaTrvReviewField[];
+  normalized_data: Record<string, unknown>;
+  validation_issues: { code: string; severity: "blocking" | "error" | "warning" | "info"; message: string; field_id: string | null; section_id: string | null }[];
+  section_reviews: Record<string, { status: string; reviewer_id: string; reviewed_at: string }>;
 }
 
 export interface CaseDetailBundle {

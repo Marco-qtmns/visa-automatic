@@ -576,6 +576,7 @@ class CanadaImportCandidate(Base):
     conflict_type: Mapped[str | None] = mapped_column(String(64))
     review_policy: Mapped[str] = mapped_column(String(40), nullable=False)
     conflict_policy: Mapped[str] = mapped_column(String(40), nullable=False)
+    canonical_review_state: Mapped[str | None] = mapped_column(String(24))
     reviewed_by: Mapped[str | None] = mapped_column(String(255))
     reviewed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, nullable=False)

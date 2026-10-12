@@ -132,6 +132,7 @@ _assign(Permission.CASE_READ,
     "application_bootstrap", "list_cases", "get_case", "list_persons", "get_person", "list_conversations",
     "list_conversation_messages", "get_workflow", "get_next_action", "get_application",
     "get_bundle", "mapping_specification", "list_imports", "get_import", "list_changes",
+    "review_schema", "list_case_reviews", "get_review",
 )
 _assign(Permission.CASE_CREATE, "create_case", "preview_import", "create_import")
 _assign(Permission.CASE_EDIT,
@@ -146,7 +147,9 @@ _assign(Permission.CASE_EDIT,
     "delete_collection_record", "upsert_official_answer", "upsert_official_explanation",
     "create_representative_profile", "revise_representative_profile",
     "authorize_representative", "add_provenance", "apply_import", "accept_change",
-    "reject_change", "resolve_change", "confirm_change",
+    "reject_change", "resolve_change", "confirm_change", "confirm_section",
+    "update_review_field", "confirm_review_field", "confirm_review_section",
+    "confirm_review_application",
 )
 _assign(Permission.FACT_READ,
     "list_facts", "get_fact", "list_fact_extraction_runs", "list_fact_candidates",
@@ -188,6 +191,7 @@ _assign(Permission.INTAKE_READ,
 )
 _assign(Permission.INTAKE_PROCESS,
     "receive_google_forms_csv", "retry_intake_submission",
+    "import_review_csv",
 )
 
 PUBLIC_ENDPOINTS = frozenset({"health", "health_live", "health_ready", "login", "verify_mfa"})

@@ -36,12 +36,23 @@ it("keeps intake and IMM5257 purpose separate and defaults answers to unknown", 
   vi.mocked(api.saveOfficialAnswer).mockResolvedValue({ id: "answer-1" });
   const user = userEvent.setup();
   render(<CanadaApplicationSection caseId="case-1" people={detail.people} value={bundle} onChanged={vi.fn().mockResolvedValue(undefined)} />);
-  await user.type(screen.getByLabelText("Intake purpose text"), "Visit friends");
+  await user.type(screen.getByLabelText("Original intake purpose"), "Visit friends");
   await user.click(screen.getByRole("button", { name: "Save trip plan" }));
   expect(api.updateCanadaTripPlan).toHaveBeenCalledWith("app-1", expect.objectContaining({ intake_purpose_text: "Visit friends", imm5257_purpose_code: null }));
   await user.type(screen.getByLabelText("Question code"), "background.criminality");
   await user.click(screen.getByRole("button", { name: "Save official answer" }));
   expect(api.saveOfficialAnswer).toHaveBeenCalledWith("app-1", "background.criminality", expect.objectContaining({ answer: "unknown" }));
+});
+
+it("stores the verified IMM5257 purpose code selected by its employee-facing label", async () => {
+  vi.mocked(api.updateCanadaTripPlan).mockResolvedValue({});
+  const user = userEvent.setup();
+  render(<CanadaApplicationSection caseId="case-1" people={detail.people} value={bundle} onChanged={vi.fn().mockResolvedValue(undefined)} />);
+  await user.selectOptions(screen.getByLabelText("Official IMM5257 purpose"), "02");
+  await user.click(screen.getByRole("button", { name: "Save trip plan" }));
+  expect(api.updateCanadaTripPlan).toHaveBeenCalledWith("app-1", expect.objectContaining({
+    imm5257_purpose_code: "02",
+  }));
 });
 
 it("shows family semantics from relationships instead of operational roles", async () => {
@@ -57,6 +68,6 @@ it("shows family semantics from relationships instead of operational roles", asy
     }}
     onChanged={vi.fn().mockResolvedValue(undefined)}
   />);
-  expect(await screen.findByText("mother")).toBeInTheDocument();
+  expect(await screen.findByText(/mother · Recorded relationship/)).toBeInTheDocument();
   expect(screen.getByText(`${detail.people[0].first_name} ${detail.people[0].last_name}`)).toBeInTheDocument();
 });

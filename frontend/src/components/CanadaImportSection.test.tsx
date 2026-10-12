@@ -10,7 +10,7 @@ vi.mock("@/lib/api", async () => {
     listCanadaImports: vi.fn(), listCanadaImportChanges: vi.fn(),
     previewCanadaImport: vi.fn(), applyCanadaImport: vi.fn(),
     reviewCanadaImportChange: vi.fn(), resolveCanadaImportChange: vi.fn(),
-    confirmCanadaImportChange: vi.fn(),
+    confirmCanadaImportChange: vi.fn(), confirmCanadaImportSection: vi.fn(),
   }};
 });
 
@@ -41,6 +41,7 @@ beforeEach(() => {
   vi.mocked(api.applyCanadaImport).mockResolvedValue(run);
   vi.mocked(api.resolveCanadaImportChange).mockResolvedValue({ ...conflict, status: "accepted" });
   vi.mocked(api.confirmCanadaImportChange).mockResolvedValue({ ...conflict, status: "accepted" });
+  vi.mocked(api.confirmCanadaImportSection).mockResolvedValue([]);
 });
 
 it("renders preview counts, warnings, and domain sections", async () => {
@@ -83,4 +84,58 @@ it("keeps confirmed values editable and saves a correction", async () => {
   await user.clear(input); await user.type(input, "1993-04-17");
   await user.click(screen.getByRole("button", { name: "Save correction and confirm" }));
   expect(api.confirmCanadaImportChange).toHaveBeenCalledWith("change-new", "1993-04-17", "manual-ui", undefined);
+});
+
+it("allows an already-applied value without provenance support to be confirmed or rejected", async () => {
+  const user = userEvent.setup();
+  const appliedNationality = {
+    ...base, id: "change-nationality", target_label: "Applicant — Nationality",
+    target_entity_type: "citizenship", target_field: "country_code",
+    source_path: "identity.nationality", raw_value_json: "Brazil",
+    proposed_value_json: "BRA", status: "applied", canonical_review_state: null,
+  };
+  vi.mocked(api.listCanadaImportChanges).mockResolvedValue([appliedNationality]);
+  render(<CanadaImportSection caseId="case-1" onChanged={vi.fn().mockResolvedValue(undefined)} />);
+  await screen.findByText("Applicant — Nationality");
+  await user.click(screen.getByRole("button", { name: "Confirm" }));
+  expect(api.confirmCanadaImportChange).toHaveBeenCalledWith("change-nationality", "BRA", "manual-ui", undefined);
+  await user.click(screen.getByRole("button", { name: "Reject" }));
+  expect(api.reviewCanadaImportChange).toHaveBeenCalledWith("change-nationality", "reject", "manual-ui");
+});
+
+it("keeps the selected section after confirming a field and refreshing", async () => {
+  const user = userEvent.setup();
+  render(<CanadaImportSection caseId="case-1" onChanged={vi.fn().mockResolvedValue(undefined)} />);
+  await screen.findByText("Applicant — Date of birth");
+  await user.click(screen.getByRole("button", { name: /Passport \(0\/1\)/ }));
+  const input = await screen.findByLabelText("Application value");
+  await user.clear(input); await user.type(input, "ZZ123456");
+  await user.click(screen.getByRole("button", { name: "Save correction and confirm" }));
+  expect(await screen.findByRole("heading", { name: "Passport" })).toBeInTheDocument();
+  expect(screen.getByText("Applicant — Passport number")).toBeInTheDocument();
+});
+
+it("confirms a valid section with one atomic batch request", async () => {
+  const user = userEvent.setup();
+  vi.mocked(api.listCanadaImportChanges).mockResolvedValue([base]);
+  render(<CanadaImportSection caseId="case-1" onChanged={vi.fn().mockResolvedValue(undefined)} />);
+  await screen.findByText("Applicant — Date of birth");
+  await user.click(screen.getByRole("button", { name: "Confirm section" }));
+  expect(api.confirmCanadaImportSection).toHaveBeenCalledWith("import-1", [{
+    candidate_id: "change-new", value: "1992-04-17",
+  }], "manual-ui");
+  expect(api.confirmCanadaImportChange).not.toHaveBeenCalled();
+});
+
+it("allows a rejected proposal to be reconsidered without forcing a correction", async () => {
+  const user = userEvent.setup();
+  vi.mocked(api.listCanadaImportChanges).mockResolvedValue([{
+    ...base, status: "rejected", canonical_review_state: "rejected",
+  }]);
+  render(<CanadaImportSection caseId="case-1" onChanged={vi.fn().mockResolvedValue(undefined)} />);
+  await screen.findByText("Applicant — Date of birth");
+  await user.click(screen.getByRole("button", { name: "Reconsider and confirm" }));
+  expect(api.confirmCanadaImportChange).toHaveBeenCalledWith(
+    "change-new", "1992-04-17", "manual-ui", undefined,
+  );
 });

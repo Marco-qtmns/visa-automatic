@@ -34,6 +34,12 @@ from .preparation import PreparationArtifact, PreparationRun
 from .auth import AuthSession, LoginThrottle, MfaChallenge, SecurityEvent, User, UserRole
 from .audit import ApplicationAuditEvent
 from .intake import IntakeProcessingAttempt, IntakeSubmission
+from .canada_review import (
+    CanadaTrvReviewApplication,
+    CanadaTrvReviewField,
+    CanadaTrvReviewImport,
+    CanadaTrvReviewRevision,
+)
 
 __all__ = [
     "Case",
@@ -76,4 +82,8 @@ __all__ = [
     "ApplicationAuditEvent",
     "IntakeSubmission",
     "IntakeProcessingAttempt",
+    "CanadaTrvReviewImport",
+    "CanadaTrvReviewApplication",
+    "CanadaTrvReviewField",
+    "CanadaTrvReviewRevision",
 ]

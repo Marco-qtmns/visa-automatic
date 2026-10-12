@@ -68,7 +68,7 @@ def create_synthetic_case(*, continuation: bool) -> dict[str, object]:
         )
         session.add_all([
             passport,
-            cm.TripPlan(application_id=canada_application.id, intake_purpose_text="Synthetic visit", imm5257_purpose_code="Tourism", purpose_review_state="confirmed", arrival_date=date(2027, 1, 10), departure_date=date(2027, 1, 24), available_funds_amount=5000, available_funds_currency="CAD", funds_source_reference="Synthetic personal savings"),
+            cm.TripPlan(application_id=canada_application.id, intake_purpose_text="Synthetic visit", imm5257_purpose_code="02", purpose_review_state="confirmed", arrival_date=date(2027, 1, 10), departure_date=date(2027, 1, 24), available_funds_amount=5000, available_funds_currency="CAD", funds_source_reference="Synthetic personal savings"),
             cm.ActivityRecord(application_id=canada_application.id, person_id=applicant.id, activity_type="employment", position="Synthetic Analyst", organization_name="Example Invalid AG", start_date=date(2020, 1, 1), period_status="current", city="Synthetic City", country_code="CHE", sort_order=0),
         ])
         if continuation:

@@ -7,7 +7,7 @@ from collections import defaultdict
 from decimal import Decimal
 from typing import Any
 
-from sqlalchemy import select
+from sqlalchemy import or_, select
 from sqlalchemy.orm import Session
 
 from .. import models
@@ -452,11 +452,18 @@ class CanadaPreparationReadinessService:
             cm.CanadaLegacyImportRun, cm.CanadaLegacyImportRun.id == cm.CanadaImportCandidate.import_run_id
         ).where(
             cm.CanadaLegacyImportRun.case_id == case_id,
-            cm.CanadaImportCandidate.status.in_(("conflict", "ambiguous")),
+            or_(
+                cm.CanadaImportCandidate.status.in_(("conflict", "ambiguous")),
+                cm.CanadaImportCandidate.canonical_review_state == "rejected",
+            ),
             cm.CanadaImportCandidate.source_path.in_(PREPARATION_LEGACY_PATHS),
         ).order_by(cm.CanadaImportCandidate.created_at, cm.CanadaImportCandidate.id)):
-            self._issue("unresolved_import_conflict", f"imports.{candidate.source_path}", "imports", candidate.employee_label,
-                        "Resolve this preparation-relevant import difference before preparing forms.")
+            if candidate.canonical_review_state == "rejected":
+                self._issue("rejected_import_value", f"imports.{candidate.source_path}", "imports", candidate.employee_label,
+                            "Replace the rejected imported value in the canonical application before preparing forms.")
+            else:
+                self._issue("unresolved_import_conflict", f"imports.{candidate.source_path}", "imports", candidate.employee_label,
+                            "Resolve this preparation-relevant import difference before preparing forms.")
 
     def _blocking_requirements(self, case_id):
         for requirement in self.session.scalars(select(models.Requirement).where(

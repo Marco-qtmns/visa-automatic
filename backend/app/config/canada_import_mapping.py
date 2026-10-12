@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from dataclasses import asdict, dataclass
 
-MAPPING_VERSION = "m13-normalization-review-1"
+MAPPING_VERSION = "m13-normalization-review-2"
 
 @dataclass(frozen=True)
 class MappingEntry:
@@ -114,4 +114,16 @@ AUDITED_GENERATOR_MAPPINGS = tuple(
 
 assert len(AUDITED_GENERATOR_MAPPINGS) == 138
 
-MAPPING_SPEC_JSON = tuple(asdict(entry) for entry in AUDITED_GENERATOR_MAPPINGS)
+# These fields exist in the verified intake or staff-review model but are not
+# among the 138 legacy generator inputs.  Keep them explicit and versioned
+# without changing the audited generator-coverage invariant.
+SUPPLEMENTAL_IMPORT_MAPPINGS = (
+    MappingEntry("identity.languages", "official_explanations.reported_languages", "applicant_direct", "explicit_review", "verbatim", "never_overwrite_reviewed"),
+    MappingEntry("identity.language_test_answer", "official_application_answers.language_test", "applicant_direct", "explicit_review", "yes_no", "never_overwrite_reviewed"),
+    MappingEntry("staff_review.native_language", "canada_application.native_language_code", "legacy_staff_review", "explicit_review", "verbatim", "never_overwrite_reviewed"),
+    MappingEntry("staff_review.preferred_language", "canada_application.preferred_language_code", "legacy_staff_review", "explicit_review", "verbatim", "never_overwrite_reviewed"),
+    MappingEntry("staff_review.service_language", "canada_application.service_language_code", "legacy_staff_review", "explicit_review", "verbatim", "never_overwrite_reviewed"),
+)
+
+IMPORT_MAPPINGS = AUDITED_GENERATOR_MAPPINGS + SUPPLEMENTAL_IMPORT_MAPPINGS
+MAPPING_SPEC_JSON = tuple(asdict(entry) for entry in IMPORT_MAPPINGS)

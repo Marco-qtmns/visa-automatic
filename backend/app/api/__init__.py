@@ -9,6 +9,7 @@ from .canada_imports import router as canada_imports_router
 from .canada_preparation import router as canada_preparation_router
 from .operational import router as operational_router
 from .intake import router as intake_router
+from .canada_review import router as canada_review_router
 
 router = APIRouter(dependencies=[
     Depends(require_authenticated_request),
@@ -20,5 +21,6 @@ router.include_router(canada_imports_router)
 router.include_router(canada_preparation_router)
 router.include_router(operational_router)
 router.include_router(intake_router)
+router.include_router(canada_review_router)
 
 __all__ = ["router"]

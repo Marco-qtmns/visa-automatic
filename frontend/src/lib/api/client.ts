@@ -34,6 +34,9 @@ import type {
   CanadaApplicationRecord,
   CanadaImportRun,
   CanadaImportChange,
+  CanadaTrvReviewApplication,
+  CanadaTrvReviewDetail,
+  CanadaTrvReviewField,
   IntakeMetrics,
   IntakeSubmission,
 } from "./types";
@@ -404,6 +407,24 @@ export const api = {
     request<CanadaImportChange>(`/canada-import-changes/${changeId}/resolve`, json("POST", { decision, reviewed_by: reviewedBy ?? null, ...(hostType ? { host_type: hostType } : {}) })),
   confirmCanadaImportChange: (changeId: string, value: unknown, reviewedBy?: string, hostType?: "person" | "organization") =>
     request<CanadaImportChange>(`/canada-import-changes/${changeId}/confirm`, json("POST", { value, reviewed_by: reviewedBy ?? null, ...(hostType ? { host_type: hostType } : {}) })),
+  confirmCanadaImportSection: (importId: string, confirmations: { candidate_id: string; value: unknown; host_type?: "person" | "organization" }[], reviewedBy?: string) =>
+    request<CanadaImportChange[]>(`/canada-imports/${importId}/confirm-section`, json("POST", { confirmations, reviewed_by: reviewedBy ?? null })),
+  importCanadaTrvReview: (file: File, caseId?: string) => {
+    const body = new FormData(); body.set("file", file); if (caseId) body.set("case_id", caseId);
+    return request<CanadaTrvReviewApplication[]>("/canada-trv-reviews/import", { method: "POST", body });
+  },
+  listCanadaTrvReviews: (caseId: string) =>
+    request<CanadaTrvReviewApplication[]>(`/cases/${caseId}/canada-trv-reviews`),
+  getCanadaTrvReview: (applicationId: string) =>
+    request<CanadaTrvReviewDetail>(`/canada-trv-reviews/${applicationId}`),
+  updateCanadaTrvReviewField: (fieldId: string, value: unknown) =>
+    request<CanadaTrvReviewField>(`/canada-trv-review-fields/${fieldId}`, json("PATCH", { value })),
+  confirmCanadaTrvReviewField: (fieldId: string) =>
+    request<CanadaTrvReviewField>(`/canada-trv-review-fields/${fieldId}/confirm`, json("POST", {})),
+  confirmCanadaTrvReviewSection: (applicationId: string, sectionId: string) =>
+    request<CanadaTrvReviewDetail>(`/canada-trv-reviews/${applicationId}/confirm-section`, json("POST", { section_id: sectionId })),
+  confirmCanadaTrvReview: (applicationId: string) =>
+    request<CanadaTrvReviewDetail>(`/canada-trv-reviews/${applicationId}/confirm`, json("POST", {})),
 };
 
 export async function loadCaseSummaries(): Promise<CaseSummary[]> {

@@ -159,7 +159,8 @@ class TravelDocumentCreate(BaseModel):
 class TripPlanWrite(BaseModel):
     model_config = ConfigDict(extra="forbid")
     intake_purpose_text: str | None = None
-    imm5257_purpose_code: str | None = None
+    # Values verified against the pinned IMM5257 .ENU-09-2023 XFA choice list.
+    imm5257_purpose_code: Literal["01", "02", "03", "04", "05", "06", "07", "08", "13"] | None = None
     purpose_review_state: ReviewState = ReviewState.UNREVIEWED
     arrival_date: date | None = None
     departure_date: date | None = None

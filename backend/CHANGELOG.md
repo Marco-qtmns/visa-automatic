@@ -1,5 +1,31 @@
 # Backend changelog
 
+## Canada import applied-field review fix
+
+- Added persistent confirmation, correction, and rejection decisions for legacy
+  import candidates, including target types such as citizenship that do not use
+  field-provenance rows.
+- Applied values can now be confirmed or rejected from the employee review UI.
+  Rejected applied values remain traceable and block preparation until replaced
+  with a corrected canonical value.
+- Added migration `0017_import_review_state`.
+
+## Canada TRV schema review
+
+- Added strict versioned matching for the registered 235-column and optional
+  username-free 234-column Google Forms CSV variants, including duplicate-header
+  occurrence resolution, UTF-8 BOM, quoted line breaks, multi-row imports, and
+  actionable rejection diagnostics for unknown layouts.
+- Added schema-target normalization, three-valued conditional applicability,
+  repeated activity/child arrays, conservative free-text collection handling,
+  raw provenance, validation issues, and private source retention.
+- Added persistent review applications, field corrections and revision history,
+  field/section/application confirmation gates, authenticated APIs, and a
+  responsive accessible employee review UI.
+- Added migration `0016_canada_trv_schema_review` and synthetic backend/frontend
+  coverage. Real source-CSV, PDF-reference, and screenshot acceptance remain
+  pending because those artifacts were not present in the supplied archive.
+
 ## Deployment D1.1 - Mac hardening and Raspberry preflight
 
 - Added an authoritative tested deployment-environment contract, safe offline

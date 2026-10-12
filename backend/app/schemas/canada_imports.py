@@ -81,6 +81,17 @@ class ImportConfirmRequest(ImportReviewRequest):
     host_type: Literal["person", "organization"] | None = None
 
 
+class ImportBatchConfirmation(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    candidate_id: uuid.UUID
+    value: Any
+    host_type: Literal["person", "organization"] | None = None
+
+
+class ImportBatchConfirmRequest(ImportReviewRequest):
+    confirmations: list[ImportBatchConfirmation] = Field(min_length=1)
+
+
 class ImportMappingRead(BaseModel):
     mapping_version: str
     count: int

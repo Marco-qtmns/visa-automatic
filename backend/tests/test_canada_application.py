@@ -151,6 +151,12 @@ def test_purpose_unknown_answer_and_occupation_authority(session):
     assert service.person_occupation(app.id, people[0].id) == "Canonical activity"
 
 
+def test_trip_plan_rejects_unknown_imm5257_purpose_code():
+    with pytest.raises(ValueError):
+        cs.TripPlanWrite(imm5257_purpose_code="Tourism")
+    assert cs.TripPlanWrite(imm5257_purpose_code="02").imm5257_purpose_code == "02"
+
+
 def test_address_contexts_are_isolated(session):
     service, _case, _people, app = setup_application(session)
     residential = service.create_address(app.id, cs.AddressWrite(
