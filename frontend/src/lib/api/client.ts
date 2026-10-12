@@ -36,6 +36,8 @@ import type {
   CanadaImportChange,
   IntakeMetrics,
   IntakeSubmission,
+  DynamicCaseStatus,
+  CanonicalValueRevision,
 } from "./types";
 
 const API_BASE_URL = (
@@ -196,6 +198,15 @@ export const api = {
   getCase: (caseId: string) => request<CaseRecord>(`/cases/${caseId}`),
   updateCase: (caseId: string, payload: CaseUpdate) =>
     request<CaseRecord>(`/cases/${caseId}`, json("PATCH", payload)),
+  getDynamicCaseStatus: (caseId: string) =>
+    request<DynamicCaseStatus>(`/cases/${caseId}/dynamic-status`),
+  applyCanonicalDecisions: (caseId: string, decisions: { field_path: string; value_json: unknown; expected_revision: number }[], reviewedBy: string) =>
+    request<CanonicalValueRevision[]>(`/cases/${caseId}/canonical-decisions`, json("POST", {
+      decisions, source_type: "employee_manual", source_reference: "employee-ui",
+      reviewed_by: reviewedBy,
+    })),
+  listCanonicalRevisions: (caseId: string) =>
+    request<CanonicalValueRevision[]>(`/cases/${caseId}/canonical-revisions`),
 
   listPeople: (caseId: string) => request<Person[]>(`/cases/${caseId}/persons`),
   createPerson: (caseId: string, payload: PersonInput) =>
@@ -421,7 +432,7 @@ export async function loadCaseSummaries(): Promise<CaseSummary[]> {
 class CaseDetailLoadError extends Error {}
 
 async function loadCaseDetailData(caseId: string): Promise<CaseDetailBundle> {
-  const [caseRecord, people, facts, requirements, documents, documentTypes, documentMatches, conversations, tasks, workflow, nextAction, canadaApplication, preparation, preparationRuns] =
+  const [caseRecord, people, facts, requirements, documents, documentTypes, documentMatches, conversations, tasks, workflow, nextAction, canadaApplication, preparation, preparationRuns, dynamicStatus, canonicalRevisions] =
     await Promise.all([
       api.getCase(caseId),
       api.listPeople(caseId).catch(() => {
@@ -442,6 +453,8 @@ async function loadCaseDetailData(caseId: string): Promise<CaseDetailBundle> {
       }),
       api.getPreparation(caseId),
       api.listPreparationRuns(caseId),
+      api.getDynamicCaseStatus(caseId),
+      api.listCanonicalRevisions(caseId),
     ]);
   const documentClassifications = (
     await Promise.all(documents.map(document => api.listDocumentClassifications(document.id)))
@@ -476,6 +489,8 @@ async function loadCaseDetailData(caseId: string): Promise<CaseDetailBundle> {
     canadaApplication,
     preparation,
     preparationRuns,
+    dynamicStatus,
+    canonicalRevisions,
   };
 }
 

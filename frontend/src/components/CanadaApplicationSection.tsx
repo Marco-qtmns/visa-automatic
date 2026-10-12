@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
-import { api, type CanadaApplicationBundle, type Fact, type Person, type PersonRole } from "@/lib/api";
+import { api, type CanadaApplicationBundle, type Person } from "@/lib/api";
 import { StatusBadge } from "./StatusBadge";
 import { CanadaImportSection } from "./CanadaImportSection";
 
@@ -16,13 +16,11 @@ function optional(value: FormDataEntryValue | null) {
 export function CanadaApplicationSection({
   caseId,
   people,
-  facts = [],
   value,
   onChanged,
 }: {
   caseId: string;
   people: Person[];
-  facts?: Fact[];
   value: CanadaApplicationBundle | null;
   onChanged: () => Promise<void>;
 }) {
@@ -51,56 +49,6 @@ export function CanadaApplicationSection({
   const bundle = value;
   const app = bundle.application;
   const trip = bundle.trip_plan;
-  const confirmedFact = (key: string) => facts.find(item => item.key === key && item.status === "confirmed");
-  const sponsorFact = confirmedFact("sponsor.exists");
-  const hostFact = confirmedFact("host.exists");
-
-  async function savePartyDecisions(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    const data = new FormData(event.currentTarget);
-    const sponsorChoice = String(data.get("sponsor_exists"));
-    const hostChoice = String(data.get("host_exists"));
-    const sponsorId = optional(data.get("sponsor_person_id"));
-    const hostId = optional(data.get("host_person_id"));
-    if (sponsorChoice === "yes" && !sponsorId) { setError("Select the sponsor when a sponsor exists."); return; }
-    if (hostChoice === "yes" && !hostId) { setError("Select the host when a host exists."); return; }
-    await run(async () => {
-      for (const [key, choice, existing] of [
-        ["sponsor.exists", sponsorChoice, sponsorFact],
-        ["host.exists", hostChoice, hostFact],
-      ] as const) {
-        if (choice === "unknown") continue;
-        const payload = { key, value_json: choice === "yes", source_type: "manual" as const, source_reference: "employee-ui", confidence: 1, status: "confirmed" as const };
-        if (existing) await api.updateFact(existing.id, payload); else await api.createFact(caseId, { ...payload, person_id: null });
-      }
-      for (const person of people) {
-        const roles: PersonRole[] = [...person.roles];
-        if (sponsorChoice !== "unknown") {
-          roles.splice(0, roles.length, ...roles.filter(role => role !== "sponsor"));
-          if (sponsorChoice === "yes" && person.id === sponsorId) roles.push("sponsor");
-        }
-        if (hostChoice !== "unknown") {
-          roles.splice(0, roles.length, ...roles.filter(role => role !== "host"));
-          if (hostChoice === "yes" && person.id === hostId) roles.push("host");
-        }
-        if (!roles.length) roles.push("other");
-        if (roles.join("|") !== person.roles.join("|")) await api.updatePerson(person.id, { roles });
-      }
-      if (sponsorChoice !== "unknown") for (const source of bundle.funding_sources) {
-        await api.deleteCanadaCollectionRecord("funding-sources", String(source.id));
-      }
-      if (hostChoice !== "unknown") for (const host of bundle.hosts) {
-        await api.deleteCanadaCollectionRecord("hosts", String(host.id));
-      }
-      if (sponsorChoice === "yes" && sponsorId) {
-        await api.createCanadaFundingSource(app.id, { payer_kind: "sponsor", person_id: sponsorId, is_primary: true, sort_order: 0 });
-      }
-      if (hostChoice === "yes" && hostId) {
-        await api.createCanadaHost(app.id, { host_type: "person", person_id: hostId, is_primary: true, sort_order: 0 });
-      }
-    }, "Sponsor and host decisions saved.");
-  }
-
   async function saveMetadata(event: FormEvent<HTMLFormElement>) {
     event.preventDefault(); const data = new FormData(event.currentTarget);
     await run(() => api.updateCanadaApplication(app.id, {
@@ -191,13 +139,6 @@ export function CanadaApplicationSection({
     <div className="section-heading"><div><h2>Google Forms / CSV</h2><span className="muted">Structured application source</span></div><StatusBadge value={app.application_date_review_state} /></div>
     {message && <div className="success-message" role="status">{message}</div>}{error && <div className="form-error" role="alert">{error}</div>}
     <CanadaImportSection caseId={caseId} onChanged={onChanged} />
-    <details open><summary>Sponsor and host</summary><p className="muted">Record each decision explicitly. Unknown remains workable but blocks final readiness.</p><form className="form-grid" onSubmit={savePartyDecisions}>
-      <div className="field"><label htmlFor="sponsor-exists">Financial sponsor</label><select id="sponsor-exists" name="sponsor_exists" defaultValue={sponsorFact ? (sponsorFact.value_json === true ? "yes" : "no") : "unknown"}><option value="unknown">Unknown</option><option value="yes">Yes</option><option value="no">No</option></select></div>
-      <div className="field"><label htmlFor="sponsor-person">Sponsor identity</label><select id="sponsor-person" name="sponsor_person_id" defaultValue={people.find(person => person.roles.includes("sponsor"))?.id ?? ""}><option value="">Select when yes</option>{people.filter(person => person.id !== app.applicant_person_id).map(person => <option key={person.id} value={person.id}>{person.first_name} {person.last_name}</option>)}</select></div>
-      <div className="field"><label htmlFor="host-exists">Host in Canada</label><select id="host-exists" name="host_exists" defaultValue={hostFact ? (hostFact.value_json === true ? "yes" : "no") : "unknown"}><option value="unknown">Unknown</option><option value="yes">Yes</option><option value="no">No</option></select></div>
-      <div className="field"><label htmlFor="host-person">Host identity</label><select id="host-person" name="host_person_id" defaultValue={people.find(person => person.roles.includes("host"))?.id ?? ""}><option value="">Select when yes</option>{people.filter(person => person.id !== app.applicant_person_id).map(person => <option key={person.id} value={person.id}>{person.first_name} {person.last_name}</option>)}</select></div>
-      <div className="button-row field-full"><button className="button">Save sponsor and host</button></div>
-    </form></details>
     {family.length ? <div className="record-list"><h3>Family</h3>{family.map(item => <div className="record" key={item.id}><strong>{item.name}</strong><span>{item.relationshipLabel}</span></div>)}</div> : null}
     <details><summary>Advanced: canonical application editor</summary>
     <div className="summary-grid">{counts.map(([label, count]) => <div className="summary-item" key={label}><strong>{count}</strong><span>{label}</span></div>)}</div>

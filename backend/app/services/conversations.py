@@ -16,6 +16,7 @@ from ..schemas import core as schemas
 from .core import CoreDataService, DomainNotFound, DomainValidationError
 from .fact_catalog import DEFAULT_FACT_CATALOG, FactCatalogError
 from .requirements import RequirementEngine
+from .dynamic_cases import CanonicalDecisionService
 
 
 class DuplicateConversationImport(DomainValidationError):
@@ -155,6 +156,7 @@ class ConversationFactExtractionService:
                     or not item.source_message_ids
                     or not set(item.source_message_ids) <= message_ids
                     or not item.evidence.strip()
+                    or item.assertion_type not in {"explicit", "inferred"}
                 ):
                     rejected += 1
                     continue
@@ -182,6 +184,7 @@ class ConversationFactExtractionService:
                     value_json=value,
                     confidence=item.confidence,
                     evidence=item.evidence.strip()[:500],
+                    assertion_type=item.assertion_type,
                     source_message_ids_json=item.source_message_ids,
                     provider=self.extractor.name[:64],
                     model_version=self.extractor.model_version,
@@ -241,6 +244,7 @@ class ConversationFactExtractionService:
         definition = DEFAULT_FACT_CATALOG.facts[candidate.key]
         value = definition.validate_value(corrected_value if corrected else candidate.value_json)
         current = self._latest_confirmed(candidate.case_id, candidate.key)
+        original_value = current.value_json if current is not None else None
         if current is not None and current.value_json == value:
             fact = current
         else:
@@ -268,6 +272,20 @@ class ConversationFactExtractionService:
             )
             self.session.add(fact)
             self.session.flush()
+        source_reference = (
+            f"conversation:{candidate.conversation_import_id};"
+            f"fact-candidate:{candidate.id};"
+            f"messages:{','.join(candidate.source_message_ids_json)}"
+        )
+        CanonicalDecisionService(self.session).append_revision(
+            case_id=candidate.case_id, field_path=candidate.key,
+            entity_type="fact", entity_id=fact.id,
+            original_value=original_value, value=value,
+            source_type="commercial_message", source_reference=source_reference,
+            source_version=self.extractor.model_version,
+            review_state="corrected" if corrected or (current is not None and current.value_json != value) else "confirmed",
+            reviewed_by=reviewed_by,
+        )
         candidate.status = (
             models.FactCandidateStatus.CORRECTED if corrected else models.FactCandidateStatus.ACCEPTED
         )

@@ -61,19 +61,11 @@ def test_initial_state_is_intake_and_validated(session):
     assert WorkflowService(session).get_state(case.id) is WorkflowState.INTAKE
 
 
-def test_intake_to_documents_requires_confirmed_structural_facts(session):
+def test_intake_to_documents_allows_unresolved_structural_facts_during_active_work(session):
     case = make_case(session)
     workflow = WorkflowService(session)
     add_fact(session, case.id, "host.exists", False)
-    with pytest.raises(WorkflowTransitionError, match="sponsor.exists"):
-        workflow.transition(case.id, WorkflowState.DOCUMENTS)
-
-    add_fact(session, case.id, "sponsor.exists", True, status="proposed")
-    assert workflow.can_transition(case.id, WorkflowState.DOCUMENTS) is False
-    with pytest.raises(WorkflowTransitionError, match="sponsor.exists"):
-        workflow.transition(case.id, WorkflowState.DOCUMENTS)
-
-    add_fact(session, case.id, "sponsor.exists", True)
+    assert workflow.can_transition(case.id, WorkflowState.DOCUMENTS) is True
     previous, updated, history = workflow.transition(
         case.id,
         WorkflowState.DOCUMENTS,
@@ -89,13 +81,12 @@ def test_intake_to_documents_requires_confirmed_structural_facts(session):
     assert history.created_at is not None
 
 
-def test_conflict_blocks_forward_progression_and_has_next_action_priority(session):
+def test_conflict_allows_active_work_and_has_next_action_priority(session):
     case = make_case(session)
     add_fact(session, case.id, "sponsor.exists", False)
     conflict = add_fact(session, case.id, "sponsor.exists", True, status="conflict")
     workflow = WorkflowService(session)
-    with pytest.raises(WorkflowTransitionError, match="conflicts"):
-        workflow.transition(case.id, WorkflowState.DOCUMENTS)
+    workflow.transition(case.id, WorkflowState.DOCUMENTS)
     action = workflow.get_next_action(case.id)
     assert action.type == "RESOLVE_CONFLICT"
     assert action.fact_id == conflict.id
@@ -114,7 +105,7 @@ def test_invalid_transition_and_forbidden_regression_are_rejected(session):
         workflow.transition(case.id, WorkflowState.INTAKE)
 
 
-def test_documents_gate_uses_manual_fulfillment_and_waiver_audit(session):
+def test_active_processing_allows_pending_documents_and_preserves_waiver_audit(session):
     case = make_case(session)
     add_required_facts(session, case.id)
     core = CoreDataService(session)
@@ -127,8 +118,7 @@ def test_documents_gate_uses_manual_fulfillment_and_waiver_audit(session):
         reason="Synthetic manual requirement",
         is_blocking=True,
     ))
-    with pytest.raises(WorkflowTransitionError, match="blocking requirements"):
-        workflow.transition(case.id, WorkflowState.PREPARE)
+    workflow.transition(case.id, WorkflowState.PREPARE)
     with pytest.raises(ValueError, match="waiver_reason"):
         core.update_requirement(requirement.id, RequirementUpdate(
             fulfillment_status="waived"
@@ -142,7 +132,6 @@ def test_documents_gate_uses_manual_fulfillment_and_waiver_audit(session):
     assert requirement.waiver_reason == "Employee verified equivalent evidence"
     assert requirement.waived_by == "employee@example.test"
     assert requirement.waived_at is not None
-    workflow.transition(case.id, WorkflowState.PREPARE)
 
 
 def test_nonblocking_requirement_does_not_prevent_prepare(session):
@@ -161,13 +150,13 @@ def test_nonblocking_requirement_does_not_prevent_prepare(session):
     assert workflow.get_state(case.id) is WorkflowState.PREPARE
 
 
-def test_prepare_to_review_rejects_old_temporary_evidence(session):
+def test_final_review_rejects_incomplete_canonical_data_and_old_temporary_evidence(session):
     case = make_case(session)
     add_required_facts(session, case.id)
     workflow = WorkflowService(session)
     workflow.transition(case.id, WorkflowState.DOCUMENTS)
     workflow.transition(case.id, WorkflowState.PREPARE)
-    with pytest.raises(WorkflowTransitionError, match="generated application package"):
+    with pytest.raises(WorkflowTransitionError, match="prerequisites"):
         workflow.transition(case.id, WorkflowState.REVIEW)
     CoreDataService(session).create_document(case.id, DocumentCreate(
         document_type="application_bundle",
@@ -179,7 +168,7 @@ def test_prepare_to_review_rejects_old_temporary_evidence(session):
     CoreDataService(session).create_task(case.id, TaskCreate(
         type="preparation_complete", title="Obsolete marker", status="completed"
     ))
-    with pytest.raises(WorkflowTransitionError, match="generated application package"):
+    with pytest.raises(WorkflowTransitionError, match="prerequisites"):
         workflow.transition(case.id, WorkflowState.REVIEW)
     assert workflow.get_state(case.id) is WorkflowState.PREPARE
 
@@ -204,13 +193,17 @@ def test_review_requires_explicit_actor_and_no_blocking_review_task(session):
     core.update_task(blocking.id, TaskUpdate(status="completed"))
     with pytest.raises(WorkflowTransitionError, match="actor"):
         workflow.transition(case.id, WorkflowState.READY)
-    workflow.transition(case.id, WorkflowState.READY, actor="reviewer@example.test")
-    assert workflow.get_state(case.id) is WorkflowState.READY
+    with pytest.raises(WorkflowTransitionError, match="generated application package"):
+        workflow.transition(case.id, WorkflowState.READY, actor="reviewer@example.test")
+    assert workflow.get_state(case.id) is WorkflowState.REVIEW
 
 
 def test_ready_to_submitted_is_explicit_and_submitted_is_terminal(session):
     case, workflow = move_to_review(session, "CA-WORKFLOW-SUBMITTED")
-    workflow.transition(case.id, WorkflowState.READY, actor="reviewer")
+    # A general workflow fixture may only start at READY after the separately
+    # tested package approval gate has succeeded.
+    case.workflow_state = WorkflowState.READY
+    session.commit()
     assert workflow.get_state(case.id) is WorkflowState.READY
     workflow.transition(case.id, WorkflowState.SUBMITTED, actor="employee")
     assert workflow.get_state(case.id) is WorkflowState.SUBMITTED
@@ -278,8 +271,9 @@ def test_next_action_priority_and_state_actions(session):
 
 def test_next_action_review_ready_and_submitted(session):
     case, workflow = move_to_review(session, "CA-NEXT-STATES")
-    assert workflow.get_next_action(case.id).type == "REVIEW_APPLICATION"
-    workflow.transition(case.id, WorkflowState.READY, actor="reviewer")
+    assert workflow.get_next_action(case.id).type == "REVIEW_PREPARATION_DATA"
+    case.workflow_state = WorkflowState.READY
+    session.commit()
     ready_action = workflow.get_next_action(case.id)
     assert ready_action.type == "SUBMIT_APPLICATION"
     assert ready_action.target_state is WorkflowState.SUBMITTED

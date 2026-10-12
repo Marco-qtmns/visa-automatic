@@ -176,89 +176,62 @@ class WorkflowService:
                 f"transition {current.value} -> {target_state.value} is not allowed"
             )
 
-        is_forward = STATE_ORDER[target_state] > STATE_ORDER[current]
-        if is_forward and self._conflicts(case.id):
+        entering_final_review = (
+            current == models.WorkflowState.PREPARE
+            and target_state == models.WorkflowState.REVIEW
+        )
+        if entering_final_review and self._conflicts(case.id):
             raise WorkflowTransitionError("unresolved fact conflicts block forward progression")
 
         if current == models.WorkflowState.INTAKE and target_state == models.WorkflowState.DOCUMENTS:
             if not case.visa_type.strip():
                 raise WorkflowTransitionError("visa_type is required before DOCUMENTS")
-            if not case.purpose.strip():
-                raise WorkflowTransitionError("purpose is required before DOCUMENTS")
-            missing = [key for key in self.REQUIRED_FACTS if self._confirmed_fact(case.id, key) is None]
-            if missing:
+            # Missing intake decisions do not block normal ACTIVE processing.
+
+        if current == models.WorkflowState.REVIEW and target_state == models.WorkflowState.READY and self._open_blocking_tasks(case.id):
+            raise WorkflowTransitionError("open blocking review tasks prevent READY")
+
+        if entering_final_review:
+            from .canada_preparation import CanadaPreparationReadinessService
+
+            readiness = CanadaPreparationReadinessService(self.session).evaluate(case.id)
+            if not readiness.ready:
+                reasons = [item.model_dump(mode="json") for item in readiness.issues]
+                code = "final_review_prerequisites_missing"
+                message = "Canonical and documentary prerequisites must be complete before final review."
+                action = "Resolve the listed case issues"
                 raise WorkflowTransitionError(
-                    "confirmed facts required before DOCUMENTS: " + ", ".join(missing)
-                )
-
-        if current == models.WorkflowState.DOCUMENTS and target_state == models.WorkflowState.PREPARE:
-            pending = self._pending_blocking_requirements(case.id)
-            if pending:
-                raise WorkflowTransitionError("active blocking requirements remain unresolved")
-
-        if is_forward and self._open_blocking_tasks(case.id):
-            if current == models.WorkflowState.REVIEW:
-                raise WorkflowTransitionError("open blocking review tasks prevent READY")
-            raise WorkflowTransitionError("open blocking tasks prevent forward progression")
-
-        if current == models.WorkflowState.PREPARE and target_state == models.WorkflowState.REVIEW:
-            from .preparation_runs import CanadaPreparationService
-
-            readiness, current_run, integrity = CanadaPreparationService(
-                self.session, self.storage
-            ).current_package(case.id)
-            if current_run is None:
-                if not readiness.ready:
-                    reasons = [item.model_dump(mode="json") for item in readiness.issues]
-                else:
-                    code, message, action = {
-                        "no_matching_success": (
-                            "current_preparation_run_required",
-                            "Generate a new application package from the current canonical data.",
-                            "Open preparation and generate the package again",
-                        ),
-                        "artifact_manifest_missing": (
-                            "preparation_artifact_manifest_invalid",
-                            "The generated package does not contain the complete required artifact set.",
-                            "Regenerate the application package",
-                        ),
-                        "artifact_missing": (
-                            "preparation_artifact_missing",
-                            "A generated package artifact is missing from storage.",
-                            "Regenerate the application package",
-                        ),
-                        "artifact_hash_mismatch": (
-                            "preparation_artifact_integrity_failed",
-                            "A generated package artifact failed its integrity check.",
-                            "Regenerate the application package",
-                        ),
-                    }.get(integrity, (
-                        "current_preparation_run_required",
-                        "A current complete generated application package is required.",
-                        "Open preparation and generate the package",
-                    ))
-                    reasons = [{
+                    message,
+                    api_detail={
                         "code": code,
-                        "path": "preparation.current_run",
-                        "section": "preparation",
-                        "label": "Current generated application package",
-                        "severity": "blocking",
-                        "blocking": True,
                         "message": message,
                         "action": action,
-                    }]
-                raise WorkflowTransitionError(
-                    "a current complete generated application package is required before REVIEW",
-                    api_detail={
-                        "code": "prepare_review_readiness_blocked",
-                        "message": "Case is not ready for review.",
                         "blocking_reasons": reasons,
                     },
                 )
-
         if current == models.WorkflowState.REVIEW and target_state == models.WorkflowState.READY:
             if require_actor and not actor:
                 raise WorkflowTransitionError("actor is required for explicit review approval")
+            from .preparation_runs import CanadaPreparationService
+
+            package = CanadaPreparationService(self.session, self.storage).status(case.id)
+            if package.package_status != "current":
+                code = "final_review_package_required"
+                message = "A current, valid generated application package is required before READY."
+                raise WorkflowTransitionError(
+                    message,
+                    api_detail={
+                        "code": code,
+                        "message": message,
+                        "action": "Generate or regenerate the application package in final review",
+                        "blocking_reasons": [{
+                            "code": code,
+                            "path": "preparation.package",
+                            "blocking": True,
+                            "message": message,
+                        }],
+                    },
+                )
 
     def can_transition(
         self, case_id: uuid.UUID, target_state: models.WorkflowState
@@ -464,11 +437,9 @@ class WorkflowService:
                 target_state=models.WorkflowState.PREPARE,
             )
         if case.workflow_state == models.WorkflowState.PREPARE:
-            from .preparation_runs import CanadaPreparationService
+            from .canada_preparation import CanadaPreparationReadinessService
 
-            preparation = CanadaPreparationService(self.session, self.storage)
-            status = preparation.status(case_id)
-            readiness = status.readiness
+            readiness = CanadaPreparationReadinessService(self.session).evaluate(case_id)
             if not readiness.ready:
                 issue = readiness.issues[0]
                 review_codes = {
@@ -488,23 +459,29 @@ class WorkflowService:
                     preparation_issue_code=issue.code,
                     preparation_path=issue.path,
                 )
-            if status.package_status in {"not_generated", "failed"}:
-                return NextAction(
-                    "GENERATE_APPLICATION", "Generate application package", case_id
-                )
-            if status.package_status in {"stale", "integrity_error"}:
-                return NextAction(
-                    "REGENERATE_APPLICATION", "Regenerate application package", case_id
-                )
-            if status.package_status == "generating":
-                return NextAction("WAIT_FOR_GENERATION", "Application package is generating", case_id)
             return NextAction(
                 "ADVANCE_WORKFLOW",
-                "Preparation is complete; move the case to review",
+                "Prerequisites are complete; enter final review",
                 case_id,
                 target_state=models.WorkflowState.REVIEW,
             )
         if case.workflow_state == models.WorkflowState.REVIEW:
+            from .preparation_runs import CanadaPreparationService
+
+            package = CanadaPreparationService(self.session, self.storage).status(case_id)
+            package_status = package.package_status
+            if package_status == "blocked":
+                issue = package.readiness.issues[0]
+                return NextAction(
+                    "REVIEW_PREPARATION_DATA", f"{issue.action} ({issue.label})", case_id,
+                    preparation_issue_code=issue.code, preparation_path=issue.path,
+                )
+            if package_status in {"not_generated", "failed"}:
+                return NextAction("GENERATE_APPLICATION", "Generate application package", case_id)
+            if package_status in {"stale", "integrity_error"}:
+                return NextAction("REGENERATE_APPLICATION", "Regenerate application package", case_id)
+            if package_status == "generating":
+                return NextAction("WAIT_FOR_GENERATION", "Application package is generating", case_id)
             return NextAction("REVIEW_APPLICATION", "Review and explicitly approve the application", case_id)
         if case.workflow_state == models.WorkflowState.READY:
             return NextAction(

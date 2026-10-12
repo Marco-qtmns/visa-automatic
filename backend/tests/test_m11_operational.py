@@ -33,7 +33,7 @@ def test_empty_application_and_authenticated_bootstrap_projection(session):
         assert created.status_code == 201
         case = created.json()
         assert re.fullmatch(r"CA-\d{4}-\d{8}", case["case_number"])
-        assert case["visa_type"] == "canada_trv"
+        assert case["visa_type"] == "TRV"
 
         bootstrap = client.get("/app/bootstrap")
         assert bootstrap.status_code == 200

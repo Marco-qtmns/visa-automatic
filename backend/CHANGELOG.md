@@ -1,5 +1,17 @@
 # Backend changelog
 
+## Dynamic Case Management — Phase B foundation
+
+- Added provider-neutral canonical decisions and immutable field revisions in
+  migration `0017_dynamic_case_foundation`, including explicit-versus-inferred
+  Commercial evidence classification.
+- Added the compatible `NEW / ACTIVE / FINAL_REVIEW / READY / SUBMITTED`
+  lifecycle projection, readiness dimensions, and one authoritative Open
+  Issues projection.
+- Added unified manual canonical editing, sponsor/host identity and conditional
+  requirement recalculation, and relaxed intermediate workflow gates while
+  preserving final-review and approval controls.
+
 ## Dynamic Case Management — Phase A stabilization
 
 - Added atomic section confirmation, canonical target recovery, persisted

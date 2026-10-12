@@ -7,7 +7,7 @@ import { CanadaApplicationSection } from "./CanadaApplicationSection";
 
 vi.mock("@/lib/api", async () => {
   const actual = await vi.importActual<typeof import("@/lib/api")>("@/lib/api");
-  return { ...actual, api: { ...actual.api, createCanadaApplication: vi.fn(), updateCanadaTripPlan: vi.fn(), saveOfficialAnswer: vi.fn(), listCanadaImports: vi.fn(), listCanadaImportChanges: vi.fn(), createFact: vi.fn(), updateFact: vi.fn(), updatePerson: vi.fn(), createCanadaFundingSource: vi.fn(), createCanadaHost: vi.fn(), deleteCanadaCollectionRecord: vi.fn() } };
+  return { ...actual, api: { ...actual.api, createCanadaApplication: vi.fn(), updateCanadaTripPlan: vi.fn(), saveOfficialAnswer: vi.fn(), listCanadaImports: vi.fn(), listCanadaImportChanges: vi.fn() } };
 });
 
 const bundle: CanadaApplicationBundle = {
@@ -25,7 +25,7 @@ beforeEach(() => {
 it("requires explicit applicant selection when initializing", async () => {
   vi.mocked(api.createCanadaApplication).mockResolvedValue(bundle.application);
   const user = userEvent.setup();
-  render(<CanadaApplicationSection caseId="case-1" people={detail.people} facts={detail.facts} value={null} onChanged={vi.fn().mockResolvedValue(undefined)} />);
+  render(<CanadaApplicationSection caseId="case-1" people={detail.people} value={null} onChanged={vi.fn().mockResolvedValue(undefined)} />);
   await user.selectOptions(screen.getByLabelText("Applicant"), "person-1");
   await user.click(screen.getByRole("button", { name: "Initialize Canada application" }));
   expect(api.createCanadaApplication).toHaveBeenCalledWith("case-1", "person-1");
@@ -35,32 +35,13 @@ it("keeps intake and IMM5257 purpose separate and defaults answers to unknown", 
   vi.mocked(api.updateCanadaTripPlan).mockResolvedValue({});
   vi.mocked(api.saveOfficialAnswer).mockResolvedValue({ id: "answer-1" });
   const user = userEvent.setup();
-  render(<CanadaApplicationSection caseId="case-1" people={detail.people} facts={detail.facts} value={bundle} onChanged={vi.fn().mockResolvedValue(undefined)} />);
+  render(<CanadaApplicationSection caseId="case-1" people={detail.people} value={bundle} onChanged={vi.fn().mockResolvedValue(undefined)} />);
   await user.type(screen.getByLabelText("Intake purpose text"), "Visit friends");
   await user.click(screen.getByRole("button", { name: "Save trip plan" }));
   expect(api.updateCanadaTripPlan).toHaveBeenCalledWith("app-1", expect.objectContaining({ intake_purpose_text: "Visit friends", imm5257_purpose_code: null }));
   await user.type(screen.getByLabelText("Question code"), "background.criminality");
   await user.click(screen.getByRole("button", { name: "Save official answer" }));
   expect(api.saveOfficialAnswer).toHaveBeenCalledWith("app-1", "background.criminality", expect.objectContaining({ answer: "unknown" }));
-});
-
-it("requires and saves explicit sponsor and host identities", async () => {
-  const user = userEvent.setup();
-  const contact = { ...detail.people[0], id: "person-2", first_name: "Sam", last_name: "Support", roles: ["other" as const] };
-  vi.mocked(api.createFact).mockResolvedValue(detail.facts[0]);
-  vi.mocked(api.updatePerson).mockResolvedValue(contact);
-  vi.mocked(api.createCanadaFundingSource).mockResolvedValue({ id: "funding-1" });
-  vi.mocked(api.createCanadaHost).mockResolvedValue({ id: "host-1" });
-  render(<CanadaApplicationSection caseId="case-1" people={[...detail.people, contact]} facts={[]} value={bundle} onChanged={vi.fn().mockResolvedValue(undefined)} />);
-  await user.selectOptions(screen.getByLabelText("Financial sponsor"), "yes");
-  await user.selectOptions(screen.getByLabelText("Sponsor identity"), "person-2");
-  await user.selectOptions(screen.getByLabelText("Host in Canada"), "yes");
-  await user.selectOptions(screen.getByLabelText("Host identity"), "person-2");
-  await user.click(screen.getByRole("button", { name: "Save sponsor and host" }));
-  expect(api.createFact).toHaveBeenCalledTimes(2);
-  expect(api.updatePerson).toHaveBeenCalledWith("person-2", { roles: ["other", "sponsor", "host"] });
-  expect(api.createCanadaFundingSource).toHaveBeenCalledWith("app-1", expect.objectContaining({ person_id: "person-2", is_primary: true }));
-  expect(api.createCanadaHost).toHaveBeenCalledWith("app-1", expect.objectContaining({ person_id: "person-2", is_primary: true }));
 });
 
 it("shows family semantics from relationships instead of operational roles", async () => {

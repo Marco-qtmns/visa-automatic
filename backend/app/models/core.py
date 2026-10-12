@@ -5,7 +5,7 @@ from datetime import datetime, timezone
 from enum import StrEnum
 from typing import Any
 
-from sqlalchemy import Boolean, CheckConstraint, DateTime, Enum as SAEnum, Float, ForeignKey, Index, String, Text, UniqueConstraint, Uuid
+from sqlalchemy import Boolean, CheckConstraint, DateTime, Enum as SAEnum, Float, ForeignKey, Index, Integer, String, Text, UniqueConstraint, Uuid
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.types import JSON
@@ -155,6 +155,41 @@ class Case(TimestampMixin, Base):
     )
     fact_extraction_candidates: Mapped[list[FactExtractionCandidate]] = relationship(
         back_populates="case", cascade="all, delete-orphan"
+    )
+
+
+class CanonicalValueRevision(Base):
+    """Provider-neutral audit ledger; canonical values remain in their typed stores."""
+
+    __tablename__ = "canonical_value_revisions"
+    __table_args__ = (
+        UniqueConstraint("case_id", "field_path", "revision", name="uq_canonical_value_revision"),
+        Index("ix_canonical_value_revisions_case_field", "case_id", "field_path"),
+        CheckConstraint(
+            "review_state IN ('unreviewed', 'confirmed', 'corrected', 'needs_review', 'rejected')",
+            name="canonical_value_revision_review_state_valid",
+        ),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
+    case_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("cases.id", ondelete="CASCADE"), nullable=False
+    )
+    field_path: Mapped[str] = mapped_column(String(255), nullable=False)
+    entity_type: Mapped[str] = mapped_column(String(64), nullable=False)
+    entity_id: Mapped[uuid.UUID | None] = mapped_column(Uuid)
+    revision: Mapped[int] = mapped_column(Integer, nullable=False)
+    original_value_json: Mapped[Any | None] = mapped_column(JSON_TYPE)
+    value_json: Mapped[Any | None] = mapped_column(JSON_TYPE)
+    source_type: Mapped[str] = mapped_column(String(64), nullable=False)
+    source_reference: Mapped[str] = mapped_column(Text, nullable=False)
+    source_timestamp: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    source_version: Mapped[str | None] = mapped_column(String(64))
+    review_state: Mapped[str] = mapped_column(String(24), nullable=False)
+    reviewed_by: Mapped[str | None] = mapped_column(String(255))
+    reviewed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utcnow, nullable=False
     )
 
 
@@ -357,6 +392,7 @@ class FactExtractionCandidate(Base):
     value_json: Mapped[Any] = mapped_column(JSON_TYPE, nullable=False)
     confidence: Mapped[float] = mapped_column(Float, nullable=False)
     evidence: Mapped[str] = mapped_column(Text, nullable=False)
+    assertion_type: Mapped[str] = mapped_column(String(16), default="explicit", nullable=False)
     source_message_ids_json: Mapped[list[str]] = mapped_column(
         JSON_TYPE, default=list, nullable=False
     )

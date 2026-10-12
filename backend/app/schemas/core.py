@@ -57,7 +57,7 @@ class CaseCreate(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     case_number: str | None = Field(default=None, min_length=1, max_length=64)
-    visa_type: str = Field(default="canada_trv", min_length=1, max_length=64)
+    visa_type: str = Field(default="TRV", min_length=1, max_length=64)
     purpose: str = Field(default="To be confirmed", min_length=1, max_length=128)
 
 
@@ -77,6 +77,79 @@ class CaseRead(ReadModel):
     workflow_state: WorkflowState
     created_at: datetime
     updated_at: datetime
+
+
+class CanonicalDecisionItem(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    field_path: Literal[
+        "case.visa_type", "applicant.given_names", "applicant.family_name",
+        "contact.email", "contact.phone", "trip.purpose", "sponsor.exists",
+        "sponsor.person_id", "host.exists", "host.person_id", "trip.payer", "destination.country_code",
+        "commercial.instructions", "special.circumstances", "additional.notes",
+    ]
+    value_json: Any | None = None
+    expected_revision: int = Field(ge=0)
+
+
+class CanonicalDecisionBatch(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    decisions: list[CanonicalDecisionItem] = Field(min_length=1)
+    source_type: Literal["employee_manual", "commercial_message", "google_forms_csv"] = "employee_manual"
+    source_reference: str = Field(min_length=1, max_length=1000)
+    source_timestamp: datetime | None = None
+    source_version: str | None = Field(default=None, max_length=64)
+    reviewed_by: str = Field(min_length=1, max_length=255)
+
+
+class CanonicalValueRevisionRead(ReadModel):
+    id: uuid.UUID
+    case_id: uuid.UUID
+    field_path: str
+    entity_type: str
+    entity_id: uuid.UUID | None
+    revision: int
+    original_value_json: Any | None
+    value_json: Any | None
+    source_type: str
+    source_reference: str
+    source_timestamp: datetime | None
+    source_version: str | None
+    review_state: str
+    reviewed_by: str | None
+    reviewed_at: datetime | None
+    created_at: datetime
+
+
+class CaseIssueRead(BaseModel):
+    issue_key: str
+    category: str
+    code: str
+    field_path: str | None = None
+    severity: Literal["blocking", "warning"]
+    title: str
+    message: str
+    action: str
+    source_type: str
+    source_id: uuid.UUID | None = None
+
+
+class ReadinessDimensionRead(BaseModel):
+    key: str
+    ready: bool
+    blocking_count: int
+    warning_count: int
+
+
+class DynamicCaseStatusRead(BaseModel):
+    case_id: uuid.UUID
+    lifecycle_stage: Literal["NEW", "ACTIVE", "FINAL_REVIEW", "READY", "SUBMITTED"]
+    legacy_workflow_state: WorkflowState
+    can_enter_final_review: bool
+    canonical_values: dict[str, Any | None]
+    dimensions: list[ReadinessDimensionRead]
+    issues: list[CaseIssueRead]
 
 
 class PersonCreate(BaseModel):
@@ -193,6 +266,7 @@ class FactExtractionCandidateRead(ReadModel):
     value_json: Any
     confidence: float
     evidence: str
+    assertion_type: Literal["explicit", "inferred"]
     source_message_ids_json: list[str]
     provider: str
     model_version: str | None

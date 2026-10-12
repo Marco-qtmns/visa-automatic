@@ -44,6 +44,7 @@ from .canada_preparation import (
     canonical_payload_hash,
 )
 from .preparation_runs import CanadaPreparationService, PreparationExecutionError
+from .dynamic_cases import CanonicalDecisionService, DynamicCaseService
 
 __all__ = [
     "CoreDataService",
@@ -84,4 +85,6 @@ __all__ = [
     "canonical_payload_hash",
     "CanadaPreparationService",
     "PreparationExecutionError",
+    "CanonicalDecisionService",
+    "DynamicCaseService",
 ]
