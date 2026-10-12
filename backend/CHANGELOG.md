@@ -1,5 +1,13 @@
 # Backend changelog
 
+## Dynamic Case Management — Phase A stabilization
+
+- Added atomic section confirmation, canonical target recovery, persisted
+  import review state in migration `0016_import_review_state`, exact import
+  regression coverage, and admin-only legacy diagnostics.
+- Added normal-workspace sponsor/host decisions and widened the desktop case
+  workspace without introducing a competing canonical application model.
+
 ## Deployment D1.1 - Mac hardening and Raspberry preflight
 
 - Added an authoritative tested deployment-environment contract, safe offline

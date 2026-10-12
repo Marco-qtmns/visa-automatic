@@ -603,6 +603,9 @@ def test_section_confirmation_skips_conflicts_and_commits_eligible_fields_once(s
     }]
     session.refresh(purpose)
     assert purpose.status == "accepted"
+    assert purpose.canonical_review_state == "confirmed"
+    reloaded = {item.id: item for item in importer.changes(run.id)}
+    assert reloaded[purpose.id].canonical_review_state == "confirmed"
     assert session.get(models.Person, applicant.id).last_name == "Synthetic"
 
 

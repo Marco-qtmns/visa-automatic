@@ -17,6 +17,8 @@ architecture review.
   `RG-TESTE-123456789`, and travel purpose `Turismo`.
 - A rejected import proposal no longer appears as a confirmed canonical field.
   Rejection reviews the proposal, not an absent canonical value.
+- Migration `0016_import_review_state` persists section and field review state,
+  so confirmation survives reloads independently of candidate application.
 - Sponsor and host decisions are available in the normal case screen as
   explicit unknown/yes/no choices with required person selection for “yes”.
   Saving replaces primary funding/host assignments and synchronizes operational
@@ -44,4 +46,4 @@ Existing single-field confirmation and import endpoints remain available.
 
 Phase A does not add the Phase B lifecycle, canonical decision service,
 revision counters, readiness dimensions, or unified issue model. No competing
-Canada review aggregate or database migration was introduced.
+Canada review aggregate was introduced.

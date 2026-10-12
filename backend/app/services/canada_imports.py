@@ -597,15 +597,15 @@ class CanadaLegacyImportService:
         items = list(self.session.scalars(select(cm.CanadaImportCandidate).where(cm.CanadaImportCandidate.import_run_id == import_id).order_by(cm.CanadaImportCandidate.domain_section, cm.CanadaImportCandidate.created_at)))
         for item in items:
             entity_type = {"family_person":"person", "family_biography":"person_biography"}.get(item.target_entity_type, item.target_entity_type)
-            state = None
-            if item.target_entity_id and entity_type in {value.value for value in cm.ProvenanceEntityType}:
+            state = item.canonical_review_state
+            if state is None and item.target_entity_id and entity_type in {value.value for value in cm.ProvenanceEntityType}:
                 state = self.session.scalar(select(cm.FieldProvenanceReview.review_state).where(
                     cm.FieldProvenanceReview.entity_type == entity_type,
                     cm.FieldProvenanceReview.entity_id == item.target_entity_id,
                     cm.FieldProvenanceReview.field_key == item.target_field,
                     cm.FieldProvenanceReview.superseded_at.is_(None),
                 ))
-            setattr(item, "canonical_review_state", state)
+            item.canonical_review_state = state
         return items
 
     def review(self, candidate_id, decision, reviewed_by=None, *, host_type=None):
@@ -615,7 +615,10 @@ class CanadaLegacyImportService:
         if decision == "accept":
             if item.status in {"conflict", "ambiguous"}: raise DomainValidationError("resolve conflicts and ambiguities explicitly")
             item.status = "accepted"
-        elif decision in {"reject", "keep_current"}: item.status = "rejected"
+            item.canonical_review_state = None
+        elif decision in {"reject", "keep_current"}:
+            item.status = "rejected"
+            item.canonical_review_state = "rejected"
         elif decision == "use_imported":
             if item.conflict_type in {"representative_authorization_selection_required", "representative_person_selection_required"}:
                 raise DomainValidationError("complete representative selection in the canonical application before importing this field")
@@ -626,6 +629,7 @@ class CanadaLegacyImportService:
                 if item.target_field == "host_type":
                     item.proposed_value_json = host_type
             item.status = "accepted"
+            item.canonical_review_state = None
         else: raise DomainValidationError("unsupported import review decision")
         item.reviewed_by, item.reviewed_at = reviewed_by, datetime.now(timezone.utc)
         run = self.get_run(item.import_run_id); run.status = "reviewing"
@@ -740,15 +744,20 @@ class CanadaLegacyImportService:
                     active.review_state = "corrected"
                     active.reviewed_by = reviewed_by
                     active.reviewed_at = datetime.now(timezone.utc)
+                item.canonical_review_state = "corrected"
             else:
                 self._provenance(
                     run, item, entity, review_state="confirmed", reviewed_by=reviewed_by
                 )
+                item.canonical_review_state = "confirmed"
             item.reviewed_by = reviewed_by
             item.reviewed_at = datetime.now(timezone.utc)
             return item
         item.proposed_value_json = proposed
         item.status = "accepted"
+        item.canonical_review_state = (
+            "corrected" if not _equal(item.raw_value_json, proposed) else "confirmed"
+        )
         item.reviewed_by = reviewed_by
         item.reviewed_at = datetime.now(timezone.utc)
         run = self.get_run(item.import_run_id)

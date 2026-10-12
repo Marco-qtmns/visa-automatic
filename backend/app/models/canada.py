@@ -555,6 +555,7 @@ class CanadaImportCandidate(Base):
     __table_args__ = (
         UniqueConstraint("import_run_id", "source_path", "source_record_key", "target_entity_type", "target_field", name="uq_canada_import_candidate"),
         CheckConstraint("status IN ('new', 'same', 'conflict', 'ambiguous', 'accepted', 'rejected', 'applied')", name="canada_import_candidate_status_valid"),
+        CheckConstraint("canonical_review_state IS NULL OR canonical_review_state IN ('unreviewed', 'confirmed', 'corrected', 'needs_review', 'rejected')", name="canada_import_candidate_review_state_valid"),
         CheckConstraint("source_classification IN ('applicant_direct', 'legacy_staff_review', 'legacy_derived', 'representative_profile', 'legacy_narrative_derived')", name="canada_import_source_class_valid"),
     )
     id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
@@ -578,6 +579,7 @@ class CanadaImportCandidate(Base):
     conflict_policy: Mapped[str] = mapped_column(String(40), nullable=False)
     reviewed_by: Mapped[str | None] = mapped_column(String(255))
     reviewed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    canonical_review_state: Mapped[str | None] = mapped_column(String(24))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, nullable=False)
 
     @property
