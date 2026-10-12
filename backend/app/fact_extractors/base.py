@@ -27,6 +27,7 @@ class ExtractedFactCandidate:
     confidence: float
     source_message_ids: list[str]
     evidence: str
+    assertion_type: str = "explicit"
 
 
 class FactExtractor(Protocol):

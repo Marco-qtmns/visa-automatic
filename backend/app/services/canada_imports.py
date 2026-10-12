@@ -597,15 +597,15 @@ class CanadaLegacyImportService:
         items = list(self.session.scalars(select(cm.CanadaImportCandidate).where(cm.CanadaImportCandidate.import_run_id == import_id).order_by(cm.CanadaImportCandidate.domain_section, cm.CanadaImportCandidate.created_at)))
         for item in items:
             entity_type = {"family_person":"person", "family_biography":"person_biography"}.get(item.target_entity_type, item.target_entity_type)
-            state = None
-            if item.target_entity_id and entity_type in {value.value for value in cm.ProvenanceEntityType}:
+            state = item.canonical_review_state
+            if state is None and item.target_entity_id and entity_type in {value.value for value in cm.ProvenanceEntityType}:
                 state = self.session.scalar(select(cm.FieldProvenanceReview.review_state).where(
                     cm.FieldProvenanceReview.entity_type == entity_type,
                     cm.FieldProvenanceReview.entity_id == item.target_entity_id,
                     cm.FieldProvenanceReview.field_key == item.target_field,
                     cm.FieldProvenanceReview.superseded_at.is_(None),
                 ))
-            setattr(item, "canonical_review_state", state)
+            item.canonical_review_state = state
         return items
 
     def review(self, candidate_id, decision, reviewed_by=None, *, host_type=None):
@@ -615,7 +615,10 @@ class CanadaLegacyImportService:
         if decision == "accept":
             if item.status in {"conflict", "ambiguous"}: raise DomainValidationError("resolve conflicts and ambiguities explicitly")
             item.status = "accepted"
-        elif decision in {"reject", "keep_current"}: item.status = "rejected"
+            item.canonical_review_state = None
+        elif decision in {"reject", "keep_current"}:
+            item.status = "rejected"
+            item.canonical_review_state = "rejected"
         elif decision == "use_imported":
             if item.conflict_type in {"representative_authorization_selection_required", "representative_person_selection_required"}:
                 raise DomainValidationError("complete representative selection in the canonical application before importing this field")
@@ -626,6 +629,7 @@ class CanadaLegacyImportService:
                 if item.target_field == "host_type":
                     item.proposed_value_json = host_type
             item.status = "accepted"
+            item.canonical_review_state = None
         else: raise DomainValidationError("unsupported import review decision")
         item.reviewed_by, item.reviewed_at = reviewed_by, datetime.now(timezone.utc)
         run = self.get_run(item.import_run_id); run.status = "reviewing"
@@ -637,6 +641,59 @@ class CanadaLegacyImportService:
         item = self.session.get(cm.CanadaImportCandidate, candidate_id)
         if item is None:
             raise DomainNotFound("Canada import change not found")
+        try:
+            self._confirm_item(item, value, reviewed_by, host_type=host_type)
+            self.session.commit()
+        except Exception:
+            self.session.rollback()
+            raise
+        self.session.refresh(item)
+        return item
+
+    def confirm_section(self, import_id, items, reviewed_by=None):
+        """Confirm eligible section fields in one transaction and report omissions."""
+        run = self.get_run(import_id)
+        requested = {item.change_id: item for item in items}
+        candidates = list(self.session.scalars(select(cm.CanadaImportCandidate).where(
+            cm.CanadaImportCandidate.import_run_id == import_id,
+            cm.CanadaImportCandidate.id.in_(requested),
+        )))
+        found = {item.id for item in candidates}
+        skipped = [
+            {"change_id": change_id, "reason": "Change does not belong to this import run."}
+            for change_id in requested if change_id not in found
+        ]
+        confirmed_ids = []
+        try:
+            for item in candidates:
+                request = requested[item.id]
+                if item.status in {"conflict", "ambiguous", "rejected"}:
+                    skipped.append({
+                        "change_id": item.id,
+                        "reason": "Resolve this conflict or rejected proposal individually.",
+                    })
+                    continue
+                if _blank(request.value):
+                    skipped.append({"change_id": item.id, "reason": "A value is required."})
+                    continue
+                try:
+                    with self.session.begin_nested():
+                        self._confirm_item(
+                            item, request.value, reviewed_by, host_type=request.host_type
+                        )
+                except DomainValidationError as error:
+                    skipped.append({"change_id": item.id, "reason": str(error)})
+                    continue
+                confirmed_ids.append(item.id)
+            run.status = "reviewing"
+            self._refresh_counts(run)
+            self.session.commit()
+        except Exception:
+            self.session.rollback()
+            raise
+        return {"confirmed_ids": confirmed_ids, "skipped": skipped}
+
+    def _confirm_item(self, item, value, reviewed_by=None, *, host_type=None):
         proposed = value
         if (item.target_entity_type, item.target_field) in COUNTRY_CODE_TARGETS:
             result = normalize_country(value)
@@ -663,7 +720,10 @@ class CanadaLegacyImportService:
             model = self._model(item.target_entity_type)
             entity = self.session.get(model, item.target_entity_id) if model and item.target_entity_id else None
             if entity is None:
+                entity = self._canonical_entity_for_candidate(run, item)
+            if entity is None:
                 raise DomainValidationError("Canonical field is unavailable for confirmation")
+            item.target_entity_id = getattr(entity, "id", getattr(entity, "person_id", None))
             changed = not _equal(item.proposed_value_json, proposed)
             if changed:
                 item.proposed_value_json = proposed
@@ -673,7 +733,6 @@ class CanadaLegacyImportService:
                 try:
                     self._apply_candidate(run, app, item)
                 except Exception as error:
-                    self.session.rollback()
                     raise self._candidate_apply_error(item, error) from error
                 active = self.session.scalar(select(cm.FieldProvenanceReview).where(
                     cm.FieldProvenanceReview.case_id == run.case_id,
@@ -685,25 +744,45 @@ class CanadaLegacyImportService:
                     active.review_state = "corrected"
                     active.reviewed_by = reviewed_by
                     active.reviewed_at = datetime.now(timezone.utc)
+                item.canonical_review_state = "corrected"
             else:
                 self._provenance(
                     run, item, entity, review_state="confirmed", reviewed_by=reviewed_by
                 )
+                item.canonical_review_state = "confirmed"
             item.reviewed_by = reviewed_by
             item.reviewed_at = datetime.now(timezone.utc)
-            self.session.commit()
-            self.session.refresh(item)
             return item
         item.proposed_value_json = proposed
         item.status = "accepted"
+        item.canonical_review_state = (
+            "corrected" if not _equal(item.raw_value_json, proposed) else "confirmed"
+        )
         item.reviewed_by = reviewed_by
         item.reviewed_at = datetime.now(timezone.utc)
         run = self.get_run(item.import_run_id)
         run.status = "reviewing"
         self._refresh_counts(run)
-        self.session.commit()
-        self.session.refresh(item)
         return item
+
+    def _canonical_entity_for_candidate(self, run, item):
+        """Recover canonical targets for legacy candidates with missing/stale IDs."""
+        app = self.session.scalar(select(cm.CanadaApplication).where(
+            cm.CanadaApplication.case_id == run.case_id
+        ))
+        if app is None:
+            return None
+        mapping = next((entry for entry in AUDITED_GENERATOR_MAPPINGS
+                        if entry.legacy_path == item.source_path), None)
+        if mapping is None:
+            return None
+        group, field = mapping.legacy_path.rsplit(".", 1)
+        entity_type, entity, target_field = self._target(
+            app, group, field, item.source_record_key
+        )
+        if entity_type != item.target_entity_type or target_field != item.target_field:
+            return None
+        return entity
 
     def apply(self, import_id, *, mode="accepted", reviewed_by=None):
         run = self.get_run(import_id)

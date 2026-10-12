@@ -77,8 +77,8 @@ class CanadaPreparationService:
         case = self.session.get(models.Case, case_id)
         if case is None:
             raise DomainNotFound("Case not found")
-        if case.workflow_state != models.WorkflowState.PREPARE:
-            raise DomainValidationError("case must be in PREPARE before generation")
+        if case.workflow_state not in {models.WorkflowState.PREPARE, models.WorkflowState.REVIEW}:
+            raise DomainValidationError("case must be in PREPARE or REVIEW before generation")
         if not initiated_by.strip():
             raise DomainValidationError("initiated_by is required")
         readiness = CanadaPreparationReadinessService(self.session).evaluate(case_id)
@@ -288,7 +288,7 @@ class CanadaPreparationService:
         discrepancy = package_status not in {"current", "not_generated", "generating"}
         if case.workflow_state == models.WorkflowState.SUBMITTED and discrepancy:
             package_status = "submitted_discrepancy"
-        elif case.workflow_state in {models.WorkflowState.REVIEW, models.WorkflowState.READY} and package_status != "current":
+        elif case.workflow_state == models.WorkflowState.READY and package_status != "current":
             self._regress_stale_case(case_id, readiness)
         return schemas.PreparationStatusResult(
             readiness=readiness, latest_run=self.detail(latest),

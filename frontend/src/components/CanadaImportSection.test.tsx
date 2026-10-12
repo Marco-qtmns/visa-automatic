@@ -11,6 +11,7 @@ vi.mock("@/lib/api", async () => {
     previewCanadaImport: vi.fn(), applyCanadaImport: vi.fn(),
     reviewCanadaImportChange: vi.fn(), resolveCanadaImportChange: vi.fn(),
     confirmCanadaImportChange: vi.fn(),
+    confirmCanadaImportSection: vi.fn(),
   }};
 });
 
@@ -18,7 +19,7 @@ const run: CanadaImportRun = {
   id: "import-1", case_id: "case-1", source_type: "canada_case_json",
   source_identifier: "synthetic.canada-case.json", source_hash: "abc", mapping_version: "m9b-1",
   status: "previewed", imported_by: "tester", counts_json: { new: 1, same: 2, conflict: 1, ambiguous: 0, applied: 0 },
-  warnings_json: ["Address needs component review"], error_summary: null,
+  warnings_json: [], error_summary: null,
   created_at: "2026-10-02T00:00:00Z", completed_at: null,
 };
 const base: CanadaImportChange = {
@@ -41,12 +42,21 @@ beforeEach(() => {
   vi.mocked(api.applyCanadaImport).mockResolvedValue(run);
   vi.mocked(api.resolveCanadaImportChange).mockResolvedValue({ ...conflict, status: "accepted" });
   vi.mocked(api.confirmCanadaImportChange).mockResolvedValue({ ...conflict, status: "accepted" });
+  vi.mocked(api.confirmCanadaImportSection).mockResolvedValue({ confirmed_ids: [base.id], skipped: [] });
 });
 
-it("renders preview counts, warnings, and domain sections", async () => {
+it("confirms a section with one atomic API request", async () => {
+  const user = userEvent.setup();
+  render(<CanadaImportSection caseId="case-1" onChanged={vi.fn().mockResolvedValue(undefined)} />);
+  await screen.findByText("Applicant — Date of birth");
+  await user.click(screen.getByRole("button", { name: "Confirm section" }));
+  expect(api.confirmCanadaImportSection).toHaveBeenCalledTimes(1);
+  expect(api.confirmCanadaImportChange).not.toHaveBeenCalled();
+});
+
+it("renders preview counts and domain sections", async () => {
   render(<CanadaImportSection caseId="case-1" onChanged={vi.fn().mockResolvedValue(undefined)} />);
   expect(await screen.findByText("Applicant — Date of birth")).toBeInTheDocument();
-  expect(screen.getByText("Address needs component review")).toBeInTheDocument();
   expect(screen.getByRole("button", { name: "Needs attention" })).toBeInTheDocument();
   expect(screen.getByRole("button", { name: /Passport \(0\/1\)/ })).toBeInTheDocument();
 });

@@ -109,6 +109,7 @@ export interface FactExtractionCandidate {
   value_json: unknown;
   confidence: number;
   evidence: string;
+  assertion_type: "explicit" | "inferred";
   source_message_ids_json: string[];
   provider: string;
   model_version: string | null;
@@ -501,6 +502,48 @@ export interface CanadaApplicationBundle {
   provenance: Record<string, unknown>[];
 }
 
+export interface CaseIssue {
+  issue_key: string;
+  category: string;
+  code: string;
+  field_path: string | null;
+  severity: "blocking" | "warning";
+  title: string;
+  message: string;
+  action: string;
+  source_type: string;
+  source_id: string | null;
+}
+
+export interface DynamicCaseStatus {
+  case_id: string;
+  lifecycle_stage: "NEW" | "ACTIVE" | "FINAL_REVIEW" | "READY" | "SUBMITTED";
+  legacy_workflow_state: WorkflowState;
+  can_enter_final_review: boolean;
+  canonical_values: Record<string, unknown>;
+  dimensions: { key: string; ready: boolean; blocking_count: number; warning_count: number }[];
+  issues: CaseIssue[];
+}
+
+export interface CanonicalValueRevision {
+  id: string;
+  case_id: string;
+  field_path: string;
+  entity_type: string;
+  entity_id: string | null;
+  revision: number;
+  original_value_json: unknown;
+  value_json: unknown;
+  source_type: string;
+  source_reference: string;
+  source_timestamp: string | null;
+  source_version: string | null;
+  review_state: string;
+  reviewed_by: string | null;
+  reviewed_at: string | null;
+  created_at: string;
+}
+
 export interface CanadaImportRun {
   id: string;
   case_id: string;
@@ -545,6 +588,11 @@ export interface CanadaImportChange {
   created_at: string;
 }
 
+export interface CanadaImportSectionConfirmResult {
+  confirmed_ids: string[];
+  skipped: { change_id: string; reason: string }[];
+}
+
 export interface CaseDetailBundle {
   case: CaseRecord;
   people: Person[];
@@ -566,4 +614,6 @@ export interface CaseDetailBundle {
   canadaApplication: CanadaApplicationBundle | null;
   preparation: PreparationStatus;
   preparationRuns: PreparationRun[];
+  dynamicStatus: DynamicCaseStatus;
+  canonicalRevisions: CanonicalValueRevision[];
 }

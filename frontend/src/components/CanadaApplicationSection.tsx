@@ -49,7 +49,6 @@ export function CanadaApplicationSection({
   const bundle = value;
   const app = bundle.application;
   const trip = bundle.trip_plan;
-
   async function saveMetadata(event: FormEvent<HTMLFormElement>) {
     event.preventDefault(); const data = new FormData(event.currentTarget);
     await run(() => api.updateCanadaApplication(app.id, {

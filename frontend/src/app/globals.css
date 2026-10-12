@@ -27,7 +27,7 @@ button { cursor: pointer; }
   align-items: center;
   justify-content: space-between;
   gap: 24px;
-  padding: 12px max(24px, calc((100vw - 1240px) / 2));
+  padding: 12px max(24px, calc((100vw - 1520px) / 2));
   background: #102c23;
   color: white;
   border-bottom: 1px solid #22483b;
@@ -38,7 +38,7 @@ button { cursor: pointer; }
 .brand small { color: #b9cec6; margin-top: 2px; }
 .app-header nav { display: flex; align-items: center; gap: 20px; }
 
-.page-shell { width: min(1240px, calc(100% - 40px)); margin: 0 auto; padding: 34px 0 64px; }
+.page-shell { width: min(1520px, calc(100% - 40px)); margin: 0 auto; padding: 34px 0 64px; }
 .page-heading { display: flex; align-items: flex-end; justify-content: space-between; gap: 20px; margin-bottom: 24px; }
 .eyebrow { margin: 0 0 6px; color: var(--accent); font-size: .76rem; font-weight: 800; letter-spacing: .11em; text-transform: uppercase; }
 h1, h2, h3 { margin-top: 0; }

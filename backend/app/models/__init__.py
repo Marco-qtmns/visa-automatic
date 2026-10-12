@@ -1,5 +1,6 @@
 from .core import (
     Case,
+    CanonicalValueRevision,
     ClassificationReviewStatus,
     CompletenessStatus,
     ConversationImport,
@@ -37,6 +38,7 @@ from .intake import IntakeProcessingAttempt, IntakeSubmission
 
 __all__ = [
     "Case",
+    "CanonicalValueRevision",
     "ClassificationReviewStatus",
     "CompletenessStatus",
     "ConversationImport",

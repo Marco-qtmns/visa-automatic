@@ -27,23 +27,23 @@ class LocalRuleFactExtractor:
             self_pays = _has(lowered, r"\b(i (will |am going to )?(pay|cover)( for)? (myself|the trip)|eu (vou )?pagar( a viagem)?|no sponsor)\b")
             if sponsor_positive and not sponsor_negated:
                 output.extend([
-                    self._candidate("sponsor.exists", True, 0.92, ids, text),
+                    self._candidate("sponsor.exists", True, 0.92, ids, text, "inferred"),
                     self._candidate("trip.payer", "sponsor", 0.9, ids, text),
                 ])
             elif self_pays:
                 output.extend([
-                    self._candidate("sponsor.exists", False, 0.9, ids, text),
+                    self._candidate("sponsor.exists", False, 0.9, ids, text, "inferred"),
                     self._candidate("trip.payer", "applicant", 0.9, ids, text),
                 ])
 
             host_positive = _has(lowered, r"\b(stay|staying|ficar|ficarei)\b.{0,35}\b(sister|brother|friend|family|irm[aã]|amig[oa]|fam[ií]lia)\b")
             host_negative = _has(lowered, r"\b(not stay with anyone|won't stay with anyone|n[aã]o vou ficar com ningu[eé]m|hotel)\b")
             if host_positive and not host_negative:
-                output.append(self._candidate("host.exists", True, 0.9, ids, text))
+                output.append(self._candidate("host.exists", True, 0.9, ids, text, "inferred"))
             elif host_negative:
                 output.append(self._candidate("host.exists", False, 0.88, ids, text))
         return output
 
     @staticmethod
-    def _candidate(key, value, confidence, message_ids, text):
-        return ExtractedFactCandidate(key, value, confidence, message_ids, text[:500])
+    def _candidate(key, value, confidence, message_ids, text, assertion_type="explicit"):
+        return ExtractedFactCandidate(key, value, confidence, message_ids, text[:500], assertion_type)

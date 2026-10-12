@@ -338,12 +338,19 @@ def test_migration_upgrades_0010_to_single_new_head(tmp_path, monkeypatch):
     config = Config(str(PROJECT_ROOT / "backend/alembic.ini"))
     command.upgrade(config, "head")
     with engine.connect() as connection:
-        assert connection.scalar(text("SELECT version_num FROM alembic_version")) == "0015_intake_failure_detail"
+        assert connection.scalar(text("SELECT version_num FROM alembic_version")) == "0017_dynamic_case_foundation"
     assert "application_audit_events" in inspect(engine).get_table_names()
     assert {"intake_submissions", "intake_processing_attempts"} <= set(
         inspect(engine).get_table_names()
     )
     assert "raw_value_json" in {
         column["name"] for column in inspect(engine).get_columns("canada_import_candidates")
+    }
+    assert "canonical_review_state" in {
+        column["name"] for column in inspect(engine).get_columns("canada_import_candidates")
+    }
+    assert "canonical_value_revisions" in inspect(engine).get_table_names()
+    assert "assertion_type" in {
+        column["name"] for column in inspect(engine).get_columns("fact_extraction_candidates")
     }
     engine.dispose()

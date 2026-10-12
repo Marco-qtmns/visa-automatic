@@ -40,6 +40,8 @@ PROVENANCE_MODELS: dict[str, type] = {
 }
 
 COLLECTION_MODELS: dict[str, type] = {
+    "funding-sources": cm.FundingSource,
+    "hosts": cm.HostRecord,
     "family-relationships": cm.FamilyRelationship,
     "education": cm.EducationRecord,
     "activities": cm.ActivityRecord,

@@ -29,4 +29,30 @@ export const detail: CaseDetailBundle = {
     },
   },
   preparationRuns: [],
+  dynamicStatus: {
+    case_id: "case-1", lifecycle_stage: "ACTIVE", legacy_workflow_state: "INTAKE",
+    can_enter_final_review: false,
+    canonical_values: {
+      "case.visa_type": "TRV", "applicant.given_names": "Amina",
+      "applicant.family_name": "Diallo", "contact.email": null,
+      "contact.phone": null, "trip.purpose": "Visit",
+      "sponsor.exists": null, "host.exists": null, "trip.payer": null,
+      "sponsor.person_id": null, "host.person_id": null,
+      "destination.country_code": null, "commercial.instructions": null,
+      "special.circumstances": null, "additional.notes": null,
+    },
+    dimensions: [
+      { key: "intake", ready: false, blocking_count: 1, warning_count: 0 },
+      { key: "canonical", ready: false, blocking_count: 1, warning_count: 0 },
+      { key: "documents", ready: false, blocking_count: 1, warning_count: 0 },
+      { key: "issues", ready: false, blocking_count: 1, warning_count: 0 },
+    ],
+    issues: [{
+      issue_key: "fact:passport.number", category: "canonical", code: "conflict",
+      field_path: "passport.number", severity: "blocking", title: "Passport conflict",
+      message: "Conflicting passport values require review.", action: "Confirm one value.",
+      source_type: "fact", source_id: "fact-1",
+    }],
+  },
+  canonicalRevisions: [],
 };

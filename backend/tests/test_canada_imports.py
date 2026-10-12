@@ -4,6 +4,7 @@ import hashlib
 import json
 import uuid
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 from sqlalchemy import func, select
@@ -532,6 +533,80 @@ def test_confirmed_import_field_can_be_corrected_through_service_with_audit_stat
     ))
     assert provenance.review_state == "corrected"
     assert provenance.reviewed_by == "reviewer@example.invalid"
+
+
+def test_applied_fields_recover_missing_canonical_target_ids_for_reported_values(session):
+    case, _applicant, app = setup_application(session)
+    legacy = CanadaCase()
+    legacy.contact.city = "Campinas"
+    legacy.passport.number = "BRTESTP000001"
+    legacy.passport.identity_number = "RG-TESTE-123456789"
+    legacy.trip.purpose = "Turismo"
+    importer = CanadaLegacyImportService(session)
+    run = preview(session, case, legacy, "9" * 64)
+    importer.apply(run.id, mode="safe", reviewed_by="worker")
+
+    changes = importer.changes(run.id)
+    selected = {item.source_path: item for item in changes}
+    assert set(selected) == {
+        "contact.city", "passport.number", "passport.identity_number", "trip.purpose",
+    }
+    for item in selected.values():
+        assert item.status == "applied"
+        item.target_entity_id = None
+    session.commit()
+
+    for path, value in {
+        "contact.city": "Campinas",
+        "passport.number": "BRTESTP000001",
+        "passport.identity_number": "RG-TESTE-123456789",
+        "trip.purpose": "Turismo",
+    }.items():
+        importer.confirm(selected[path].id, value, "reviewer")
+
+    address = session.scalar(select(cm.Address).where(
+        cm.Address.application_id == app.id, cm.Address.context == "residential"
+    ))
+    passport = session.scalar(select(cm.TravelDocument).where(
+        cm.TravelDocument.application_id == app.id, cm.TravelDocument.is_primary.is_(True)
+    ))
+    identifier = session.scalar(select(cm.PersonIdentifier).where(
+        cm.PersonIdentifier.identifier_type == "national_identity"
+    ))
+    trip = session.scalar(select(cm.TripPlan).where(cm.TripPlan.application_id == app.id))
+    assert address.city == "Campinas"
+    assert passport.number == "BRTESTP000001"
+    assert identifier.value == "RG-TESTE-123456789"
+    assert trip.intake_purpose_text == "Turismo"
+
+
+def test_section_confirmation_skips_conflicts_and_commits_eligible_fields_once(session):
+    case, applicant, _app = setup_application(session)
+    legacy = CanadaCase()
+    legacy.identity.family_name = "Conflicting"
+    legacy.trip.purpose = "Turismo"
+    run = preview(session, case, legacy, "8" * 64)
+    importer = CanadaLegacyImportService(session)
+    changes = importer.changes(run.id)
+    conflict = next(item for item in changes if item.source_path == "identity.family_name")
+    purpose = next(item for item in changes if item.source_path == "trip.purpose")
+
+    result = importer.confirm_section(run.id, [
+        SimpleNamespace(change_id=conflict.id, value="Conflicting", host_type=None),
+        SimpleNamespace(change_id=purpose.id, value="Turismo", host_type=None),
+    ], "reviewer")
+
+    assert result["confirmed_ids"] == [purpose.id]
+    assert result["skipped"] == [{
+        "change_id": conflict.id,
+        "reason": "Resolve this conflict or rejected proposal individually.",
+    }]
+    session.refresh(purpose)
+    assert purpose.status == "accepted"
+    assert purpose.canonical_review_state == "confirmed"
+    reloaded = {item.id: item for item in importer.changes(run.id)}
+    assert reloaded[purpose.id].canonical_review_state == "confirmed"
+    assert session.get(models.Person, applicant.id).last_name == "Synthetic"
 
 
 def test_source_first_import_can_identify_an_unnamed_case(session):

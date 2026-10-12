@@ -43,6 +43,7 @@ class Permission(StrEnum):
     USER_ROLE_CHANGE = "USER_ROLE_CHANGE"
     USER_MFA_RESET = "USER_MFA_RESET"
     USER_SESSION_REVOKE = "USER_SESSION_REVOKE"
+    LEGACY_DIAGNOSTICS_READ = "LEGACY_DIAGNOSTICS_READ"
 
 
 class RouteAuthorizationClass(StrEnum):
@@ -131,8 +132,10 @@ def _assign(permission: Permission, *endpoint_names: str) -> None:
 _assign(Permission.CASE_READ,
     "application_bootstrap", "list_cases", "get_case", "list_persons", "get_person", "list_conversations",
     "list_conversation_messages", "get_workflow", "get_next_action", "get_application",
-    "get_bundle", "mapping_specification", "list_imports", "get_import", "list_changes",
+    "get_bundle", "list_imports", "get_import", "list_changes",
+    "get_dynamic_case_status", "list_canonical_revisions",
 )
+_assign(Permission.LEGACY_DIAGNOSTICS_READ, "mapping_specification", "import_diagnostics")
 _assign(Permission.CASE_CREATE, "create_case", "preview_import", "create_import")
 _assign(Permission.CASE_EDIT,
     "update_case", "create_person", "update_person", "paste_whatsapp_conversation",
@@ -146,7 +149,8 @@ _assign(Permission.CASE_EDIT,
     "delete_collection_record", "upsert_official_answer", "upsert_official_explanation",
     "create_representative_profile", "revise_representative_profile",
     "authorize_representative", "add_provenance", "apply_import", "accept_change",
-    "reject_change", "resolve_change", "confirm_change",
+    "reject_change", "resolve_change", "confirm_change", "confirm_section",
+    "apply_canonical_decisions",
 )
 _assign(Permission.FACT_READ,
     "list_facts", "get_fact", "list_fact_extraction_runs", "list_fact_candidates",

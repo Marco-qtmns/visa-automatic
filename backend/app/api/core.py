@@ -34,6 +34,8 @@ from ..services import (
     DocumentUploadTooLarge,
     RequirementEngine,
     RequirementCompletenessService,
+    CanonicalDecisionService,
+    DynamicCaseService,
     WorkflowService,
     UnsupportedDocumentFile,
 )
@@ -114,6 +116,29 @@ def get_case(case_id: uuid.UUID, session: SessionDep):
 @router.patch("/cases/{case_id}", response_model=schemas.CaseRead)
 def update_case(case_id: uuid.UUID, payload: schemas.CaseUpdate, session: SessionDep):
     return CaseApplicationService(session).update_case(case_id, payload)
+
+
+@router.get("/cases/{case_id}/dynamic-status", response_model=schemas.DynamicCaseStatusRead)
+def get_dynamic_case_status(case_id: uuid.UUID, session: SessionDep):
+    return DynamicCaseService(session).status(case_id)
+
+
+@router.get(
+    "/cases/{case_id}/canonical-revisions",
+    response_model=list[schemas.CanonicalValueRevisionRead],
+)
+def list_canonical_revisions(case_id: uuid.UUID, session: SessionDep):
+    return CanonicalDecisionService(session).list_revisions(case_id)
+
+
+@router.post(
+    "/cases/{case_id}/canonical-decisions",
+    response_model=list[schemas.CanonicalValueRevisionRead],
+)
+def apply_canonical_decisions(
+    case_id: uuid.UUID, payload: schemas.CanonicalDecisionBatch, session: SessionDep
+):
+    return CanonicalDecisionService(session).apply(case_id, payload)
 
 
 @router.post("/cases/{case_id}/persons", response_model=schemas.PersonRead, status_code=status.HTTP_201_CREATED)

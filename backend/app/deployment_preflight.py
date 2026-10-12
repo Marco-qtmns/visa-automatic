@@ -18,7 +18,7 @@ from .runtime_dependencies import check_auth_runtime_dependencies
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 CONTRACT_PATH = PROJECT_ROOT / "deployment" / "environment-contract.json"
-EXPECTED_ALEMBIC_HEAD = "0015_intake_failure_detail"
+EXPECTED_ALEMBIC_HEAD = "0017_dynamic_case_foundation"
 PLACEHOLDER_MARKERS = ("replace-with", "change-me", "example-password")
 MFA_KEY_PLACEHOLDER = "cmVwbGFjZS13aXRoLWdlbmVyYXRlZC1rZXktMDAwMDA="
 

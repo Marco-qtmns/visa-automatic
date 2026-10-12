@@ -118,11 +118,11 @@ authentication.
 
 Milestone M10A adds mandatory password plus TOTP authentication, revocable
 server-side sessions, CSRF protection, the three employee roles, and a safe
-administrator bootstrap command. Apply migrations through `0015_intake_failure_detail` and see
+administrator bootstrap command. Apply migrations through `0017_dynamic_case_foundation` and see
 [`AUTHENTICATION.md`](AUTHENTICATION.md).
 
 Milestone M12 adds durable, idempotent Google Forms CSV intake, deterministic
 Case resolution/creation, controlled retry history, operational counters, and
-an exception-first employee queue. Apply migration `0015_intake_failure_detail` and
+an exception-first employee queue. Apply migration `0017_dynamic_case_foundation` and
 see [INTAKE.md](INTAKE.md). Manual authenticated CSV upload is complete; live
 Google acquisition remains deliberately outside the Tailscale-only server.

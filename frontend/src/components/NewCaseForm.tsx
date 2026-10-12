@@ -27,7 +27,7 @@ export function NewCaseForm() {
     <div className="source-actions">
       <button type="button" className="button" disabled={saving} onClick={() => void create("csv")}>Upload Google Forms / CSV</button>
       <button type="button" className="button" disabled={saving} onClick={() => void create("documents")}>Upload documents</button>
-      <button type="button" className="button" disabled={saving} onClick={() => void create("whatsapp")}>Paste / upload WhatsApp</button>
+      <button type="button" className="button" disabled={saving} onClick={() => void create("whatsapp")}>Paste / upload Commercial message</button>
       <button type="button" className="button button-secondary" disabled={saving} onClick={() => void create()}>Create empty application</button>
     </div>
     {saving && <p role="status">Creating application…</p>}
